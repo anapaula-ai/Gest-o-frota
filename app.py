@@ -5,13 +5,11 @@ import plotly.express as px
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Gestão de frotas", layout="wide", initial_sidebar_state="expanded")
 
-# 2. ESTILO CSS PARA HARMONIA VISUAL E FUNDO DARK
+# 2. ESTILO DARK PREMIUM (CSS)
 st.markdown("""
     <style>
         .stApp { background-color: #000000; color: #ffffff; }
         [data-testid="stSidebar"] { background-color: #050505; border-right: 1px solid #1f1f1f; }
-        
-        /* Estilização das Abas */
         .stTabs [data-baseweb="tab-list"] { gap: 8px; }
         .stTabs [data-baseweb="tab"] {
             background-color: #0a0a0a;
@@ -22,8 +20,6 @@ st.markdown("""
             font-size: 14px;
         }
         .stTabs [aria-selected="true"] { border-top: 2px solid #00d4ff !important; color: #ffffff !important; font-weight: bold; }
-
-        /* Cards de Métricas Harmonizados */
         .metric-card {
             background-color: #0d0d0d;
             padding: 20px;
@@ -33,23 +29,27 @@ st.markdown("""
         }
         .metric-label { color: #888888; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
         .metric-value { font-size: 26px; font-weight: 700; margin-top: 5px; }
-        
-        /* Cor dos Títulos dos Gráficos para combinar com o print */
-        h4 { color: #31333F !important; font-weight: 600; margin-bottom: -10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. CARREGAMENTO DOS DADOS
-@st.cache_data
+# 3. CARREGAMENTO DOS DADOS (Direto do Google Sheets)
+@st.cache_data(ttl=600) # O sistema limpa o cache a cada 10 minutos para buscar novos dados
 def carregar_dados():
-    df = pd.read_excel('manutencao.xlsx')
+    # Link que você me enviou, convertido para formato de dados (CSV)
+    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPclWfjRAP7bxzua2p02XeAubJ_7V2BJrn31MbMZWhZIzVjVLTDjpeYiJVtWmNSw/pub?output=csv"
+    
+    df = pd.read_csv(url)
     df.columns = df.columns.str.strip()
+    
+    # Tratamento de Datas
     df['Mês Referência'] = pd.to_datetime(df['Mês Referência'])
-    traducao_meses = {'January':'Janeiro', 'February':'Fevereiro', 'March':'Março', 'April':'Abril'}
+    traducao_meses = {'January':'Janeiro', 'February':'Fevereiro', 'March':'Março', 'April':'Abril', 'May':'Maio'}
     df['Mês Nome'] = df['Mês Referência'].dt.month_name().map(traducao_meses)
     
+    # Tratamento de Custos (converte formato brasileiro 1.000,00 para número)
     if df['Custo de manutenção'].dtype == 'object':
         df['Custo de manutenção'] = df['Custo de manutenção'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+    
     return df
 
 try:
@@ -61,8 +61,8 @@ try:
     inst_lista = ['Todas'] + list(df[col_inst].unique())
     inst_selecionada = st.sidebar.selectbox("Instituição", inst_lista)
     
-    lista_meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril']
-    meses_reais = [m for m in lista_meses if m in df['Mês Nome'].unique()]
+    ordem_meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio']
+    meses_reais = [m for m in ordem_meses if m in df['Mês Nome'].unique()]
     mes_selecionado = st.sidebar.selectbox("Mês de Análise", meses_reais, index=len(meses_reais)-1)
     base_selecionada = st.sidebar.selectbox("Base (Filtro)", ['Todas'] + list(df[col_base].unique()))
 
@@ -72,7 +72,7 @@ try:
     if base_selecionada != 'Todas': df_f = df_f[df_f[col_base] == base_selecionada]
 
     st.title("Gestão de frotas")
-    st.write(f"Análise: **{inst_selecionada}**")
+    st.write(f"Conectado em tempo real com Google Sheets | Análise: **{inst_selecionada}**")
 
     # --- ABAS ---
     tab1, tab2 = st.tabs(["📊 CONTROLE MENSAL", "🏆 ACUMULADO ANUAL"])
@@ -80,7 +80,6 @@ try:
     # --- ABA 1: MENSAL ---
     with tab1:
         df_m = df_f[df_f['Mês Nome'] == mes_selecionado]
-        
         st.write("") 
         m1, m2, m3 = st.columns(3)
         with m1: st.markdown(f'<div class="metric-card"><div class="metric-label">Veículos Ativos</div><div class="metric-value" style="color:#00d4ff">{df_m[col_placa].nunique()}</div></div>', unsafe_allow_html=True)
@@ -104,7 +103,7 @@ try:
             fig2.update_layout(coloraxis_showscale=False, xaxis_visible=False, yaxis_title="", margin=dict(r=140, l=10, t=30, b=10), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig2, use_container_width=True)
 
-    # --- ABA 2: ACUMULADO (IDÊNTICA À MENSAL) ---
+    # --- ABA 2: ACUMULADO ---
     with tab2:
         st.write("") 
         ca1, ca2, ca3 = st.columns(3)
@@ -116,26 +115,21 @@ try:
 
         st.write("")
         col_a, col_b = st.columns(2)
-        
         with col_a:
-            st.markdown("#### Maiores Rodagens (Top 10)") # Título igual ao Mensal
+            st.markdown("#### Maiores Rodagens por Base (Top 10)")
             rbk = df_f.groupby(col_base)[col_km].sum().nlargest(10).sort_values(ascending=True).reset_index()
             fig3 = px.bar(rbk, x=col_km, y=col_base, orientation='h', text=rbk[col_km].apply(lambda x: f'{x:,.0f}'), color=col_km, color_continuous_scale='Blues', template='plotly_dark')
             fig3.update_traces(textposition='outside', cliponaxis=False, textfont=dict(size=12))
             fig3.update_layout(coloraxis_showscale=False, xaxis_visible=False, yaxis_title="", margin=dict(r=120, l=10, t=30, b=10), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig3, use_container_width=True)
-            
         with col_b:
-            st.markdown("#### Maiores Custos (Top 10)") # Título igual ao Mensal
+            st.markdown("#### Maiores Custos por Base (Top 10)")
             rbc = df_f.groupby(col_base)[col_custo].sum().nlargest(10).sort_values(ascending=True).reset_index()
             fig4 = px.bar(rbc, x=col_custo, y=col_base, orientation='h', text=rbc[col_custo].apply(lambda x: f'R$ {x:,.0f}'), color=col_custo, color_continuous_scale='Reds', template='plotly_dark')
             fig4.update_traces(textposition='outside', cliponaxis=False, textfont=dict(size=12))
             fig4.update_layout(coloraxis_showscale=False, xaxis_visible=False, yaxis_title="", margin=dict(r=140, l=10, t=30, b=10), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig4, use_container_width=True)
 
-    with st.expander("🔍 Detalhes da Base de Dados"):
-        st.dataframe(df_f, use_container_width=True)
-
 except Exception as e:
-    st.error(f"Erro no processamento: {e}")
+    st.error(f"Erro ao conectar com Google Sheets: {e}")
     
