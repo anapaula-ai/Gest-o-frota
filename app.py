@@ -21,7 +21,6 @@ st.markdown("""
         border-right: 1px solid #E2E8F0;
     }
 
-    /* Padronização de Títulos */
     h1, h2, h3 {
         font-size: 18px !important;
         font-weight: 700 !important;
@@ -36,7 +35,6 @@ st.markdown("""
         margin-bottom: 25px;
     }
 
-    /* Cards de Métricas */
     .metric-card {
         background-color: #FFFFFF;
         padding: 20px;
@@ -59,7 +57,6 @@ st.markdown("""
         font-weight: 700;
     }
 
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 20px; }
     .stTabs [data-baseweb="tab"] {
         font-size: 14px;
@@ -131,7 +128,6 @@ try:
         
         with g1:
             st.markdown("### Ranking de Quilometragem por Veículo")
-            # Ordenação do maior para o menor (Plotly inverte a ordem no gráfico horizontal, por isso ascending=True)
             top10_km = df_filtrado.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             fig1 = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', color_discrete_sequence=[AZUL_NAVY])
             fig1.update_traces(texttemplate='%{x:,.0f}', textposition='outside', cliponaxis=False)
@@ -155,7 +151,8 @@ try:
         
         c_anual1, c_anual2 = st.columns(2)
         with c_anual1:
-            st.markdown("### Investimento por Base")
+            # ALTERAÇÃO DO TÍTULO AQUI:
+            st.markdown("### Custo de manutenção por base")
             df_plot_c = df_resumo.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             fig3 = px.bar(df_plot_c, x='Custo de manutenção', y='Base', orientation='h', color_discrete_sequence=[CINZA_SLATE])
             fig3.update_traces(texttemplate='R$ %{x:,.2f}', textposition='outside', cliponaxis=False)
