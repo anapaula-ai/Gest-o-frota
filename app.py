@@ -3,153 +3,192 @@ import pandas as pd
 import plotly.express as px
 
 # 1. Configuração da Página
-st.set_page_config(page_title="Gestão de Frotas", layout="wide")
+st.set_page_config(page_title="Gestão de Frotas Premium", layout="wide")
 
-# 2. Estilização CSS: Fundo Cinza, Letras Menores e Elegância
+# 2. CSS Sophisticated Grey Layout
 st.markdown("""
     <style>
-    /* Fundo Cinza Escuro Elegante */
+    /* Fundo Slate Grey Profissional */
     .stApp {
-        background-color: #1E1E1E;
-        color: #D3D3D3;
-        font-size: 14px; /* Letras menores globalmente */
+        background-color: #1A1C23;
+        color: #ECEFF4;
+        font-size: 13px;
     }
     
-    /* Sidebar Cinza mais fechado */
+    /* Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #161616;
-        border-right: 1px solid #333;
+        background-color: #111217;
+        border-right: 1px solid #2D3139;
     }
 
-    /* Cards de Métricas em Cinza Grafite */
+    /* Cards de Métricas Estilo Neumorfismo Suave */
     .metric-card {
-        background-color: #262626;
-        padding: 12px;
-        border-radius: 6px;
-        border: 1px solid #444;
+        background-color: #242731;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #333745;
         text-align: center;
-        margin-bottom: 10px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }
     .metric-label {
-        color: #AAAAAA;
-        font-size: 12px;
+        color: #9BA1B0;
+        font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.2px;
+        margin-bottom: 8px;
     }
     .metric-value {
         color: #FFFFFF;
-        font-size: 20px;
-        font-weight: bold;
+        font-size: 22px;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
     }
 
-    /* Ajuste das Abas */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    /* Tabelas e Dataframes */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #333745;
+        border-radius: 10px;
+    }
+
+    /* Títulos e Subtítulos */
+    h1 { font-size: 22px !important; font-weight: 700 !important; color: #FFFFFF !important; }
+    h2, h3 { font-size: 16px !important; font-weight: 600 !important; color: #D8DEE9 !important; }
+    
+    /* Customização de Abas */
+    .stTabs [data-baseweb="tab-list"] { gap: 15px; }
     .stTabs [data-baseweb="tab"] {
-        color: #888;
+        color: #7B818E;
         font-size: 13px;
-        padding: 5px 15px;
+        font-weight: 500;
     }
     .stTabs [aria-selected="true"] {
         color: #FFFFFF !important;
-        border-bottom-color: #555555 !important;
+        border-bottom: 2px solid #5E81AC !important;
     }
-
-    /* Reduzir títulos de seções */
-    h1 { font-size: 24px !important; }
-    h2, h3 { font-size: 18px !important; color: #CCCCCC !important; }
     </style>
     """, unsafe_allow_html=True)
 
 def draw_metric(label, value):
-    st.markdown(f'<div class="metric-card"><div class="metric-label">{label}</div><div class="metric-value">{value}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+        <div class="metric-card">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+    ''', unsafe_allow_html=True)
 
-# 3. Carregamento de Dados
+# 3. Processamento de Dados
 try:
     df = pd.read_excel("manutencao.xlsx")
 
-    # Filtros
-    st.sidebar.markdown("### Filtros")
-    lista_inst = df["Instituição"].unique()
-    escolha_inst = st.sidebar.multiselect("Instituição", options=lista_inst, default=lista_inst)
+    # --- SIDEBAR / FILTROS ---
+    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3202/3202926.png", width=50) # Ícone sutil
+    st.sidebar.markdown("### Filtros Estratégicos")
     
-    lista_meses = df["Mês Referência"].unique()
-    escolha_mes = st.sidebar.selectbox("Mês Referência", options=lista_meses)
+    # Filtro Instituição com opção "Todos"
+    opcoes_inst = ["Todos", "AMES", "IAV"]
+    escolha_inst = st.sidebar.selectbox("Instituição", opcoes_inst)
     
-    lista_bases = sorted(df["Base"].unique())
-    escolha_base = st.sidebar.selectbox("Base", options=["Todas"] + lista_bases)
+    # Filtro Mês (Janeiro a Abril)
+    meses_disponiveis = ["Janeiro", "Fevereiro", "Março", "Abril"]
+    escolha_mes = st.sidebar.selectbox("Mês de Referência", meses_disponiveis)
+    
+    # Filtro Base (Dinâmico)
+    bases_disponiveis = sorted(df["Base"].unique())
+    escolha_base = st.sidebar.selectbox("Base Operacional", ["Todas"] + bases_disponiveis)
 
-    # Lógica de Filtragem
-    df_mes = df[(df["Instituição"].isin(escolha_inst)) & (df["Mês Referência"] == escolha_mes)]
+    # --- LÓGICA DE FILTRAGEM ---
+    # Filtrar por Mês
+    df_filtrado = df[df["Mês Referência"] == escolha_mes]
+    
+    # Filtrar por Instituição
+    if escolha_inst != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Instituição"] == escolha_inst]
+        
+    # Filtrar por Base
     if escolha_base != "Todas":
-        df_mes = df_mes[df_mes["Base"] == escolha_base]
+        df_filtrado = df_filtrado[df_filtrado["Base"] == escolha_base]
 
-    df_ano = df[df["Instituição"].isin(escolha_inst)]
+    # Dados para o Acumulado (Janeiro a Abril)
+    df_acumulado = df[df["Mês Referência"].isin(meses_disponiveis)]
+    if escolha_inst != "Todos":
+        df_acumulado = df_acumulado[df_acumulado["Instituição"] == escolha_inst]
 
-    st.title("Gestão de Frotas — AMES / IAV")
-    
-    tab_mensal, tab_anual = st.tabs(["Controle Mensal", "Acumulado Anual"])
+    # --- LAYOUT PRINCIPAL ---
+    st.title("Sistema de Gestão de Frotas — Inteligência Operacional")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Paleta de Cores Padronizada (Cinza Azulado e Azul Soft)
-    COR_KM = "#5A7D9A" 
-    COR_CUSTO = "#8E8E8E"
+    tab_mensal, tab_anual = st.tabs(["📊 Visão Mensal", "📈 Acumulado Estratégico"])
+
+    # Cores Padronizadas
+    AZUL_SOFT = "#81A1C1"
+    CINZA_SOFT = "#4C566A"
 
     with tab_mensal:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            draw_metric("Veículos", f"{len(df_mes['Placa'].unique())}")
-        with c2:
-            km_val = df_mes['Quilometragem'].sum()
-            draw_metric("KM Total", f"{km_val:,.0f}".replace(",", "."))
-        with c3:
-            custo_val = df_mes['Custo de manutenção'].sum()
-            draw_metric("Custo Total", f"R$ {custo_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        # Métricas
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            draw_metric("Frota Ativa", f"{len(df_filtrado['Placa'].unique())}")
+        with m2:
+            draw_metric("KM Rodados", f"{df_filtrado['Quilometragem'].sum():,.0f}".replace(",", "."))
+        with m3:
+            custo_total = df_filtrado['Custo de manutenção'].sum()
+            draw_metric("Investimento", f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with m4:
+            media_km = df_filtrado['Quilometragem'].mean() if not df_filtrado.empty else 0
+            draw_metric("Média KM/Veículo", f"{media_km:,.0f}".replace(",", "."))
 
         st.markdown("<br>", unsafe_allow_html=True)
-        col_g1, col_g2 = st.columns(2)
 
-        with col_g1:
-            st.subheader("Top 10 KM por Placa")
-            top10_km = df_mes.nlargest(10, 'Quilometragem')
-            # texttemplate='%{x}' exibe o valor inteiro sem abreviação
-            fig1 = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', 
-                          color_discrete_sequence=[COR_KM])
-            fig1.update_traces(texttemplate='%{x:,.0f}', textposition='outside', cliponaxis=False)
-            fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#AAA", size=10),
-                              xaxis=dict(showgrid=False, visible=False), yaxis=dict(categoryorder='total ascending'))
+        # Gráficos Top 10
+        g1, g2 = st.columns(2)
+        
+        with g1:
+            st.subheader(f"Top 10 Quilometragem — {escolha_mes}")
+            top10_km = df_filtrado.nlargest(10, 'Quilometragem')
+            fig1 = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', color_discrete_sequence=[AZUL_SOFT])
+            fig1.update_traces(texttemplate='%{x:,.0f}', textposition='outside', hovertemplate='Placa: %{y}<br>KM: %{x:,.0f}')
+            fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(size=10, color="#AAB"),
+                              xaxis=dict(visible=False), yaxis=dict(categoryorder='total ascending', showgrid=False))
             st.plotly_chart(fig1, use_container_width=True)
 
-        with col_g2:
-            st.subheader("Top 10 Custos por Placa")
-            top10_custo = df_mes.nlargest(10, 'Custo de manutenção')
-            fig2 = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', 
-                          color_discrete_sequence=[COR_CUSTO])
-            # Formatação para R$ inteiro
-            fig2.update_traces(texttemplate='R$ %{x:,.2f}', textposition='outside', cliponaxis=False)
-            fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#AAA", size=10),
-                              xaxis=dict(showgrid=False, visible=False), yaxis=dict(categoryorder='total ascending'))
+        with g2:
+            st.subheader(f"Top 10 Maiores Custos — {escolha_mes}")
+            top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção')
+            fig2 = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', color_discrete_sequence=[CINZA_SOFT])
+            fig2.update_traces(texttemplate='R$ %{x:,.2f}', textposition='outside')
+            fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(size=10, color="#AAB"),
+                              xaxis=dict(visible=False), yaxis=dict(categoryorder='total ascending', showgrid=False))
             st.plotly_chart(fig2, use_container_width=True)
 
+        # --- SEÇÃO NOVA: VISUALIZAR TODA A FROTA ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander("🔍 Visualizar Lista Completa da Frota (Filtro Atual)"):
+            st.markdown("Use a tabela abaixo para pesquisar placas específicas ou ordenar por qualquer coluna.")
+            # Formatando para exibição na tabela
+            df_display = df_filtrado[['Instituição', 'Base', 'Placa', 'Quilometragem', 'Custo de manutenção']].copy()
+            st.dataframe(df_display.style.format({
+                'Quilometragem': '{:,.0f}',
+                'Custo de manutenção': 'R$ {:,.2f}'
+            }), use_container_width=True, height=300)
+
     with tab_anual:
-        df_base_ranking = df_ano.groupby("Base").agg({"Custo de manutenção": "sum", "Quilometragem": "sum"}).reset_index()
+        st.subheader("Ranking de Bases (Acumulado Jan-Abr)")
+        df_base = df_acumulado.groupby("Base").agg({"Custo de manutenção": "sum", "Quilometragem": "sum"}).reset_index()
         
         c_anual1, c_anual2 = st.columns(2)
         with c_anual1:
-            st.subheader("Top 10 Bases — Custo Acumulado")
-            top10_base_custo = df_base_ranking.nlargest(10, 'Custo de manutenção')
-            fig3 = px.bar(top10_base_custo, x='Custo de manutenção', y='Base', orientation='h', color_discrete_sequence=[COR_CUSTO])
+            fig3 = px.bar(df_base.nlargest(10, 'Custo de manutenção'), x='Custo de manutenção', y='Base', 
+                          orientation='h', title="Custos Acumulados por Base", color_discrete_sequence=[CINZA_SOFT])
             fig3.update_traces(texttemplate='R$ %{x:,.2f}', textposition='outside')
-            fig3.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#AAA", size=10),
-                              xaxis=dict(visible=False), yaxis=dict(categoryorder='total ascending'))
+            fig3.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(size=10), xaxis=dict(visible=False))
             st.plotly_chart(fig3, use_container_width=True)
 
         with c_anual2:
-            st.subheader("Top 10 Bases — KM Acumulado")
-            top10_base_km = df_base_ranking.nlargest(10, 'Quilometragem')
-            fig4 = px.bar(top10_base_km, x='Quilometragem', y='Base', orientation='h', color_discrete_sequence=[COR_KM])
+            fig4 = px.bar(df_base.nlargest(10, 'Quilometragem'), x='Quilometragem', y='Base', 
+                          orientation='h', title="KM Acumulada por Base", color_discrete_sequence=[AZUL_SOFT])
             fig4.update_traces(texttemplate='%{x:,.0f}', textposition='outside')
-            fig4.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#AAA", size=10),
-                              xaxis=dict(visible=False), yaxis=dict(categoryorder='total ascending'))
+            fig4.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(size=10), xaxis=dict(visible=False))
             st.plotly_chart(fig4, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Erro: {e}")
+    st.error(f"Aguardando arquivo de dados ou erro no processamento: {e}")
