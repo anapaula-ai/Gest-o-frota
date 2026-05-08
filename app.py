@@ -3,136 +3,122 @@ import pandas as pd
 import plotly.express as px
 
 # 1. Configuração da Página
-st.set_page_config(page_title="Gestão de Frotas", layout="wide")
+st.set_page_config(page_title="Gestão de Frotas AMES/IAV", layout="wide")
 
-# 2. Estilização CSS (Layout Black Premium)
+# 2. Estilização CSS Black Premium
 st.markdown("""
     <style>
-    /* Fundo principal */
-    .stApp {
-        background-color: #000000;
-        color: white;
-    }
-    
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #0a0a0a;
-        border-right: 1px solid #333;
-    }
-
-    /* Cards de Métricas */
-    .metric-container {
+    .stApp { background-color: #000000; color: white; }
+    [data-testid="stSidebar"] { background-color: #050505; border-right: 1px solid #222; }
+    .metric-card {
         background-color: #111111;
-        padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #333333;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
         text-align: center;
     }
-    .metric-label {
-        color: #888888;
-        font-size: 14px;
-        text-transform: uppercase;
-        margin-bottom: 5px;
-    }
-    .metric-value {
-        color: #ffffff;
-        font-size: 28px;
-        font-weight: bold;
-    }
-
-    /* Ajuste de abas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #555555;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #FF4B4B !important;
-        border-bottom-color: #FF4B4B !important;
-    }
+    .metric-label { color: #888; font-size: 14px; margin-bottom: 5px; text-transform: uppercase; }
+    .metric-value { color: #ffffff; font-size: 26px; font-weight: bold; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { color: #888; }
+    .stTabs [aria-selected="true"] { color: #FF0000 !important; border-bottom-color: #FF0000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# Função para criar os cards
 def draw_metric(label, value):
-    st.markdown(f"""
-        <div class="metric-container">
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card"><div class="metric-label">{label}</div><div class="metric-value">{value}</div></div>', unsafe_allow_html=True)
 
 # 3. Carregamento de Dados
-@st.cache_data
-def load_data():
-    # Certifique-se que o arquivo manutenção.xlsx está na mesma pasta no GitHub
-    df = pd.read_excel("manutencao.xlsx")
-    return df
-
 try:
-    df = load_data()
+    df = pd.read_excel("manutencao.xlsx")
 
-    # 4. Filtros na Barra Lateral
-    st.sidebar.title("Filtros")
+    # --- FILTROS SIDEBAR ---
+    st.sidebar.header("Filtros de Gestão")
+    lista_inst = df["Instituição"].unique()
+    escolha_inst = st.sidebar.multiselect("Instituição", options=lista_inst, default=lista_inst)
     
-    instituicao = st.sidebar.multiselect("Instituição", options=df["Instituição"].unique(), default=df["Instituição"].unique())
-    mes = st.sidebar.selectbox("Mês Referência", options=df["Mês Referência"].unique())
-    base = st.sidebar.selectbox("Base", options=["Todas"] + list(df["Base"].unique()))
+    lista_meses = df["Mês Referência"].unique()
+    escolha_mes = st.sidebar.selectbox("Mês Referência", options=lista_meses)
+    
+    lista_bases = sorted(df["Base"].unique())
+    escolha_base = st.sidebar.selectbox("Base", options=["Todas"] + lista_bases)
 
-    # Aplicação dos Filtros
-    df_filtrado = df[(df["Instituição"].isin(instituicao)) & (df["Mês Referência"] == mes)]
-    if base != "Todas":
-        df_filtrado = df_filtrado[df_filtrado["Base"] == base]
+    # Lógica de Filtragem
+    df_mes = df[(df["Instituição"].isin(escolha_inst)) & (df["Mês Referência"] == escolha_mes)]
+    if escolha_base != "Todas":
+        df_mes = df_mes[df_mes["Base"] == escolha_base]
 
-    # 5. Título Principal
-    st.title("📊 Gestão de Frotas")
+    df_ano = df[df["Instituição"].isin(escolha_inst)] # Acumulado ignora o mês, mas respeita a instituição
+
+    st.title("🛡️ Gestão de Frotas (AMES / IAV)")
     st.markdown("---")
 
-    # 6. Abas
-    tab1, tab2 = st.tabs(["Mensal", "Acumulado"])
+    tab_mensal, tab_anual = st.tabs(["📊 Controle Mensal", "📅 Acumulado Anual"])
 
-    with tab1:
-        # Métricas Principais
+    # --- ABA MENSAL ---
+    with tab_mensal:
         c1, c2, c3 = st.columns(3)
         with c1:
-            draw_metric("Veículos", len(df_filtrado["Placa"].unique()))
+            draw_metric("Veículos na Base", f"{len(df_mes['Placa'].unique())}")
         with c2:
-            km_total = f"{df_filtrado['Quilometragem'].sum():,.0f}".replace(",", ".")
-            draw_metric("KM Total", km_total)
+            draw_metric("KM Total Mensal", f"{df_mes['Quilometragem'].sum():,.0f}".replace(",", "."))
         with c3:
-            custo_total = f"R$ {df_filtrado['Custo de manutenção'].sum():,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            draw_metric("Custo Total", custo_total)
+            draw_metric("Custo Manutenção", f"R$ {df_mes['Custo de manutenção'].sum():,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         st.markdown("<br>", unsafe_allow_html=True)
+        col_g1, col_g2 = st.columns(2)
 
-        # Gráficos Mensais
-        g1, g2 = st.columns(2)
+        with col_g1:
+            st.subheader("Top 10 Quilometragem por Placa")
+            top10_km_placa = df_mes.nlargest(10, 'Quilometragem')
+            fig1 = px.bar(top10_km_placa, x='Quilometragem', y='Placa', orientation='h', 
+                          text_auto='.2s', color_discrete_sequence=['#3366FF'])
+            fig1.update_traces(textposition='outside', cliponaxis=False)
+            fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white",
+                              xaxis=dict(showgrid=False), yaxis=dict(categoryorder='total ascending'))
+            st.plotly_chart(fig1, use_container_width=True)
 
-        with g1:
-            st.subheader("Top 10 KM por Placa")
-            top10_km = df_filtrado.nlargest(10, 'Quilometragem')
-            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', color_discrete_sequence=['#4B4BFF'])
-            fig_km.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=400)
-            st.plotly_chart(fig_km, use_container_width=True)
-
-        with g2:
+        with col_g2:
             st.subheader("Top 10 Custos por Placa")
-            top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção')
-            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', color_discrete_sequence=['#FF4B4B'])
-            fig_custo.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=400)
-            st.plotly_chart(fig_custo, use_container_width=True)
+            top10_custo_placa = df_mes.nlargest(10, 'Custo de manutenção')
+            fig2 = px.bar(top10_custo_placa, x='Custo de manutenção', y='Placa', orientation='h', 
+                          text_auto='.2s', color_discrete_sequence=['#FF3333'])
+            fig2.update_traces(textposition='outside', cliponaxis=False)
+            fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white",
+                              xaxis=dict(showgrid=False), yaxis=dict(categoryorder='total ascending'))
+            st.plotly_chart(fig2, use_container_width=True)
 
-    with tab2:
-        st.subheader("Visão Acumulada Anual")
-        # Filtro apenas por instituição no acumulado
-        df_acumulado = df[df["Instituição"].isin(instituicao)]
+    # --- ABA ACUMULADO ANUAL ---
+    with tab_anual:
+        st.subheader("Ranking Geral de Bases (Acumulado Anual)")
         
-        custo_anual = df_acumulado.groupby("Base")["Custo de manutenção"].sum().reset_index()
-        fig_anual = px.pie(custo_anual, values='Custo de manutenção', names='Base', hole=.4, template="plotly_dark")
-        fig_anual.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_anual, use_container_width=True)
+        c_anual1, c_anual2 = st.columns(2)
+        
+        # Agrupando por Base para o Acumulado
+        df_base_ranking = df_ano.groupby("Base").agg({
+            "Custo de manutenção": "sum",
+            "Quilometragem": "sum"
+        }).reset_index()
+
+        with c_anual1:
+            st.markdown("#### 10 Bases com Maior Custo (Anual)")
+            top10_base_custo = df_base_ranking.nlargest(10, 'Custo de manutenção')
+            fig3 = px.bar(top10_base_custo, x='Custo de manutenção', y='Base', orientation='h',
+                          text_auto='.2s', color_discrete_sequence=['#E8C21E']) # Cor Dourada/Premium
+            fig3.update_traces(textposition='outside', cliponaxis=False)
+            fig3.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white",
+                              yaxis=dict(categoryorder='total ascending'))
+            st.plotly_chart(fig3, use_container_width=True)
+
+        with c_anual2:
+            st.markdown("#### 10 Bases com Maior Rodagem (Anual)")
+            top10_base_km = df_base_ranking.nlargest(10, 'Quilometragem')
+            fig4 = px.bar(top10_base_km, x='Quilometragem', y='Base', orientation='h',
+                          text_auto='.2s', color_discrete_sequence=['#00CC96']) # Cor Verde
+            fig4.update_traces(textposition='outside', cliponaxis=False)
+            fig4.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white",
+                              yaxis=dict(categoryorder='total ascending'))
+            st.plotly_chart(fig4, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Erro ao carregar dados: {e}")
-    st.info("Verifique se o arquivo 'manutencao.xlsx' está no repositório do GitHub.")
+    st.error(f"Erro ao processar: {e}")
