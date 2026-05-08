@@ -2,84 +2,137 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. CONFIGURAÇÃO BÁSICA
-st.set_page_config(page_title="Gestão de frotas", layout="wide")
+# 1. Configuração da Página
+st.set_page_config(page_title="Gestão de Frotas", layout="wide")
 
-# 2. ESTILO SIMPLIFICADO (Para evitar erros de colagem)
+# 2. Estilização CSS (Layout Black Premium)
 st.markdown("""
-<style>
-    .stApp { background-color: #000000; color: #ffffff; }
-    [data-testid="stSidebar"] { background-color: #050505; }
-    .metric-box {
-        background-color: #0a0a0a; padding: 20px; border-radius: 10px;
-        border: 1px solid #1f1f1f; text-align: center; margin-bottom: 10px;
+    <style>
+    /* Fundo principal */
+    .stApp {
+        background-color: #000000;
+        color: white;
     }
-</style>
-""", unsafe_allow_html=True)
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #0a0a0a;
+        border-right: 1px solid #333;
+    }
 
-# 3. FUNÇÃO DE DADOS
-@st.cache_data(ttl=60)
-def carregar_dados():
-    url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPclWfjRAP7bxzua2p02XeAubJ_7V2BJrn31MbMZWhZIzVjVLTDjpeYiJVtWmNSw/pub?output=csv"
-    df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()
-    df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
-    meses_map = {'January':'Janeiro', 'February':'Fevereiro', 'March':'Março', 'April':'Abril', 'May':'Maio'}
-    df['Mês Nome'] = df['Mês Referência'].dt.month_name().map(meses_map)
-    for col in ['Custo de manutenção', 'Quilometragem']:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.replace('R$', '', regex=False).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).str.strip()
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    /* Cards de Métricas */
+    .metric-container {
+        background-color: #111111;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #333333;
+        text-align: center;
+    }
+    .metric-label {
+        color: #888888;
+        font-size: 14px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .metric-value {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    /* Ajuste de abas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #555555;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #FF4B4B !important;
+        border-bottom-color: #FF4B4B !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Função para criar os cards
+def draw_metric(label, value):
+    st.markdown(f"""
+        <div class="metric-container">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# 3. Carregamento de Dados
+@st.cache_data
+def load_data():
+    # Certifique-se que o arquivo manutenção.xlsx está na mesma pasta no GitHub
+    df = pd.read_excel("manutencao.xlsx")
     return df
 
-# 4. EXECUÇÃO DO DASHBOARD
 try:
-    df = carregar_dados()
-    
-    # Filtros na Lateral
+    df = load_data()
+
+    # 4. Filtros na Barra Lateral
     st.sidebar.title("Filtros")
-    inst = st.sidebar.selectbox("Instituição", ['Todas'] + sorted(list(df['Instituição'].unique().astype(str))))
-    mes = st.sidebar.selectbox("Mês", ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio'], index=3)
-    base = st.sidebar.selectbox("Base", ['Todas'] + sorted(list(df['Base'].unique().astype(str))))
+    
+    instituicao = st.sidebar.multiselect("Instituição", options=df["Instituição"].unique(), default=df["Instituição"].unique())
+    mes = st.sidebar.selectbox("Mês Referência", options=df["Mês Referência"].unique())
+    base = st.sidebar.selectbox("Base", options=["Todas"] + list(df["Base"].unique()))
 
-    # Aplicar Filtros
-    df_f = df.copy()
-    if inst != 'Todas': df_f = df_f[df_f['Instituição'] == inst]
-    if base != 'Todas': df_f = df_f[df_f['Base'] == base]
+    # Aplicação dos Filtros
+    df_filtrado = df[(df["Instituição"].isin(instituicao)) & (df["Mês Referência"] == mes)]
+    if base != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Base"] == base]
 
-    st.title("📊 Gestão de frotas")
+    # 5. Título Principal
+    st.title("📊 Gestão de Frotas")
+    st.markdown("---")
+
+    # 6. Abas
     tab1, tab2 = st.tabs(["Mensal", "Acumulado"])
 
     with tab1:
-        df_m = df_f[df_f['Mês Nome'] == mes]
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Veículos", int(df_m['Placa'].nunique()))
-        col2.metric("KM Total", f"{df_m['Quilometragem'].sum():,.0f}")
-        col3.metric("Custo Total", f"R$ {df_m['Custo de manutenção'].sum():,.2f}")
-        
-        c1, c2 = st.columns(2)
+        # Métricas Principais
+        c1, c2, c3 = st.columns(3)
         with c1:
-            rk = df_m.groupby('Placa')['Quilometragem'].sum().nlargest(10).reset_index()
-            fig1 = px.bar(rk, x='Quilometragem', y='Placa', orientation='h', title="Top 10 KM", template='plotly_dark')
-            st.plotly_chart(fig1, use_container_width=True)
+            draw_metric("Veículos", len(df_filtrado["Placa"].unique()))
         with c2:
-            rc = df_m.groupby('Placa')['Custo de manutenção'].sum().nlargest(10).reset_index()
-            fig2 = px.bar(rc, x='Custo de manutenção', y='Placa', orientation='h', title="Top 10 Custos", template='plotly_dark')
-            st.plotly_chart(fig2, use_container_width=True)
+            km_total = f"{df_filtrado['Quilometragem'].sum():,.0f}".replace(",", ".")
+            draw_metric("KM Total", km_total)
+        with c3:
+            custo_total = f"R$ {df_filtrado['Custo de manutenção'].sum():,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            draw_metric("Custo Total", custo_total)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Gráficos Mensais
+        g1, g2 = st.columns(2)
+
+        with g1:
+            st.subheader("Top 10 KM por Placa")
+            top10_km = df_filtrado.nlargest(10, 'Quilometragem')
+            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', color_discrete_sequence=['#4B4BFF'])
+            fig_km.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=400)
+            st.plotly_chart(fig_km, use_container_width=True)
+
+        with g2:
+            st.subheader("Top 10 Custos por Placa")
+            top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção')
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', color_discrete_sequence=['#FF4B4B'])
+            fig_custo.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=400)
+            st.plotly_chart(fig_custo, use_container_width=True)
 
     with tab2:
-        st.header("Resumo Geral Acumulado")
-        a1, a2 = st.columns(2)
-        a1.metric("CUSTO ACUMULADO", f"R$ {df_f['Custo de manutenção'].sum():,.2f}")
-        a2.metric("KM ACUMULADO", f"{df_f['Quilometragem'].sum():,.0f} KM")
+        st.subheader("Visão Acumulada Anual")
+        # Filtro apenas por instituição no acumulado
+        df_acumulado = df[df["Instituição"].isin(instituicao)]
         
-        ba1, ba2 = st.columns(2)
-        with ba1:
-            rbc = df_f.groupby('Base')['Custo de manutenção'].sum().nlargest(10).reset_index()
-            st.plotly_chart(px.bar(rbc, x='Custo de manutenção', y='Base', orientation='h', title="Custo por Base", template='plotly_dark'), use_container_width=True)
-        with ba2:
-            rbk = df_f.groupby('Base')['Quilometragem'].sum().nlargest(10).reset_index()
-            st.plotly_chart(px.bar(rbk, x='Quilometragem', y='Base', orientation='h', title="KM por Base", template='plotly_dark'), use_container_width=True)
+        custo_anual = df_acumulado.groupby("Base")["Custo de manutenção"].sum().reset_index()
+        fig_anual = px.pie(custo_anual, values='Custo de manutenção', names='Base', hole=.4, template="plotly_dark")
+        fig_anual.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_anual, use_container_width=True)
 
 except Exception as e:
-    st.error(f"Erro: {e}")
+    st.error(f"Erro ao carregar dados: {e}")
+    st.info("Verifique se o arquivo 'manutencao.xlsx' está no repositório do GitHub.")
