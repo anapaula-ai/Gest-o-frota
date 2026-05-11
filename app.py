@@ -5,52 +5,54 @@ import plotly.express as px
 # 1. Configuração da Página
 st.set_page_config(page_title="Dashboard Gestão de Frotas", layout="wide")
 
-# 2. Estilização CSS (Melhoria UI/UX)
+# 2. Estilização CSS (Ajustes de Contraste e Espaçamento)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD; color: #333333; }
     [data-testid="stSidebar"] { background-color: #BBDEFB; border-right: 1px solid #90CAF9; }
     
-    /* Cards de KPI Customizados */
+    /* Cards de KPI */
     .metric-container {
         background-color: #FFFFFF;
         padding: 25px;
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        min-height: 150px;
+        min-height: 160px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: center;
     }
-    .metric-label { color: #546E7A; font-size: 14px; font-weight: 600; text-transform: uppercase; }
-    .metric-value { color: #1A237E; font-size: 26px; font-weight: 800; } /* Azul Marinho para contraste */
-    .metric-trend { font-size: 14px; font-weight: bold; margin-top: 5px; }
-    .trend-up { color: #D32F2F; } /* Vermelho para aumento de custo/km */
-    .trend-down { color: #388E3C; } /* Verde para redução */
+    .metric-label { color: #546E7A; font-size: 13px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;}
+    .metric-value { color: #1A237E; font-size: 28px; font-weight: 800; line-height: 1.1; } /* Azul Marinho Profundo */
+    .metric-subtext { color: #333333; font-size: 14px; font-weight: 500; margin-top: 5px; }
     
-    /* Barra de Progresso do Orçamento */
-    .progress-bg { background-color: #eee; border-radius: 10px; width: 100%; height: 10px; margin-top: 10px; }
-    .progress-fill { background-color: #F57C00; height: 10px; border-radius: 10px; }
+    /* Tendências */
+    .trend-up { color: #D32F2F; font-size: 14px; font-weight: bold; } /* Vermelho */
+    .trend-down { color: #388E3C; font-size: 14px; font-weight: bold; } /* Verde */
 
-    /* Alinhamento de Títulos */
-    h3 { text-align: left !important; color: #1A237E !important; padding-bottom: 15px; }
+    /* Barra de Progresso */
+    .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 12px; }
+    .progress-fill { background-color: #F57C00; height: 8px; border-radius: 10px; }
+
+    /* Títulos alinhados à esquerda */
+    h3 { text-align: left !important; color: #1A237E !important; font-weight: 700 !important; margin-bottom: 20px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# Função para formatar moeda/número no padrão BR
+# Função para formatar números no padrão BR
 def fmt_br(valor, is_moeda=False):
     if is_moeda:
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{valor:,.0f}".replace(",", ".")
 
-# Função para desenhar os cards com tendência
-def draw_card(label, value, delta=None, is_lower_better=True, progress=None):
+# Função para desenhar os Cards
+def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None):
     trend_html = ""
-    if delta is not None:
-        color_class = "trend-down" if (delta <= 0 if is_lower_better else delta >= 0) else "trend-up"
-        icon = "↓" if delta <= 0 else "↑"
-        trend_html = f'<div class="metric-trend {color_class}">{icon} {abs(delta):.1f}% vs mês ant.</div>'
+    if trend is not None:
+        color = "trend-down" if (trend <= 0 if is_lower_better else trend >= 0) else "trend-up"
+        icon = "↓" if trend <= 0 else "↑"
+        trend_html = f'<div class="{color}">{icon} {abs(trend):.1f}% vs mês ant.</div>'
     
     prog_html = ""
     if progress is not None:
@@ -60,12 +62,13 @@ def draw_card(label, value, delta=None, is_lower_better=True, progress=None):
         <div class="metric-container">
             <div class="metric-label">{label}</div>
             <div class="metric-value">{value}</div>
+            <div class="metric-subtext">{subtext}</div>
             {trend_html}
             {prog_html}
         </div>
     """, unsafe_allow_html=True)
 
-# 3. Carregamento e Tratamento
+# 3. Carregamento e Tratamento de Dados
 @st.cache_data
 def load_data():
     try:
@@ -77,7 +80,12 @@ def load_data():
         df['Mes_Num'] = df['Mês Referência'].dt.month
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        df['Ano'] = pd.to_numeric(df.get('Ano', 2026), errors='coerce').fillna(2026).astype(int)
+        
+        # Correção do erro 'int' object has no attribute 'fillna'
+        if 'Ano' in df.columns:
+            df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
+        else:
+            df['Ano'] = 2026
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -87,54 +95,58 @@ df = load_data()
 ORCAMENTOS = {"AMES": 987380.00, "IAV": 305434.00}
 
 if not df.empty:
-    # 4. Barra Lateral com Espaço para Logo
-    # st.sidebar.image("sua_logo.png", width=150) # Descomente quando tiver o arquivo
-    st.sidebar.title("📌 Menu de Filtros")
-    ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
+    # 4. Barra Lateral
+    st.sidebar.markdown("### 🏢 LOGO INSTITUIÇÃO") # Espaço para Logo
+    st.sidebar.title("Menu de Filtros")
+    
+    lista_anos = sorted(df["Ano"].unique(), reverse=True)
+    ano_sel = st.sidebar.selectbox("Ano", options=lista_anos)
     df_ano = df[df["Ano"] == ano_sel]
     
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
-    mes_sel = st.sidebar.selectbox("Mês Competência", options=df_ano.sort_values("Mes_Num")["Mes_Nome"].unique(), index=len(df_ano["Mes_Nome"].unique())-1)
+    
+    lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
+    mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Filtragem
+    # Filtragem dos dados
     df_filtrado = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
     
-    # Cálculo de Tendência (Mês Anterior)
-    mes_atual_idx = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
-    df_anterior = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] == mes_atual_idx - 1)]
+    # Lógica de Tendência (Mês Anterior)
+    mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
+    df_anterior = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] == mes_num_atual - 1)]
     
     def calc_delta(atual, anterior):
         if anterior == 0: return 0
         return ((atual - anterior) / anterior) * 100
 
-    # 5. Dashboard Principal
+    # 5. Dash Principal
     st.title("📊 Gestão Estratégica de Frotas")
     
-    # Linha de KPIs
-    k1, k2, k3, k4 = st.columns(4)
+    # Linha de Cards
+    c1, c2, c3, c4 = st.columns(4)
     
-    with k1:
-        draw_card("Veículos Ativos", fmt_br(len(df_filtrado["Placa"].unique())))
+    with c1:
+        draw_card("VEÍCULOS ATIVOS", fmt_br(len(df_filtrado["Placa"].unique())))
     
-    with k2:
-        km_atual = df_filtrado['Quilometragem'].sum()
-        km_ant = df_anterior['Quilometragem'].sum()
-        draw_card("Quilometragem Mensal", fmt_br(km_atual), delta=calc_delta(km_atual, km_ant), is_lower_better=False)
+    with c2:
+        km_m = df_filtrado['Quilometragem'].sum()
+        km_a = df_anterior['Quilometragem'].sum()
+        draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=calc_delta(km_m, km_a), is_lower_better=False)
 
-    with k3:
-        custo_atual = df_filtrado['Custo de manutenção'].sum()
-        custo_ant = df_anterior['Custo de manutenção'].sum()
-        draw_card("Custo de Manutenção", fmt_br(custo_atual, True), delta=calc_delta(custo_atual, custo_ant))
+    with c3:
+        custo_m = df_filtrado['Custo de manutenção'].sum()
+        custo_a = df_anterior['Custo de manutenção'].sum()
+        draw_card("CUSTO DE MANUTENÇÃO MENSAL", fmt_br(custo_m, True), trend=calc_delta(custo_m, custo_a))
 
-    with k4:
-        gasto_acumulado = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] <= mes_atual_idx)]["Custo de manutenção"].sum()
+    with c4:
+        gasto_total_ano = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] <= mes_num_atual)]["Custo de manutenção"].sum()
         orc_total = sum(ORCAMENTOS.get(inst, 0) for inst in inst_sel)
-        perc = (gasto_acumulado / orc_total * 100) if orc_total > 0 else 0
-        draw_card("Execução Orçamentária", f"{perc:.1f}% consumido", progress=perc)
+        perc = (gasto_total_ano / orc_total * 100) if orc_total > 0 else 0
+        draw_card("EXECUÇÃO ORÇAMENTÁRIA ANUAL", fmt_br(gasto_total_ano, True), f"{perc:.1f}% do orçamento consumido", progress=perc)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 6. Gráficos de Ranking
+    # 6. Rankings
     g1, g2 = st.columns(2)
 
     with g1:
@@ -142,14 +154,12 @@ if not df.empty:
         top10_km = df_filtrado.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
         fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
         
-        # Configuração de Data Viz (Padrão BR e Ocultar Eixos)
         fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside', cliponaxis=False)
         fig_km.update_layout(
-            separators=',.', # Define padrão brasileiro para o Plotly
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=0, r=100, t=20, b=0),
+            separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=0, r=100, t=10, b=10),
             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_km['Quilometragem'].max() * 1.2]),
-            yaxis=dict(title="", tickfont=dict(size=12, color='#333'))
+            yaxis=dict(title="", tickfont=dict(color='#333', size=12))
         )
         st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
 
@@ -158,17 +168,15 @@ if not df.empty:
         top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
         
-        # Configuração de Data Viz (Moeda BRL e Ocultar Eixos)
         fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
         fig_custo.update_layout(
-            separators=',.',
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=0, r=120, t=20, b=0),
+            separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=0, r=120, t=10, b=10),
             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_custo['Custo de manutenção'].max() * 1.3]),
-            yaxis=dict(title="", tickfont=dict(size=12, color='#333'))
+            yaxis=dict(title="", tickfont=dict(color='#333', size=12))
         )
         st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
-    # Tabela detalhada expansível
-    with st.expander("📑 Visualizar Base de Dados Detalhada"):
+    # Tabela Expansível
+    with st.expander("📑 Detalhamento dos Dados"):
         st.dataframe(df_filtrado.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
