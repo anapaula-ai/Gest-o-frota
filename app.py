@@ -6,7 +6,7 @@ import re
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Looker Style Consolidado)
+# 2. Estilização CSS (Layout preservado exatamente como solicitado)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -49,14 +49,14 @@ def draw_card(label, value, subtext="", progress=None):
     prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
     st.markdown(f"""<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-subtext">{subtext}</div>{prog_html}</div>""", unsafe_allow_html=True)
 
-# 3. Carregamento de Dados (ULTRA ROBUSTO)
+# 3. Carregamento de Dados (CORREÇÃO DO ERRO 'INT' OBJECT)
 @st.cache_data(ttl=60)
 def load_data():
     try:
         df = pd.read_excel("manutencao.xlsx")
         df.columns = [str(c).strip() for c in df.columns]
 
-        # Função para limpar números (converte 1.000,50 ou 1000,50 para 1000.50)
+        # Função para limpar números (trata vírgula como decimal brasileira)
         def clean_num(x):
             if pd.isna(x): return 0.0
             if isinstance(x, (int, float)): return float(x)
@@ -65,7 +65,7 @@ def load_data():
             elif ',' in s: s = s.replace(',', '.')
             return pd.to_numeric(s, errors='coerce') or 0.0
 
-        # Mapeamento dinâmico de colunas por nome aproximado
+        # Identificar colunas alvo
         for c in df.columns:
             c_low = c.lower()
             if 'combust' in c_low: df['Custo_Combustivel'] = df[c].apply(clean_num)
@@ -76,24 +76,29 @@ def load_data():
             if 'inst' in c_low: df['INST'] = df[c]
             if 'quilom' in c_low: df['KM'] = df[c].apply(clean_num)
 
-        # Garantir que as colunas existam mesmo se o Excel estiver com nomes diferentes
+        # Garantir colunas essenciais
         for col in ['Custo_Combustivel', 'Custo_Manutencao', 'KM']:
             if col not in df.columns: df[col] = 0.0
+
+        # Tratamento seguro da coluna Ano para evitar o erro do print
+        if 'Ano' in df.columns:
+            df['Ano_Num'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
+        else:
+            df['Ano_Num'] = 2026
 
         # Meses
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['Mes_Nome'] = df['DATA'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['DATA'].dt.month
-        df['Ano'] = pd.to_numeric(df.get('Ano', 2026), errors='coerce').fillna(2026).astype(int)
             
         return df
     except Exception as e:
-        st.error(f"Erro ao ler Excel: {e}")
+        st.error(f"Erro ao processar arquivo: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
-# ORÇAMENTOS
+# ORÇAMENTOS PRESERVADOS
 ORC_MANUTENCAO = {"AMES": 987380.00, "IAV": 305434.00}
 ORC_COMBUSTIVEL = {"AMES": 1000081.06, "IAV": 264450.00}
 
@@ -103,27 +108,28 @@ if not df.empty:
         st.cache_data.clear()
         st.rerun()
 
-    ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
-    df_ano = df[df["Ano"] == ano_sel]
+    ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano_Num"].unique(), reverse=True))
+    df_ano = df[df["Ano_Num"] == ano_sel]
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["INST"].unique()), default=sorted(df_ano["INST"].unique()))
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
-    mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
+    mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1 if len(lista_meses)>0 else 0)
 
-    # Filtragem
+    # Filtros
     df_base = df_ano[df_ano["INST"].isin(inst_sel)]
     df_filtrado_mes = df_base[df_base["Mes_Nome"] == mes_sel]
-    mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
+    mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0] if not df_filtrado_mes.empty else 1
     df_acumulado_ate_mes = df_base[df_base["Mes_Num"] <= mes_num_atual]
     
     # Placas virtuais (ignoradas em rankings de veículo)
     is_virtual = df_filtrado_mes['PLACA'].str.contains('COMBUST', case=False, na=False)
     df_veiculos_mes = df_filtrado_mes[~is_virtual]
 
-    # Dashboard
+    # Dashboard - 3 Abas
     tab1, tab2, tab3 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Desempenho Mensal - {mes_sel}")
+        # Os 6 cards preservados
         c1, c2, c3, c4, c5, c6 = st.columns(6)
         
         with c1: draw_card("Veículos Ativos", fmt_br(len(df_veiculos_mes["PLACA"].unique())))
@@ -169,11 +175,11 @@ if not df.empty:
         st.plotly_chart(fig_b_c, use_container_width=True)
 
     with tab2:
-        st.title("📈 Resumo Acumulado Anual")
+        st.title("📈 Resumo Acumulado")
         evol_mes = df_acumulado_ate_mes.groupby(['Mes_Num', 'Mes_Nome']).agg({'Custo_Manutencao':'sum', 'Custo_Combustivel':'sum'}).reset_index().sort_values('Mes_Num')
-        fig_e = px.line(evol_mes, x='Mes_Nome', y=['Custo_Manutencao', 'Custo_Combustível'], markers=True, color_discrete_map={'Custo_Manutencao': '#F57C00', 'Custo_Combustivel': '#388E3C'})
+        fig_e = px.line(evol_mes, x='Mes_Nome', y=['Custo_Manutencao', 'Custo_Combustivel'], markers=True, color_discrete_map={'Custo_Manutencao': '#F57C00', 'Custo_Combustivel': '#388E3C'})
         fig_e.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(title=""), yaxis=dict(title="R$"))
         st.plotly_chart(fig_e, use_container_width=True)
 
     with tab3:
-        st.dataframe(df_filtrado_mes.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
+        st.dataframe(df_filtrado_mes.drop(columns=['Mes_Num', 'Ano_Num']), use_container_width=True)
