@@ -118,15 +118,25 @@ if not df.empty:
             st.subheader("Ranking de Quilometragem (Top 10)")
             top10_km = df_filtrado_mes.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
-            fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
-            fig_km.update_layout(separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=100, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), yaxis=dict(title=""))
+            fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside', cliponaxis=False)
+            fig_km.update_layout(
+                height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                margin=dict(l=0, r=100, t=10, b=10), 
+                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_km['Quilometragem'].max() * 1.3]), 
+                yaxis=dict(title="")
+            )
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
         with g2:
             st.subheader("Ranking de Custos (Top 10)")
             top10_custo = df_filtrado_mes.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
-            fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside')
-            fig_custo.update_layout(separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=120, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), yaxis=dict(title=""))
+            fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
+            fig_custo.update_layout(
+                height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                margin=dict(l=0, r=130, t=10, b=10), 
+                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_custo['Custo de manutenção'].max() * 1.4]), 
+                yaxis=dict(title="")
+            )
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
@@ -143,12 +153,12 @@ if not df.empty:
 
         st.markdown("---")
         
-        # Ranking de Bases
-        st.subheader("Ranking de Bases com Maior Custo de Manutenção")
-        custo_base = df_acumulado_ate_mes.groupby('Base')['Custo de manutenção'].sum().reset_index().sort_values('Custo de manutenção', ascending=True)
+        # Ranking de Bases (Top 10)
+        st.subheader("Top 10 Bases com Maior Custo de Manutenção (Acumulado)")
+        custo_base = df_acumulado_ate_mes.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         fig_base = px.bar(custo_base, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção',
                           color_discrete_sequence=['#1A237E'])
-        fig_base.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside')
+        fig_base.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
         fig_base.update_layout(separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=150, t=10, b=10),
                                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base['Custo de manutenção'].max() * 1.3]),
                                yaxis=dict(title="", tickfont=dict(size=12)))
