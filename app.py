@@ -18,3 +18,4 @@ def load_data():
     except Exception as e:
         st.error(f"Erro ao carregar os dados: {e}")
         return pd.DataFrame()
+        
