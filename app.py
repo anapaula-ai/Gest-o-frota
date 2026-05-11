@@ -5,38 +5,21 @@ import plotly.express as px
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS Robusta (Forçando cores para evitar tela branca)
+# 2. Estilização CSS (Ajuste na Barra de Progresso e Cores)
 st.markdown("""
     <style>
-    /* Forçar fundo azul claro em toda a aplicação */
-    .stApp {
-        background-color: #E3F2FD !important;
-    }
-    
-    /* Garantir que o container principal não fique branco */
-    [data-testid="stAppViewContainer"] {
-        background-color: #E3F2FD !important;
-    }
+    .stApp { background-color: #E3F2FD !important; }
+    [data-testid="stAppViewContainer"] { background-color: #E3F2FD !important; }
+    [data-testid="stSidebar"] { background-color: #BBDEFB !important; border-right: 1px solid #90CAF9; }
+    h1, h2, h3, p, span, label { color: #1A237E !important; }
 
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #BBDEFB !important;
-        border-right: 1px solid #90CAF9;
-    }
-
-    /* Títulos e Textos Gerais */
-    h1, h2, h3, p, span, label {
-        color: #1A237E !important;
-    }
-
-    /* Cards de KPI */
     .metric-container {
         background-color: #FFFFFF !important;
         padding: 20px;
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        min-height: 150px;
+        min-height: 160px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -46,27 +29,34 @@ st.markdown("""
     .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; line-height: 1.1; }
     .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; margin-top: 5px; }
     
-    /* Títulos dos Gráficos */
     .chart-title {
-        height: 50px; 
+        height: 45px; 
         display: flex; 
         align-items: center; 
         font-size: 16px; 
         font-weight: 700; 
         color: #1A237E !important; 
-        text-align: left;
-        margin-bottom: 5px;
+        margin-bottom: 10px;
     }
 
-    /* Abas */
-    .stTabs [data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
-    .stTabs [aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; background-color: rgba(255,255,255,0.3) !important; }
+    /* BARRA DE PROGRESSO CORRIGIDA */
+    .progress-bg { 
+        background-color: #EEEEEE !important; 
+        border-radius: 10px; 
+        width: 100%; 
+        height: 10px !important; 
+        margin-top: 12px;
+        border: 1px solid #E0E0E0;
+        overflow: hidden;
+    }
+    .progress-fill { 
+        background-color: #F57C00 !important; 
+        height: 10px !important; 
+        border-radius: 10px; 
+    }
 
-    /* Tendências */
-    .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
-    .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
-    .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 6px; margin-top: 10px; }
-    .progress-fill { background-color: #F57C00; height: 6px; border-radius: 10px; }
+    .stTabs [data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
+    .stTabs [aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,20 +67,15 @@ def fmt_br(valor, is_moeda=False):
     return f"{valor:,.0f}".replace(",", ".")
 
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None):
-    trend_html = ""
-    if trend is not None:
-        color = "trend-down" if (trend <= 0 if is_lower_better else trend >= 0) else "trend-up"
-        icon = "↓" if trend <= 0 else "↑"
-        trend_html = f'<div class="{color}">{icon} {abs(trend):.1f}% vs mês ant.</div>'
-    
-    prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
+    prog_html = ""
+    if progress is not None:
+        prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>'
     
     st.markdown(f"""
         <div class="metric-container">
             <div class="metric-label">{label}</div>
             <div class="metric-value">{value}</div>
             <div class="metric-subtext">{subtext}</div>
-            {trend_html}
             {prog_html}
         </div>
     """, unsafe_allow_html=True)
@@ -107,10 +92,15 @@ def load_data():
         df['Mes_Num'] = df['Mês Referência'].dt.month
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
+        df['Ano'] = pd.to_numeric(df.get('Ano', 2026), errors='coerce').fillna(2026).astype(int)
+        
+        # Garantir coluna de Tipo de Manutenção para o novo gráfico
+        if 'Tipo de Manutenção' not in df.columns:
+            df['Tipo de Manutenção'] = 'Não Informado'
+            
         return df
     except Exception as e:
-        st.error(f"Erro crítico ao carregar dados: {e}")
+        st.error(f"Erro ao carregar dados: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -122,14 +112,20 @@ if not df.empty:
     ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
     df_ano = df[df["Ano"] == ano_sel]
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
+    
+    busca_placa = st.sidebar.text_input("🔍 Buscar Placa", "").upper()
+    
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Lógica de Filtros e Acumulados
-    df_filtrado_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
+    # Filtros
+    df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    if busca_placa:
+        df_base = df_base[df_base["Placa"].str.contains(busca_placa)]
+
+    df_filtrado_mes = df_base[df_base["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
-    df_acumulado_ate_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] <= mes_num_atual)]
-    df_anterior = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] == mes_num_atual - 1)]
+    df_acumulado_ate_mes = df_base[df_base["Mes_Num"] <= mes_num_atual]
 
     # 5. Dashboard
     tab1, tab2, tab3 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "📑 Detalhamento"])
@@ -142,28 +138,27 @@ if not df.empty:
             draw_card("VEÍCULOS ATIVOS", fmt_br(len(df_filtrado_mes["Placa"].unique())))
         with c2:
             km_m = df_filtrado_mes['Quilometragem'].sum()
-            km_a = df_anterior['Quilometragem'].sum()
-            draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=((km_m-km_a)/km_a*100) if km_a>0 else 0, is_lower_better=False)
+            draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), "Total rodado no mês")
         with c3:
             custo_m = df_filtrado_mes['Custo de manutenção'].sum()
-            custo_a = df_anterior['Custo de manutenção'].sum()
-            draw_card("CUSTO DE MANUTENÇÃO MENSAL", fmt_br(custo_m, True), trend=((custo_m-custo_a)/custo_a*100) if custo_a>0 else 0)
+            draw_card("CUSTO DE MANUTENÇÃO MENSAL", fmt_br(custo_m, True), "Investimento no período")
         with c4:
-            gasto_total = df_acumulado_ate_mes["Custo de manutenção"].sum()
             orc_total = sum(ORCAMENTOS.get(inst, 0) for inst in inst_sel)
-            perc = (gasto_total / orc_total * 100) if orc_total > 0 else 0
-            draw_card("EXECUÇÃO ORÇAMENTÁRIA ANUAL", fmt_br(gasto_total, True), f"{perc:.1f}% consumido", progress=perc)
+            gasto_total_acum = df_acumulado_ate_mes["Custo de manutenção"].sum()
+            perc = (gasto_total_acum / orc_total * 100) if orc_total > 0 else 0
+            draw_card("EXECUÇÃO ORÇAMENTÁRIA ANUAL", fmt_br(gasto_total_acum, True), f"{perc:.1f}% consumido", progress=perc)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
         
-        g1, g2 = st.columns(2)
+        g1, g2, g3 = st.columns([2, 2, 1.5]) # Adicionada terceira coluna para o gráfico de tipo
+        
         with g1:
             st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
             top10_km = df_filtrado_mes.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
             fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside', cliponaxis=False)
-            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                                 margin=dict(l=80, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_km['Quilometragem'].max()*1.3]), yaxis=dict(title=""))
+            fig_km.update_layout(height=380, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                                 margin=dict(l=0, r=80, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_km['Quilometragem'].max()*1.3 if not top10_km.empty else 1]), yaxis=dict(title=""))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             
         with g2:
@@ -171,30 +166,43 @@ if not df.empty:
             top10_custo = df_filtrado_mes.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
             fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
-            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                                    margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_custo['Custo de manutenção'].max()*1.4]), yaxis=dict(title=""))
+            fig_custo.update_layout(height=380, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                                    margin=dict(l=0, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, top10_custo['Custo de manutenção'].max()*1.4 if not top10_custo.empty else 1]), yaxis=dict(title=""))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
+        with g3:
+            st.markdown('<div class="chart-title">Investimento por Categoria</div>', unsafe_allow_html=True)
+            tipo_custo = df_filtrado_mes.groupby('Tipo de Manutenção')['Custo de manutenção'].sum().reset_index()
+            fig_tipo = px.pie(tipo_custo, values='Custo de manutenção', names='Tipo de Manutenção', hole=.5,
+                              color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_tipo.update_layout(height=380, margin=dict(l=0, r=0, t=0, b=0), showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
+            st.plotly_chart(fig_tipo, use_container_width=True)
+
     with tab2:
-        st.markdown(f"### 📈 Resumo Acumulado {ano_sel}")
+        st.title(f"📈 Resumo Acumulado {ano_sel}")
         st.markdown('<div class="chart-title">Evolução dos Custos de Manutenção por Instituição</div>', unsafe_allow_html=True)
         evol_inst = df_acumulado_ate_mes.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-        fig_evol.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20), xaxis=dict(title=""), yaxis=dict(title="Custo Total (R$)", showgrid=True, gridcolor='#E0E0E0'))
+        
+        # Linha de Cota Mensal (Meta)
+        cota_mensal = orc_total / 12 if orc_total > 0 else 0
+        fig_evol.add_hline(y=cota_mensal, line_dash="dash", line_color="#D32F2F", annotation_text=f"Meta Mensal: {fmt_br(cota_mensal, True)}")
+        
+        fig_evol.update_layout(height=350, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=20), xaxis=dict(title=""), yaxis=dict(title="Custo Total (R$)", showgrid=True, gridcolor='#E0E0E0'))
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
-        st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção (Acumulado)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo Acumulado</div>', unsafe_allow_html=True)
         custo_base = df_acumulado_ate_mes.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         fig_base = px.bar(custo_base, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#1A237E'])
         fig_base.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
-        fig_base.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base['Custo de manutenção'].max()*1.3]), yaxis=dict(title=""))
+        fig_base.update_layout(height=380, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=0, r=120, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base['Custo de manutenção'].max()*1.3 if not custo_base.empty else 1]), yaxis=dict(title=""))
         st.plotly_chart(fig_base, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
         st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_filtrado_mes.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
         csv = df_filtrado_mes.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Baixar Dados Filtrados (CSV)", csv, f"frota_{mes_sel}.csv", "text/csv")
+        st.download_button("📥 Baixar CSV", csv, "extracao_frota.csv", "text/csv")
 else:
-    st.warning("Arquivo 'manutencao.xlsx' não encontrado. Certifique-se de que ele está na mesma pasta no GitHub.")
+    st.warning("Verifique se o arquivo manutencao.xlsx está no repositório.")
