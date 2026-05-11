@@ -5,7 +5,7 @@ import plotly.express as px
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Looker Style)
+# 2. Estilização CSS (Looker Style Consolidado)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -48,7 +48,7 @@ def draw_card(label, value, subtext="", progress=None):
     prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
     st.markdown(f"""<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-subtext">{subtext}</div>{prog_html}</div>""", unsafe_allow_html=True)
 
-# 3. Carregamento de Dados
+# 3. Carregamento de Dados (Correção do Erro de fillna)
 @st.cache_data
 def load_data():
     try:
@@ -58,10 +58,20 @@ def load_data():
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
         
-        for col in ['Quilometragem', 'Custo de manutenção', 'Custo de Combustível']:
-            df[col] = pd.to_numeric(df.get(col, 0), errors='coerce').fillna(0)
+        # Limpeza segura de colunas numéricas
+        cols_numericas = ['Quilometragem', 'Custo de manutenção', 'Custo de Combustível']
+        for col in cols_numericas:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            else:
+                df[col] = 0.0
         
-        df['Ano'] = pd.to_numeric(df.get('Ano', 2026), errors='coerce').fillna(2026).astype(int)
+        # Correção específica para a coluna Ano
+        if 'Ano' in df.columns:
+            df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
+        else:
+            df['Ano'] = 2026
+            
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -74,17 +84,26 @@ ORC_MANUTENCAO = {"AMES": 987380.00, "IAV": 305434.00}
 ORC_COMBUSTIVEL = {"AMES": 1000081.06, "IAV": 264450.00}
 
 if not df.empty:
+    # 4. Sidebar
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
-    ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
+    lista_anos = sorted(df["Ano"].unique(), reverse=True)
+    ano_sel = st.sidebar.selectbox("Ano", options=lista_anos)
     df_ano = df[df["Ano"] == ano_sel]
+    
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
-    mes_sel = st.sidebar.selectbox("Mês Competência", options=df_ano.sort_values("Mes_Num")["Mes_Nome"].unique(), index=len(df_ano["Mes_Nome"].unique())-1)
+    
+    lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
+    mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
+    # Filtragem
     df_filtrado_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
     df_acumulado_ate_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] <= mes_num_atual)]
+    
+    # Separar veículos reais de lançamentos de base
     df_veiculos_mes = df_filtrado_mes[~df_filtrado_mes['Placa'].str.contains('COMBUSTÍVEL', na=False)]
 
+    # 5. Dashboard
     tab1, tab2, tab3 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "📑 Detalhamento"])
 
     with tab1:
@@ -135,7 +154,6 @@ if not df.empty:
 
     with tab2:
         st.title("📈 Resumo Acumulado")
-        # Evolução Mensal Separada
         st.markdown('<div class="chart-title">Evolução dos Custos: Manutenção vs Combustível</div>', unsafe_allow_html=True)
         evol_mes = df_acumulado_ate_mes.groupby(['Mes_Num', 'Mes_Nome']).agg({'Custo de manutenção':'sum', 'Custo de Combustível':'sum'}).reset_index().sort_values('Mes_Num')
         fig_e = px.line(evol_mes, x='Mes_Nome', y=['Custo de manutenção', 'Custo de Combustível'], markers=True, color_discrete_map={'Custo de manutenção': '#F57C00', 'Custo de Combustível': '#388E3C'})
@@ -143,6 +161,9 @@ if not df.empty:
         st.plotly_chart(fig_e, use_container_width=True)
 
     with tab3:
+        st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_filtrado_mes.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
+        csv = df_filtrado_mes.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Baixar CSV", csv, "extracao_completa.csv", "text/csv")
 else:
-    st.info("Carregue o arquivo 'manutencao.xlsx'.")
+    st.info("Verifique o arquivo 'manutencao.xlsx'.")
