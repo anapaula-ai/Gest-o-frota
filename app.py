@@ -124,4 +124,33 @@ if not df.empty:
         with g2:
             st.subheader("Ranking de Custos de Manutenção da Frota")
             top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
-            fig_custo = px.bar(top10_custo, x='
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', 
+                               text='Custo de manutenção', color_discrete_sequence=['#D32F2F'])
+            
+            fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
+            fig_custo.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)', 
+                font_color="#01579B",
+                margin=dict(r=100), 
+                xaxis=dict(range=[0, top10_custo['Custo de manutenção'].max() * 1.25], showticklabels=False, showgrid=False),
+                yaxis=dict(title="")
+            )
+            st.plotly_chart(fig_custo, use_container_width=True)
+
+    with tab2:
+        st.subheader(f"Evolução dos Custos - {ano_sel}")
+        df_acumulado = df_ano[df_ano["Instituição"].isin(inst_sel)]
+        evol_mensal = df_acumulado.groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
+        
+        fig_evol = px.line(evol_mensal, x='Mes_Nome', y='Custo de manutenção', markers=True, 
+                           text='Custo de manutenção', color_discrete_sequence=['#0288D1'])
+        fig_evol.update_traces(texttemplate='R$ %{text:,.2f}', textposition='top center')
+        fig_evol.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B")
+        st.plotly_chart(fig_evol, use_container_width=True)
+
+    with tab3:
+        st.subheader("Base de Dados Completa")
+        st.dataframe(df_filtrado.drop(columns=['Mes_Num']), use_container_width=True)
+else:
+    st.info("Carregue o arquivo 'manutencao.xlsx'.")
