@@ -62,6 +62,12 @@ def load_data():
 
 df = load_data()
 
+# Definição dos Orçamentos Anuais
+ORCAMENTOS = {
+    "AMES": 987380.00,
+    "IAV": 305434.00
+}
+
 if not df.empty:
     # 4. Filtros
     st.sidebar.title("🔍 Filtros")
@@ -78,9 +84,27 @@ if not df.empty:
     lista_bases = ["Todas"] + list(sorted(df_ano["Base"].unique()))
     base_sel = st.sidebar.selectbox("Base", options=lista_bases)
 
+    # Filtragem Mensal
     df_filtrado = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
     if base_sel != "Todas":
         df_filtrado = df_filtrado[df_filtrado["Base"] == base_sel]
+
+    # CÁLCULO DA EXECUÇÃO ORÇAMENTÁRIA (Acumulado do ano até o mês selecionado)
+    mes_num_sel = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
+    
+    # Gasto acumulado de Janeiro até o mês selecionado para as instituições filtradas
+    gasto_acumulado = df_ano[
+        (df_ano["Instituição"].isin(inst_sel)) & 
+        (df_ano["Mes_Num"] <= mes_num_sel)
+    ]["Custo de manutenção"].sum()
+    
+    # Orçamento total das instituições selecionadas
+    orcamento_total_selecionado = sum(ORCAMENTOS.get(inst, 0) for inst in inst_sel)
+    
+    if orcamento_total_selecionado > 0:
+        percentual_execucao = (gasto_acumulado / orcamento_total_selecionado) * 100
+    else:
+        percentual_execucao = 0
 
     st.title("📊 Gestão de Frotas")
     st.markdown(f"**Relatório de {mes_sel} de {ano_sel}**")
@@ -91,13 +115,12 @@ if not df.empty:
         # KPIs
         c1, c2, c3, c4 = st.columns(4)
         km_total = df_filtrado['Quilometragem'].sum()
-        custo_total = df_filtrado['Custo de manutenção'].sum()
-        custo_km = custo_total / km_total if km_total > 0 else 0
+        custo_mensal = df_filtrado['Custo de manutenção'].sum()
 
         with c1: draw_metric("Veículos", len(df_filtrado["Placa"].unique()))
         with c2: draw_metric("KM Total", f"{km_total:,.0f}".replace(",", "."))
-        with c3: draw_metric("Custo Total", f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        with c4: draw_metric("R$ por KM", f"R$ {custo_km:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with c3: draw_metric("Custo Mensal", f"R$ {custo_mensal:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with c4: draw_metric("Execução Orçamentária", f"{percentual_execucao:.1f}%")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -109,16 +132,9 @@ if not df.empty:
             top10_km = df_filtrado.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', 
                             text='Quilometragem', color_discrete_sequence=['#0288D1'])
-            
             fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside', cliponaxis=False)
-            fig_km.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)', 
-                font_color="#01579B",
-                margin=dict(r=80), 
-                xaxis=dict(range=[0, top10_km['Quilometragem'].max() * 1.15], showticklabels=False, showgrid=False),
-                yaxis=dict(title="")
-            )
+            fig_km.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B",
+                                 margin=dict(r=80), xaxis=dict(range=[0, top10_km['Quilometragem'].max() * 1.2], showticklabels=False, showgrid=False), yaxis=dict(title=""))
             st.plotly_chart(fig_km, use_container_width=True)
 
         with g2:
@@ -126,22 +142,15 @@ if not df.empty:
             top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', 
                                text='Custo de manutenção', color_discrete_sequence=['#D32F2F'])
-            
             fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
-            fig_custo.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)', 
-                font_color="#01579B",
-                margin=dict(r=100), 
-                xaxis=dict(range=[0, top10_custo['Custo de manutenção'].max() * 1.25], showticklabels=False, showgrid=False),
-                yaxis=dict(title="")
-            )
+            fig_custo.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B",
+                                    margin=dict(r=100), xaxis=dict(range=[0, top10_custo['Custo de manutenção'].max() * 1.3], showticklabels=False, showgrid=False), yaxis=dict(title=""))
             st.plotly_chart(fig_custo, use_container_width=True)
 
     with tab2:
         st.subheader(f"Evolução dos Custos - {ano_sel}")
-        df_acumulado = df_ano[df_ano["Instituição"].isin(inst_sel)]
-        evol_mensal = df_acumulado.groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
+        df_acumulado_grafico = df_ano[df_ano["Instituição"].isin(inst_sel)]
+        evol_mensal = df_acumulado_grafico.groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         
         fig_evol = px.line(evol_mensal, x='Mes_Nome', y='Custo de manutenção', markers=True, 
                            text='Custo de manutenção', color_discrete_sequence=['#0288D1'])
