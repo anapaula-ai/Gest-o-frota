@@ -5,7 +5,7 @@ import plotly.express as px
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Looker Style Consolidado)
+# 2. Estilização CSS (Design Corporativo Consolidado)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -48,25 +48,34 @@ def draw_card(label, value, subtext="", progress=None):
     prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
     st.markdown(f"""<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-subtext">{subtext}</div>{prog_html}</div>""", unsafe_allow_html=True)
 
-# 3. Carregamento de Dados (Correção do Erro de fillna)
+# 3. Carregamento de Dados (Com normalização de colunas)
 @st.cache_data
 def load_data():
     try:
         df = pd.read_excel("manutencao.xlsx")
+        
+        # NORMALIZAÇÃO: Remove espaços e padroniza nomes para evitar erros de digitação
+        df.columns = [c.strip() for c in df.columns]
+        col_map = {
+            'Custo de combustível': 'Custo de Combustível',
+            'Custo de combustivel': 'Custo de Combustível',
+            'Custo de Manutenção': 'Custo de manutenção',
+            'Custo de manutencao': 'Custo de manutenção'
+        }
+        df = df.rename(columns=col_map)
+
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'])
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
         
-        # Limpeza segura de colunas numéricas
-        cols_numericas = ['Quilometragem', 'Custo de manutenção', 'Custo de Combustível']
-        for col in cols_numericas:
+        # Conversão numérica segura
+        for col in ['Quilometragem', 'Custo de manutenção', 'Custo de Combustível']:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             else:
                 df[col] = 0.0
         
-        # Correção específica para a coluna Ano
         if 'Ano' in df.columns:
             df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
         else:
@@ -79,7 +88,7 @@ def load_data():
 
 df = load_data()
 
-# DEFINIÇÃO DOS ORÇAMENTOS SEPARADOS
+# ORÇAMENTOS SEPARADOS
 ORC_MANUTENCAO = {"AMES": 987380.00, "IAV": 305434.00}
 ORC_COMBUSTIVEL = {"AMES": 1000081.06, "IAV": 264450.00}
 
@@ -91,17 +100,17 @@ if not df.empty:
     df_ano = df[df["Ano"] == ano_sel]
     
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
-    
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
     # Filtragem
-    df_filtrado_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
+    df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    df_filtrado_mes = df_base[df_base["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
-    df_acumulado_ate_mes = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Num"] <= mes_num_atual)]
+    df_acumulado_ate_mes = df_base[df_base["Mes_Num"] <= mes_num_atual]
     
-    # Separar veículos reais de lançamentos de base
-    df_veiculos_mes = df_filtrado_mes[~df_filtrado_mes['Placa'].str.contains('COMBUSTÍVEL', na=False)]
+    # Separar veículos reais (para rankings de quilometragem e manutenção)
+    df_veiculos_mes = df_filtrado_mes[~df_filtrado_mes['Placa'].str.contains('COMBUSTÍVEL', na=False, case=False)]
 
     # 5. Dashboard
     tab1, tab2, tab3 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "📑 Detalhamento"])
@@ -163,7 +172,3 @@ if not df.empty:
     with tab3:
         st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_filtrado_mes.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
-        csv = df_filtrado_mes.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Baixar CSV", csv, "extracao_completa.csv", "text/csv")
-else:
-    st.info("Verifique o arquivo 'manutencao.xlsx'.")
