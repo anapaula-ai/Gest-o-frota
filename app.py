@@ -3,35 +3,62 @@ import pandas as pd
 import plotly.express as px
 
 # 1. Configuração da Página
-st.set_page_config(page_title="Gestão de Frotas Premium", layout="wide")
+st.set_page_config(page_title="Gestão de Frotas", layout="wide")
 
-# 2. Estilização CSS (Black Premium)
+# 2. Estilização CSS (Layout Azul Claro)
 st.markdown("""
     <style>
-    .stApp { background-color: #000000; color: white; }
-    [data-testid="stSidebar"] { background-color: #0a0a0a; border-right: 1px solid #333; }
+    /* Fundo Principal */
+    .stApp {
+        background-color: #E3F2FD;
+        color: #01579B;
+    }
     
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #BBDEFB;
+        border-right: 1px solid #90CAF9;
+    }
+
     /* Cards de Métricas */
     .metric-container {
-        background-color: #111111;
+        background-color: #FFFFFF;
         padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #333333;
+        border-radius: 12px;
+        border: 1px solid #90CAF9;
         text-align: center;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
     }
-    .metric-label { color: #888888; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-    .metric-value { color: #ffffff; font-size: 26px; font-weight: bold; margin-top: 5px; }
-    
-    /* Abas */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { 
-        color: #888; 
-        background-color: #0a0a0a; 
+    .metric-label {
+        color: #546E7A;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .metric-value {
+        color: #0277BD;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    /* Títulos e Textos */
+    h1, h2, h3, p {
+        color: #01579B !important;
+    }
+
+    /* Ajuste de abas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #0277BD;
+        background-color: #E1F5FE;
         border-radius: 5px 5px 0 0;
-        padding: 10px 20px;
     }
-    .stTabs [aria-selected="true"] { color: #FF4B4B !important; border-bottom: 2px solid #FF4B4B !important; }
+    .stTabs [aria-selected="true"] {
+        background-color: #0288D1 !important;
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -49,18 +76,22 @@ def load_data():
     try:
         df = pd.read_excel("manutencao.xlsx")
         
-        # Converter colunas para numérico
+        # Garantir que Mês Referência seja string ou data
+        df['Mês Referência'] = pd.to_datetime(df['Mês Referência'])
+        
+        # Criar coluna com Nome do Mês em Português
+        meses_pt = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+            7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        }
+        df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
+        df['Mes_Num'] = df['Mês Referência'].dt.month
+        
+        # Converter colunas numéricas
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
         
-        # Ordem dos meses
-        meses_map = {
-            'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
-            'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
-        }
-        df['Mes_Num'] = df['Mês Referência'].map(meses_map)
-        
-        # Trata a coluna Ano que você adicionou
+        # Trata coluna Ano
         if 'Ano' in df.columns:
             df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
         else:
@@ -68,55 +99,52 @@ def load_data():
             
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar os dados: {e}")
+        st.error(f"Erro ao processar dados: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
 if not df.empty:
     # 4. Filtros na Barra Lateral
-    st.sidebar.title("💎 Filtros de Gestão")
+    st.sidebar.title("🔍 Filtros")
     
     lista_anos = sorted(df["Ano"].unique(), reverse=True)
     ano_sel = st.sidebar.selectbox("Ano", options=lista_anos)
     
-    # Filtra o DF apenas pelo ano para alimentar os outros filtros
-    df_ano_base = df[df["Ano"] == ano_sel]
+    df_ano = df[df["Ano"] == ano_sel]
     
-    lista_instituicao = sorted(df_ano_base["Instituição"].unique())
-    inst_sel = st.sidebar.multiselect("Instituição", options=lista_instituicao, default=lista_instituicao)
+    lista_inst = sorted(df_ano["Instituição"].unique())
+    inst_sel = st.sidebar.multiselect("Instituição", options=lista_inst, default=lista_inst)
     
-    lista_meses = df_ano_base["Mês Referência"].unique()
-    mes_sel = st.sidebar.selectbox("Mês de Referência", options=lista_meses)
+    # Filtro de Mês pelo Nome
+    lista_meses_nome = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
+    mes_sel = st.sidebar.selectbox("Mês", options=lista_meses_nome)
     
-    lista_bases = ["Todas"] + list(sorted(df_ano_base["Base"].unique()))
-    base_sel = st.sidebar.selectbox("Base Operacional", options=lista_bases)
+    lista_bases = ["Todas"] + list(sorted(df_ano["Base"].unique()))
+    base_sel = st.sidebar.selectbox("Base", options=lista_bases)
 
-    # Aplicação final dos Filtros para os Gráficos
-    df_filtrado = df_ano_base[(df_ano_base["Instituição"].isin(inst_sel)) & (df_ano_base["Mês Referência"] == mes_sel)]
+    # Filtragem Final
+    df_filtrado = df_ano[(df_ano["Instituição"].isin(inst_sel)) & (df_ano["Mes_Nome"] == mes_sel)]
     if base_sel != "Todas":
         df_filtrado = df_filtrado[df_filtrado["Base"] == base_sel]
 
-    # 5. Título Principal
-    st.title("📊 Dashboard Gestão de Frotas")
-    st.markdown(f"**Análise de {mes_sel} / {ano_sel}**")
-    st.markdown("---")
+    st.title("📊 Gestão de Frotas")
+    st.markdown(f"**Relatório de {mes_sel} de {ano_sel}**")
 
-    # 6. Organização por Abas
-    tab1, tab2, tab3 = st.tabs(["📌 Mensal", "📈 Acumulado Anual", "📑 Base de Dados"])
+    # 5. Abas
+    tab1, tab2, tab3 = st.tabs(["📌 Visão Mensal", "📈 Evolução Anual", "📑 Dados"])
 
     with tab1:
-        m1, m2, m3, m4 = st.columns(4)
-        
-        veiculos_total = len(df_filtrado["Placa"].unique())
+        # Métricas
+        c1, c2, c3, c4 = st.columns(4)
         km_total = df_filtrado['Quilometragem'].sum()
         custo_total = df_filtrado['Custo de manutenção'].sum()
         custo_km = custo_total / km_total if km_total > 0 else 0
 
-        with m1: draw_metric("Veículos Ativos", veiculos_total)
-        with m2: draw_metric("KM Rodados", f"{km_total:,.0f}".replace(",", "."))
-        with m3: draw_metric("Investimento", f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-        with m4: draw_metric("Custo por KM", f"R$ {custo_km:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with c1: draw_metric("Veículos", len(df_filtrado["Placa"].unique()))
+        with c2: draw_metric("KM Total", f"{km_total:,.0f}".replace(",", "."))
+        with c3: draw_metric("Custo Total", f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+        with c4: draw_metric("R$ por KM", f"R$ {custo_km:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -124,39 +152,35 @@ if not df.empty:
         with g1:
             st.subheader("Top 10 KM por Placa")
             top10_km = df_filtrado.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
-            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text_auto='.2s', color_discrete_sequence=['#4B4BFF'])
-            fig_km.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=450)
+            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', 
+                            text='Quilometragem', color_discrete_sequence=['#0288D1'])
+            fig_km.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+            fig_km.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B")
             st.plotly_chart(fig_km, use_container_width=True)
 
         with g2:
             st.subheader("Top 10 Custos por Placa")
             top10_custo = df_filtrado.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
-            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text_auto='.2s', color_discrete_sequence=['#FF4B4B'])
-            fig_custo.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white", height=450)
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', 
+                               text='Custo de manutenção', color_discrete_sequence=['#D32F2F'])
+            fig_custo.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside')
+            fig_custo.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B")
             st.plotly_chart(fig_custo, use_container_width=True)
 
     with tab2:
-        st.subheader(f"Tendência e Distribuição - Ano {ano_sel}")
-        df_ano_acumulado = df[(df["Ano"] == ano_sel) & (df["Instituição"].isin(inst_sel))]
+        st.subheader(f"Evolução dos Custos - {ano_sel}")
+        df_acumulado = df_ano[df_ano["Instituição"].isin(inst_sel)]
+        evol_mensal = df_acumulado.groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         
-        evolucao_mensal = df_ano_acumulado.groupby(['Mes_Num', 'Mês Referência'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
-        fig_evol = px.line(evolucao_mensal, x='Mês Referência', y='Custo de manutenção', markers=True, color_discrete_sequence=['#FF4B4B'])
-        fig_evol.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+        fig_evol = px.line(evol_mensal, x='Mes_Nome', y='Custo de manutenção', markers=True, 
+                           text='Custo de manutenção', color_discrete_sequence=['#0288D1'])
+        fig_evol.update_traces(texttemplate='R$ %{text:,.2f}', textposition='top center')
+        fig_evol.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#01579B", yaxis_title="Custo Total")
         st.plotly_chart(fig_evol, use_container_width=True)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            custo_base = df_ano_acumulado.groupby("Base")["Custo de manutenção"].sum().reset_index()
-            fig_pie = px.pie(custo_base, values='Custo de manutenção', names='Base', hole=.4, template="plotly_dark")
-            st.plotly_chart(fig_pie, use_container_width=True)
-        with col2:
-            st.dataframe(evolucao_mensal[['Mês Referência', 'Custo de manutenção']].style.format({"Custo de manutenção": "R$ {:,.2f}"}), use_container_width=True)
-
     with tab3:
-        st.subheader("Visualização dos Dados")
-        st.dataframe(df_filtrado, use_container_width=True)
-        csv = df_filtrado.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Baixar em CSV", data=csv, file_name=f"frota_{mes_sel}.csv", mime="text/csv")
+        st.subheader("Base de Dados Completa")
+        st.dataframe(df_filtrado.drop(columns=['Mes_Num']), use_container_width=True)
 
 else:
-    st.warning("⚠️ Aguardando dados do arquivo 'manutencao.xlsx'.")
+    st.info("Carregue o arquivo 'manutencao.xlsx' para visualizar os dados.")
