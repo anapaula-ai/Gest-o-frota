@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Mantida e Ajustada)
+# 2. Estilização CSS (Mantida Integralmente)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -51,9 +51,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Definição da cor Chumbo Negrito para os Gráficos
+# Estilos de texto (Chumbo Negrito)
 ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
-ESTILO_EIXO = dict(size=12, color='#333333', family="Arial, sans-serif")
 
 # Funções de Apoio
 def fmt_br(valor, is_moeda=False):
@@ -148,22 +147,25 @@ if not df.empty:
             st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
-            fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            # AUMENTADO O RANGE DO EIXO X PARA NÃO CORTAR (DE 1.3 PARA 1.5)
+            max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
+            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.5]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
         with g2:
             st.markdown('<div class="chart-title">Ranking de Manutenção (Top 10)</div>', unsafe_allow_html=True)
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
-            fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            # AUMENTADO O RANGE DO EIXO X PARA NÃO CORTAR (DE 1.4 PARA 1.7)
+            max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
+            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-        fig_evol.update_layout(xaxis=dict(tickfont=ESTILO_EIXO), yaxis=dict(tickfont=ESTILO_EIXO))
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
@@ -171,16 +173,18 @@ if not df.empty:
         custo_base_mes = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         if not custo_base_mes.empty:
             fig_base_mes = px.bar(custo_base_mes, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
-            fig_base_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-            fig_base_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base_mes['Custo de manutenção'].max()*1.35]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            fig_base_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_cb = custo_base_mes['Custo de manutenção'].max()
+            fig_base_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
             st.plotly_chart(fig_base_mes, use_container_width=True, config={'displayModeBar': False})
 
         st.markdown("---")
         st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção (Acumulado do Ano)</div>', unsafe_allow_html=True)
         custo_base_ano = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         fig_base_ano = px.bar(custo_base_ano, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
-        fig_base_ano.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-        fig_base_ano.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base_ano['Custo de manutenção'].max()*1.35]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+        fig_base_ano.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+        max_cba = custo_base_ano['Custo de manutenção'].max()
+        fig_base_ano.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cba * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
         st.plotly_chart(fig_base_ano, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
@@ -199,8 +203,9 @@ if not df.empty:
         custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=True)
         if not custo_comb_base.empty:
             fig_comb = px.bar(custo_comb_base, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color='Custo Combustível', color_continuous_scale='Blues')
-            fig_comb.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-            fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_comb_base['Custo Combustível'].max()*1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")), showlegend=False, coloraxis_showscale=False)
+            fig_comb.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_cc = custo_comb_base['Custo Combustível'].max()
+            fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")), showlegend=False, coloraxis_showscale=False)
             st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("Nenhum dado de combustível para os filtros selecionados.")
