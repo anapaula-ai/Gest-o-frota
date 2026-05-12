@@ -79,7 +79,7 @@ def load_data():
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
         
-        # Leitura da Coluna D para Combustível
+        # Leitura da Coluna D para Combustível (Ajustado para o seu novo arquivo)
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
         
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
@@ -91,8 +91,8 @@ def load_data():
 df = load_data()
 
 # --- VERBAS SEPARADAS ---
-ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00} # Mantido do seu código original
-ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}  # Novas verbas de combustível
+ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
+ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
 
 if not df.empty:
     # 4. Sidebar
@@ -106,16 +106,14 @@ if not df.empty:
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Aplicação dos Filtros
+    # Filtros Internos
     df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
     if busca_placa:
         df_base = df_base[df_base["Placa"].str.contains(busca_placa)]
 
-    # Separação interna para não misturar placas de combustível com veículos nos rankings
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
-    # Dados temporais para Manutenção
     df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
@@ -127,7 +125,6 @@ if not df.empty:
     with tab1:
         st.markdown(f"### 📊 Desempenho Mensal Manutenção - {mes_sel}")
         c1, c2, c3, c4 = st.columns(4)
-        
         with c1:
             draw_card("VEÍCULOS ATIVOS", fmt_br(len(df_filtrado_mes_manut["Placa"].unique())))
         with c2:
@@ -170,8 +167,6 @@ if not df.empty:
 
     with tab3:
         st.markdown(f"### ⛽ Gestão de Combustível - {ano_sel}")
-        
-        # Filtros de Combustível (Apenas placas que começam com COMBUSTÍVEL)
         df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
 
@@ -183,14 +178,37 @@ if not df.empty:
             draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), f"Verba: {fmt_br(orc_total_comb, True)}", progress=perc_comb)
         
         st.markdown("---")
-        st.markdown(f'<div class="chart-title">Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
         
-        custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=False)
+        # AJUSTE: Gráfico Horizontal com Degradê Azul
+        custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=True)
+        
         if not custo_comb_base.empty:
-            fig_comb = px.bar(custo_comb_base, x='Base', y='Custo Combustível', text='Custo Combustível', color='Base', color_discrete_sequence=px.colors.qualitative.Safe)
-            fig_comb.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside')
-            fig_comb.update_layout(height=500, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', yaxis=dict(showticklabels=False, showgrid=False))
-            st.plotly_chart(fig_comb, use_container_width=True)
+            fig_comb = px.bar(
+                custo_comb_base, 
+                x='Custo Combustível', 
+                y='Base', 
+                orientation='h', 
+                text='Custo Combustível',
+                color='Custo Combustível', # Define o degradê com base no valor
+                color_continuous_scale='Blues' # Escala de azuis
+            )
+            fig_comb.update_traces(
+                texttemplate='R$ %{text:,.2f}', 
+                textposition='outside',
+                cliponaxis=False
+            )
+            fig_comb.update_layout(
+                height=max(400, len(custo_comb_base) * 35), # Ajusta altura baseada no n° de bases
+                separators=',.', 
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_comb_base['Custo Combustível'].max()*1.4]),
+                yaxis=dict(title="", tickfont=dict(size=12, color='#1A237E', shadow="none")),
+                showlegend=False,
+                coloraxis_showscale=False # Esconde a barra lateral de cores para ficar mais limpo
+            )
+            st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("Nenhum dado de combustível para os filtros selecionados.")
 
@@ -198,6 +216,6 @@ if not df.empty:
         st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_base.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
         csv = df_base.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Baixar Todos os Dados Filtrados (CSV)", csv, f"frota_extracao_completa.csv", "text/csv")
+        st.download_button("📥 Baixar Todos os Dados (CSV)", csv, f"frota_detalhado.csv", "text/csv")
 else:
     st.warning("Verifique o arquivo manutencao.xlsx")
