@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Mantida fiel ao original)
+# 2. Estilização CSS (Ajustada para Alinhamento Perfeito)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -20,19 +20,20 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        height: 200px;
+        height: 200px; /* Altura fixa para o card */
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
+        justify-content: flex-start; /* Alinha tudo no topo */
         margin-bottom: 10px;
     }
     
+    /* Blocos com altura fixa para garantir alinhamento horizontal */
     .metric-label { 
         color: #546E7A !important; 
         font-size: 11px; 
         font-weight: 700; 
         text-transform: uppercase; 
-        height: 35px;
+        height: 35px; /* Garante que o valor comece na mesma linha */
         display: flex;
         align-items: center;
     }
@@ -40,7 +41,7 @@ st.markdown("""
         color: #1A237E !important; 
         font-size: 24px; 
         font-weight: 800; 
-        height: 40px;
+        height: 40px; /* Garante que o subtexto comece na mesma linha */
         display: flex;
         align-items: center;
     }
@@ -48,13 +49,13 @@ st.markdown("""
         color: #333333 !important; 
         font-size: 13px; 
         font-weight: 500; 
-        height: 25px;
+        height: 25px; /* Espaço fixo para o texto de 'Média' ou 'Consumido' */
         display: flex;
         align-items: center;
     }
     
     .trend-container {
-        height: 25px;
+        height: 25px; /* Espaço fixo para a seta de tendência */
         display: flex;
         align-items: center;
         margin-top: 5px;
@@ -81,6 +82,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Estilos de texto (Chumbo Negrito)
 ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
 
 # Funções de Apoio
@@ -144,40 +146,34 @@ if not df.empty:
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Filtros Refinados (Combustível, Seguro e Manutenção)
+    # Filtros
     df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
-    
-    # Identificação por palavras-chave (considerando acentos e case-insensitive)
-    df_apenas_comb = df_base[df_base["Placa"].str.contains("COMBUSTI", case=False, na=False)]
-    df_apenas_seguro = df_base[df_base["Placa"].str.contains("SEGURO", case=False, na=False)]
-    
-    # Manutenção é tudo que NÃO é combustível e NÃO é seguro
-    df_apenas_manut = df_base[
-        (~df_base["Placa"].str.contains("COMBUSTI", case=False, na=False)) & 
-        (~df_base["Placa"].str.contains("SEGURO", case=False, na=False))
-    ]
+    df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+    df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
-    # Dados para Visão Mensal (Manutenção)
     df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
     # 5. Dashboard
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Seguros", "📑 Detalhamento"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Desempenho Mensal Manutenção - {mes_sel}")
         c1, c2, c3, c4 = st.columns(4)
+        
         with c1:
             ativos_m = len(df_filtrado_mes_manut["Placa"].unique())
             ativos_a = len(df_anterior_manut["Placa"].unique())
             trend_at = ((ativos_m - ativos_a) / ativos_a * 100) if ativos_a > 0 else 0
             draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_m), trend=trend_at, is_lower_better=False)
+        
         with c2:
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
             km_a = df_anterior_manut['Quilometragem'].sum()
             draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=((km_m-km_a)/km_a*100) if km_a>0 else 0, is_lower_better=False)
+        
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
@@ -185,17 +181,62 @@ if not df.empty:
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
+        
         with c4:
             orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_sel)
             gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido", progress=perc_manut)
 
+        if busca_placa:
+            st.markdown("---")
+            st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
+            df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
+            if not df_veiculo.empty:
+                rv1, rv2 = st.columns([2, 1])
+                with rv1:
+                    fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
+                    fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
+                    fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
+                    st.plotly_chart(fig_raiox, use_container_width=True)
+                with rv2:
+                    st.info(f"📍 **Base:** {df_veiculo['Base'].iloc[-1]}\n\n💰 **Gasto Total Ano:** {fmt_br(df_veiculo['Custo de manutenção'].sum(), True)}\n\n🛣️ **KM Total Ano:** {fmt_br(df_veiculo['Quilometragem'].sum())}")
+            st.markdown("---")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        g1, g2 = st.columns(2)
+        with g1:
+            st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
+            top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
+            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
+            fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
+            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.5]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
+        with g2:
+            st.markdown('<div class="chart-title">Ranking de Manutenção (Top 10)</div>', unsafe_allow_html=True)
+            top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
+            fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
+            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
+
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
         st.plotly_chart(fig_evol, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown(f'<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção em {mes_sel}</div>', unsafe_allow_html=True)
+        custo_base_mes = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+        if not custo_base_mes.empty:
+            fig_base_mes = px.bar(custo_base_mes, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
+            fig_base_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_cb = custo_base_mes['Custo de manutenção'].max()
+            fig_base_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            st.plotly_chart(fig_base_mes, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
         st.markdown(f"### ⛽ Gestão de Combustível - {ano_sel}")
@@ -206,49 +247,24 @@ if not df.empty:
         k1, k2 = st.columns([1, 2])
         with k1:
             orc_total_comb = sum(ORCAMENTOS_COMB.get(inst, 0) for inst in inst_sel)
+            gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
+            perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
-            draw_card("GASTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), f"Referente a {mes_sel}", trend=trend_comb)
+            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), f"Gasto no mês: {fmt_br(gasto_m_comb, True)}", trend=trend_comb, progress=perc_comb)
         
         st.markdown("---")
+        st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
         custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=True)
         if not custo_comb_base.empty:
-            fig_comb = px.bar(custo_comb_base, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#0288D1'])
-            fig_comb.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside')
-            st.plotly_chart(fig_comb, use_container_width=True)
+            fig_comb = px.bar(custo_comb_base, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color='Custo Combustível', color_continuous_scale='Blues')
+            fig_comb.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_cc = custo_comb_base['Custo Combustível'].max()
+            fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")), showlegend=False, coloraxis_showscale=False)
+            st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
 
     with tab4:
-        st.markdown(f"### 🛡️ Gestão de Seguros - {mes_sel}")
-        # Filtro de seguros para o mês selecionado
-        df_seguro_mes = df_apenas_seguro[df_apenas_seguro["Mes_Nome"] == mes_sel]
-        df_seguro_anterior = df_apenas_seguro[df_apenas_seguro["Mes_Num"] == mes_num_atual - 1]
-        
-        s1, s2 = st.columns([1, 2])
-        with s1:
-            custo_seg_m = df_seguro_mes['Custo de manutenção'].sum()
-            custo_seg_a = df_seguro_anterior['Custo de manutenção'].sum()
-            trend_seg = ((custo_seg_m - custo_seg_a) / custo_seg_a * 100) if custo_seg_a > 0 else 0
-            draw_card("TOTAL EM SEGUROS", fmt_br(custo_seg_m, True), f"Competência: {mes_sel}", trend=trend_seg)
-
-        st.markdown("---")
-        st.markdown(f'<div class="chart-title">Distribuição de Custos de Seguro por Base - {mes_sel}</div>', unsafe_allow_html=True)
-        
-        # Agrupamento por Base
-        custo_seg_base = df_seguro_mes.groupby('Base')['Custo de manutenção'].sum().reset_index().sort_values('Custo de manutenção', ascending=True)
-        
-        if not custo_seg_base.empty:
-            fig_seg = px.bar(custo_seg_base, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#607D8B'])
-            fig_seg.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-            max_s = custo_seg_base['Custo de manutenção'].max()
-            fig_seg.update_layout(height=max(400, len(custo_seg_base) * 40), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                                 xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_s * 1.4]),
-                                 yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
-            st.plotly_chart(fig_seg, use_container_width=True, config={'displayModeBar': False})
-        else:
-            st.info("Sem dados de seguros lançados para este mês.")
-
-    with tab5:
         st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_base.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
 else:
