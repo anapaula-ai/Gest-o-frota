@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Mantida Integralmente)
+# 2. Estilização CSS (Ajustada para Alinhamento Perfeito)
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -20,16 +20,47 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        min-height: 150px;
+        height: 200px; /* Altura fixa para o card */
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start; /* Alinha tudo no topo */
         margin-bottom: 10px;
     }
-    .metric-label { color: #546E7A !important; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;}
-    .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; line-height: 1.1; }
-    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; margin-top: 5px; }
     
+    /* Blocos com altura fixa para garantir alinhamento horizontal */
+    .metric-label { 
+        color: #546E7A !important; 
+        font-size: 11px; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        height: 35px; /* Garante que o valor comece na mesma linha */
+        display: flex;
+        align-items: center;
+    }
+    .metric-value { 
+        color: #1A237E !important; 
+        font-size: 24px; 
+        font-weight: 800; 
+        height: 40px; /* Garante que o subtexto comece na mesma linha */
+        display: flex;
+        align-items: center;
+    }
+    .metric-subtext { 
+        color: #333333 !important; 
+        font-size: 13px; 
+        font-weight: 500; 
+        height: 25px; /* Espaço fixo para o texto de 'Média' ou 'Consumido' */
+        display: flex;
+        align-items: center;
+    }
+    
+    .trend-container {
+        height: 25px; /* Espaço fixo para a seta de tendência */
+        display: flex;
+        align-items: center;
+        margin-top: 5px;
+    }
+
     .chart-title {
         height: 50px; 
         display: flex; 
@@ -46,8 +77,8 @@ st.markdown("""
 
     .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
     .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
-    .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 6px; margin-top: 10px; }
-    .progress-fill { background-color: #F57C00; height: 6px; border-radius: 10px; }
+    .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 10px; }
+    .progress-fill { background-color: #F57C00; height: 8px; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -66,8 +97,18 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
         color = "trend-down" if (trend <= 0 if is_lower_better else trend >= 0) else "trend-up"
         icon = "↓" if trend <= 0 else "↑"
         trend_html = f'<div class="{color}">{icon} {abs(trend):.1f}% vs mês ant.</div>'
+    
     prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
-    st.markdown(f"""<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-subtext">{subtext}</div>{trend_html}{prog_html}</div>""", unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-container">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+            <div class="metric-subtext">{subtext}</div>
+            <div class="trend-container">{trend_html}</div>
+            {prog_html}
+        </div>
+    """, unsafe_allow_html=True)
 
 # 3. Carregamento de Dados
 @st.cache_data
@@ -110,7 +151,6 @@ if not df.empty:
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
-    # Filtros Temporais (Manutenção)
     df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
@@ -148,12 +188,10 @@ if not df.empty:
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido", progress=perc_manut)
 
-        # --- ITEM 4: RAIO-X DO VEÍCULO (Aparece apenas na busca) ---
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
             df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
-            
             if not df_veiculo.empty:
                 rv1, rv2 = st.columns([2, 1])
                 with rv1:
@@ -162,10 +200,7 @@ if not df.empty:
                     fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
                     st.plotly_chart(fig_raiox, use_container_width=True)
                 with rv2:
-                    st.write("**Resumo do Veículo:**")
                     st.info(f"📍 **Base:** {df_veiculo['Base'].iloc[-1]}\n\n💰 **Gasto Total Ano:** {fmt_br(df_veiculo['Custo de manutenção'].sum(), True)}\n\n🛣️ **KM Total Ano:** {fmt_br(df_veiculo['Quilometragem'].sum())}")
-            else:
-                st.info("Nenhum dado encontrado para esta placa no ano selecionado.")
             st.markdown("---")
 
         st.markdown("<br>", unsafe_allow_html=True)
