@@ -78,10 +78,7 @@ def load_data():
         df['Mes_Num'] = df['Mês Referência'].dt.month
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        
-        # Leitura da Coluna D para Combustível (Ajustado para o seu novo arquivo)
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
-        
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
         return df
     except Exception as e:
@@ -90,7 +87,6 @@ def load_data():
 
 df = load_data()
 
-# --- VERBAS SEPARADAS ---
 ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
 ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
 
@@ -106,7 +102,7 @@ if not df.empty:
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Filtros Internos
+    # Filtros
     df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
     if busca_placa:
         df_base = df_base[df_base["Placa"].str.contains(busca_placa)]
@@ -119,7 +115,7 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # 5. Dashboard com Abas
+    # 5. Dashboard
     tab1, tab2, tab3, tab4 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "📑 Detalhamento"])
 
     with tab1:
@@ -161,15 +157,37 @@ if not df.empty:
 
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
+        
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
         st.plotly_chart(fig_evol, use_container_width=True)
+
+        st.markdown("---")
+        
+        # NOVO GRÁFICO: Ranking Mensal das Bases (Manutenção)
+        st.markdown(f'<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção em {mes_sel}</div>', unsafe_allow_html=True)
+        custo_base_mes = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+        
+        if not custo_base_mes.empty:
+            fig_base_mes = px.bar(custo_base_mes, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
+            fig_base_mes.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
+            fig_base_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base_mes['Custo de manutenção'].max()*1.35]), yaxis=dict(title=""))
+            st.plotly_chart(fig_base_mes, use_container_width=True, config={'displayModeBar': False})
+
+        st.markdown("---")
+        
+        # Gráfico Acumulado do Ano (Manutenção)
+        st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção (Acumulado do Ano)</div>', unsafe_allow_html=True)
+        custo_base_ano = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+        fig_base_ano = px.bar(custo_base_ano, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
+        fig_base_ano.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
+        fig_base_ano.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_base_ano['Custo de manutenção'].max()*1.35]), yaxis=dict(title=""))
+        st.plotly_chart(fig_base_ano, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
         st.markdown(f"### ⛽ Gestão de Combustível - {ano_sel}")
         df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
-
         k1, k2 = st.columns([1, 2])
         with k1:
             orc_total_comb = sum(ORCAMENTOS_COMB.get(inst, 0) for inst in inst_sel)
@@ -179,35 +197,11 @@ if not df.empty:
         
         st.markdown("---")
         st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
-        
-        # AJUSTE: Gráfico Horizontal com Degradê Azul
         custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=True)
-        
         if not custo_comb_base.empty:
-            fig_comb = px.bar(
-                custo_comb_base, 
-                x='Custo Combustível', 
-                y='Base', 
-                orientation='h', 
-                text='Custo Combustível',
-                color='Custo Combustível', # Define o degradê com base no valor
-                color_continuous_scale='Blues' # Escala de azuis
-            )
-            fig_comb.update_traces(
-                texttemplate='R$ %{text:,.2f}', 
-                textposition='outside',
-                cliponaxis=False
-            )
-            fig_comb.update_layout(
-                height=max(400, len(custo_comb_base) * 35), # Ajusta altura baseada no n° de bases
-                separators=',.', 
-                paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_comb_base['Custo Combustível'].max()*1.4]),
-                yaxis=dict(title="", tickfont=dict(size=12, color='#1A237E', shadow="none")),
-                showlegend=False,
-                coloraxis_showscale=False # Esconde a barra lateral de cores para ficar mais limpo
-            )
+            fig_comb = px.bar(custo_comb_base, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color='Custo Combustível', color_continuous_scale='Blues')
+            fig_comb.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False)
+            fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, custo_comb_base['Custo Combustível'].max()*1.4]), yaxis=dict(title=""), showlegend=False, coloraxis_showscale=False)
             st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("Nenhum dado de combustível para os filtros selecionados.")
