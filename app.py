@@ -66,21 +66,29 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
     prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
     st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-subtext">{subtext}</div><div class="trend-container">{trend_html}</div>{prog_html}</div>', unsafe_allow_html=True)
 
+# CARREGAMENTO BLINDADO
 @st.cache_data
 def load_data():
     try:
         df = pd.read_excel("manutencao.xlsx")
-        df.columns = df.columns.str.strip()
+        df.columns = df.columns.str.strip() # Remove espaços invisíveis
+        
+        # Garante colunas numéricas de forma segura
+        colunas_financeiras = ['Custo de manutenção', 'Custo de combustível', 'Custo de seguro', 'Quilometragem']
+        for col in colunas_financeiras:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            else:
+                df[col] = 0.0 # Se não achar a coluna, cria com zero
+        
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'])
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
-        df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
-        df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        df['Custo de combustível'] = pd.to_numeric(df['Custo de combustível'], errors='coerce').fillna(0)
-        df['Custo de seguro'] = pd.to_numeric(df['Custo de seguro'], errors='coerce').fillna(0)
-        df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
+        
+        df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
         df['Placa'] = df['Placa'].astype(str).str.strip().str.upper().replace('NAN', '')
+        
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -95,18 +103,22 @@ if not df.empty:
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
     ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
     df_ano = df[df["Ano"] == ano_sel]
+    
     opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].unique())
     inst_sel = st.sidebar.selectbox("Instituição", options=opcoes_inst)
+    
     df_temp_inst = df_ano.copy() if inst_sel == "TODAS" else df_ano[df_ano["Instituição"] == inst_sel]
     inst_ativas = df_ano["Instituição"].unique() if inst_sel == "TODAS" else [inst_sel]
+    
     col_cc = 'Base' if 'Base' in df.columns else 'Centro de Custo'
     opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
-    cc_sel = st.sidebar.selectbox("Base", options=opcoes_cc)
+    cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
+    
     df_base = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
-    lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
-    mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
+    mes_sel = st.sidebar.selectbox("Mês Competência", options=df_ano.sort_values("Mes_Num")["Mes_Nome"].unique(), index=len(df_ano.sort_values("Mes_Num")["Mes_Nome"].unique())-1)
 
+    # Dados para Manutenção
     df_apenas_manut = df_base[~df_base["Placa"].str.contains("COMBUSTÍVEL|SEGURO|RASTREADOR", case=False, na=False)]
     df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
     mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
@@ -130,14 +142,14 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_v = ativos_m if ativos_m > 0 else 1
-            draw_card("CUSTO MANUTENÇÃO", fmt_br(custo_m, True), f"Média: {fmt_br(custo_m/num_v, True)} /veículo", trend=((custo_m-custo_a)/custo_a*100) if custo_a>0 else 0)
+            div_v = ativos_m if ativos_m > 0 else 1
+            draw_card("CUSTO MANUTENÇÃO", fmt_br(custo_m, True), f"Média: {fmt_br(custo_m/div_v, True)} /veículo", trend=((custo_m-custo_a)/custo_a*100) if custo_a>0 else 0)
         with c4:
             orc = sum(ORCAMENTOS_MANUT.get(i, 0) for i in inst_ativas)
             gasto = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
             perc = (gasto/orc*100) if orc>0 else 0
             draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto, True), f"{perc:.1f}% consumido", progress=perc)
-        
+
         st.markdown("<br>", unsafe_allow_html=True)
         g1, g2 = st.columns(2)
         with g1:
@@ -146,9 +158,8 @@ if not df.empty:
             if not top10_km.empty:
                 fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
                 fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', cliponaxis=False, textfont=ESTILO_TEXTO)
-                max_val = top10_km['Quilometragem'].max()
                 fig_km.update_layout(height=400, margin=dict(l=80, r=100, t=20, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                     xaxis=dict(showticklabels=False, showgrid=False, range=[0, max_val * 1.3]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+                                     xaxis=dict(showticklabels=False, showgrid=False, range=[0, top10_km['Quilometragem'].max() * 1.3]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
                 st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
         with g2:
             st.markdown('<div class="chart-title">Ranking de Manutenção (Top 10)</div>', unsafe_allow_html=True)
@@ -156,15 +167,15 @@ if not df.empty:
             if not top10_custo.empty:
                 fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
                 fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', cliponaxis=False, textfont=ESTILO_TEXTO)
-                max_val_c = top10_custo['Custo de manutenção'].max()
                 fig_custo.update_layout(height=400, margin=dict(l=80, r=120, t=20, b=20), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                        xaxis=dict(showticklabels=False, showgrid=False, range=[0, max_val_c * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+                                        xaxis=dict(showticklabels=False, showgrid=False, range=[0, top10_custo['Custo de manutenção'].max() * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
                 st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
         evol = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
-        st.plotly_chart(px.line(evol, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}), use_container_width=True)
+        if not evol.empty:
+            st.plotly_chart(px.line(evol, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}), use_container_width=True)
 
     with tab3:
         st.markdown("### ⛽ Gestão de Combustível")
@@ -184,16 +195,17 @@ if not df.empty:
         perc_s = (gasto_s/orc_s*100) if orc_s>0 else 0
         c_s1, _ = st.columns([1, 3])
         with c_s1: draw_card("EXECUÇÃO SEGURO ANUAL", fmt_br(gasto_s, True), f"{perc_s:.1f}% consumido", progress=perc_s)
+        
         st.markdown('<div class="chart-title">Ranking de Custos de Seguro por Base</div>', unsafe_allow_html=True)
         seg_base = df_seg.groupby('Base')['Custo de seguro'].sum().reset_index().sort_values('Custo de seguro')
-        fig_seg = px.bar(seg_base, x='Custo de seguro', y='Base', orientation='h', text='Custo de seguro', color='Custo de seguro', color_continuous_scale='Blues')
-        fig_seg.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', cliponaxis=False, textfont=ESTILO_TEXTO)
-        max_val_s = seg_base['Custo de seguro'].max() if not seg_base.empty else 1
-        fig_seg.update_layout(xaxis=dict(showticklabels=False, showgrid=False, range=[0, max_val_s * 1.5]), coloraxis_showscale=False, margin=dict(r=150))
-        st.plotly_chart(fig_seg, use_container_width=True)
+        if not seg_base.empty:
+            fig_seg = px.bar(seg_base, x='Custo de seguro', y='Base', orientation='h', text='Custo de seguro', color='Custo de seguro', color_continuous_scale='Blues')
+            fig_seg.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', cliponaxis=False, textfont=ESTILO_TEXTO)
+            fig_seg.update_layout(xaxis=dict(showticklabels=False, showgrid=False, range=[0, seg_base['Custo de seguro'].max() * 1.5]), coloraxis_showscale=False, margin=dict(r=150))
+            st.plotly_chart(fig_seg, use_container_width=True)
 
     with tab5:
         st.dataframe(df_base.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
         st.download_button("📥 Baixar CSV", data=df_base.to_csv(index=False).encode('utf-8'), file_name='frota.csv', mime='text/csv')
 else:
-    st.warning("Verifique o arquivo manutencao.xlsx")
+    st.warning("Verifique o arquivo manutencao.xlsx ou os nomes das colunas.")
