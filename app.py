@@ -141,13 +141,26 @@ if not df.empty:
     df_ano = df[df["Ano"] == ano_sel]
     
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
+    
+    # --- FILTRO DE CENTRO DE CUSTO (EM CASCATA) ---
+    # Primeiro filtramos as instituições para não mostrar centros de custo de outras
+    df_temp_inst = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    # Verifica qual o nome da coluna na sua planilha (Centro de Custo ou Base)
+    col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
+    # Cria o filtro multiselect
+    opcoes_cc = sorted(df_temp_inst[col_cc].dropna().unique())
+    cc_sel = st.sidebar.multiselect("Centro de Custo / Base", options=opcoes_cc, default=opcoes_cc)
+    # ----------------------------------------------
+    
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
     # Filtros
-    df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    # Atualizamos a base principal considerando agora também o filtro de Centro de Custo/Base
+    df_base = df_temp_inst[df_temp_inst[col_cc].isin(cc_sel)]
+    
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
