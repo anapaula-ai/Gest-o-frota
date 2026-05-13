@@ -51,7 +51,6 @@ def fmt_br(valor, is_moeda=False):
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{valor:,.0f}".replace(",", ".")
 
-# Função corrigida para contagem de ativos (Adicionado RASTREADOR para não contar como veículo)
 def get_ativos(df):
     return df[
         (df["Placa"].str.len() == 7) & 
@@ -86,9 +85,19 @@ def load_data():
                     7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
+        
+        # Garante que todas as colunas de custo sejam lidas como números corretamente
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
+        df['Custo de seguro'] = pd.to_numeric(df.get('Custo de seguro', 0), errors='coerce').fillna(0)
+        df['Custo de Rastreador'] = pd.to_numeric(df.get('Custo de Rastreador', 0), errors='coerce').fillna(0)
+        
+        # Leitura da coluna de combustível
+        if 'Custo de combustível' in df.columns:
+            df['Custo Combustível'] = pd.to_numeric(df['Custo de combustível'], errors='coerce').fillna(0)
+        else:
+            df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
+
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
         
         if 'Centro de Custo' in df.columns: df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
@@ -103,9 +112,9 @@ def load_data():
 
 df = load_data()
 
+# VERBAS
 ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
 ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
-# NOVOS ORÇAMENTOS DE CUSTOS FIXOS
 ORCAMENTOS_SEGURO = {"AMES": 186682.00, "IAV": 115461.00}
 ORCAMENTOS_RASTREADOR = {"AMES": 0.00, "IAV": 10194.00} 
 
@@ -141,7 +150,6 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # Aba atualizada (5 abas agora)
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📑 Detalhamento"])
 
     with tab1:
@@ -248,21 +256,19 @@ if not df.empty:
             fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")), showlegend=False, coloraxis_showscale=False)
             st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
 
-    # NOVA ABA: CUSTOS FIXOS (Seguro e Rastreador)
+    # NOVA ABA: CUSTOS FIXOS ADAPTADA PARA LER AS COLUNAS E/F
     with tab4:
         st.markdown(f"### 🛡️ Gestão de Custos Fixos - {ano_sel}")
         
-        df_seguro = df_base[df_base["Placa"].str.contains("SEGURO", na=False)]
-        df_rastreador = df_base[df_base["Placa"].str.contains("RASTREADOR", na=False)]
-        
-        df_seg_acum = df_seguro[df_seguro["Mes_Num"] <= mes_num_atual]
-        df_rast_acum = df_rastreador[df_rastreador["Mes_Num"] <= mes_num_atual]
+        # Filtra os dados de toda a base (pois agora Seguro e Rastreador são colunas em todos os carros)
+        df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
         
         orc_seguro = sum(ORCAMENTOS_SEGURO.get(inst, 0) for inst in inst_ativas)
         orc_rastreador = sum(ORCAMENTOS_RASTREADOR.get(inst, 0) for inst in inst_ativas)
         
-        gasto_seguro = df_seg_acum["Custo de manutenção"].sum()
-        gasto_rastreador = df_rast_acum["Custo de manutenção"].sum()
+        # SOMA AGORA BASEADA NAS COLUNAS CORRETAS DO SEU EXCEL
+        gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
+        gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
         
         perc_seguro = (gasto_seguro / orc_seguro * 100) if orc_seguro > 0 else 0
         perc_rastreador = (gasto_rastreador / orc_rastreador * 100) if orc_rastreador > 0 else 0
@@ -276,17 +282,24 @@ if not df.empty:
         st.markdown("---")
         st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
         
-        df_fixos = pd.concat([df_seguro, df_rastreador])
-        if not df_fixos.empty:
-            df_fixos['Tipo Despesa'] = df_fixos['Placa'].apply(lambda x: 'Seguro' if 'SEGURO' in str(x) else 'Rastreador')
-            evol_fixos = df_fixos[df_fixos["Mes_Num"] <= mes_num_atual].groupby(['Mes_Nome', 'Mes_Num', 'Tipo Despesa'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
-            
-            fig_fixos = px.bar(evol_fixos, x='Mes_Nome', y='Custo de manutenção', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#1A237E", "Rastreador": "#0288D1"})
+        # Agrupa os valores de seguro e rastreador por mês
+        evol_fixos = df_fixos_acum.groupby(['Mes_Nome', 'Mes_Num'])[['Custo de seguro', 'Custo de Rastreador']].sum().reset_index().sort_values('Mes_Num')
+        
+        # Transforma as duas colunas em linhas para gerar o gráfico lado a lado (melt)
+        evol_fixos_melted = evol_fixos.melt(id_vars=['Mes_Nome', 'Mes_Num'], 
+                                            value_vars=['Custo de seguro', 'Custo de Rastreador'], 
+                                            var_name='Tipo Despesa', 
+                                            value_name='Custo')
+        
+        evol_fixos_melted['Tipo Despesa'] = evol_fixos_melted['Tipo Despesa'].map({'Custo de seguro': 'Seguro', 'Custo de Rastreador': 'Rastreador'})
+        
+        if evol_fixos_melted['Custo'].sum() > 0:
+            fig_fixos = px.bar(evol_fixos_melted, x='Mes_Nome', y='Custo', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#1A237E", "Rastreador": "#0288D1"})
             fig_fixos.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', yaxis_title="Custo (R$)", xaxis_title="")
             fig_fixos.update_traces(texttemplate='<b>R$ %{y:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
             st.plotly_chart(fig_fixos, use_container_width=True)
         else:
-            st.info("Nenhum lançamento de Seguro ou Rastreador registrado no Excel para este período.")
+            st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
     with tab5:
         st.markdown("### 📑 Detalhamento dos Dados")
