@@ -124,6 +124,21 @@ def load_data():
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
+        
+        # --- LIMPEZA DE ESPAÇOS INVISÍVEIS PARA EVITAR DUPLICIDADE ---
+        if 'Centro de Custo' in df.columns:
+            df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
+        if 'Base' in df.columns:
+            df['Base'] = df['Base'].astype(str).str.strip()
+        if 'Instituição' in df.columns:
+            df['Instituição'] = df['Instituição'].astype(str).str.strip()
+        
+        # NOVO: Limpeza rigorosa nas Placas
+        if 'Placa' in df.columns:
+            df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
+            df['Placa'] = df['Placa'].replace('NAN', '') # Remove placas nulas que viraram texto 'NAN'
+        # -------------------------------------------------------------------
+        
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
@@ -141,13 +156,22 @@ if not df.empty:
     df_ano = df[df["Ano"] == ano_sel]
     
     inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
-    busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper()
+    
+    # --- FILTRO DE CENTRO DE CUSTO (EM CASCATA) ---
+    df_temp_inst = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
+    opcoes_cc = sorted(df_temp_inst[col_cc].dropna().unique())
+    cc_sel = st.sidebar.multiselect("Centro de Custo / Base", options=opcoes_cc, default=opcoes_cc)
+    # ----------------------------------------------
+    
+    busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
     # Filtros
-    df_base = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    df_base = df_temp_inst[df_temp_inst[col_cc].isin(cc_sel)]
+    
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
@@ -164,8 +188,13 @@ if not df.empty:
         c1, c2, c3, c4 = st.columns(4)
         
         with c1:
-            ativos_m = len(df_filtrado_mes_manut["Placa"].unique())
-            ativos_a = len(df_anterior_manut["Placa"].unique())
+            # NOVO: Conta apenas placas que não estão vazias
+            placas_m = df_filtrado_mes_manut[df_filtrado_mes_manut["Placa"] != ""]["Placa"].unique()
+            ativos_m = len(placas_m)
+            
+            placas_a = df_anterior_manut[df_anterior_manut["Placa"] != ""]["Placa"].unique()
+            ativos_a = len(placas_a)
+            
             trend_at = ((ativos_m - ativos_a) / ativos_a * 100) if ativos_a > 0 else 0
             draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_m), trend=trend_at, is_lower_better=False)
         
@@ -177,7 +206,7 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_veiculos = len(df_filtrado_mes_manut["Placa"].unique())
+            num_veiculos = ativos_m # Usando a variável corrigida
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
