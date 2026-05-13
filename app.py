@@ -6,10 +6,12 @@ import plotly.graph_objects as go
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS
+# 2. Estilização CSS (A SUA ORIGINAL)
 st.markdown("""
     <style>
-    .stApp { background-color: #E3F2FD !important; }[data-testid="stAppViewContainer"] { background-color: #E3F2FD !important; }[data-testid="stSidebar"] { background-color: #BBDEFB !important; border-right: 1px solid #90CAF9; }
+    .stApp { background-color: #E3F2FD !important; }
+    [data-testid="stAppViewContainer"] { background-color: #E3F2FD !important; }
+    [data-testid="stSidebar"] { background-color: #BBDEFB !important; border-right: 1px solid #90CAF9; }
     h1, h2, h3, p, span, label { color: #1A237E !important; }
     .metric-container { background-color: #FFFFFF !important; padding: 20px; border-radius: 12px; border: 1px solid #CFD8DC; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); height: 200px; display: flex; flex-direction: column; justify-content: flex-start; margin-bottom: 10px; }
     .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
@@ -17,8 +19,8 @@ st.markdown("""
     .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; height: 25px; display: flex; align-items: center; }
     .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
-    .stTabs[data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
-    .stTabs [aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; background-color: rgba(255,255,255,0.3) !important; }
+    .stTabs [data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
+    .stTabs[aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; background-color: rgba(255,255,255,0.3) !important; }
     .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
     .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
     .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 10px; }
@@ -58,7 +60,7 @@ def load_data():
         df['Custo de Rastreador'] = pd.to_numeric(df['Custo de Rastreador'], errors='coerce').fillna(0)
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int)
-        df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
+        if 'Placa' in df.columns: df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
         return df
     except: return pd.DataFrame()
 
@@ -76,32 +78,39 @@ if not df.empty:
     mes_sel = st.sidebar.selectbox("Mês Competência", df_base.sort_values("Mes_Num")["Mes_Nome"].unique())
     mes_num_atual = df_base[df_base["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
     
+    # Adicionando aba nova
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Desempenho Mensal Manutenção - {mes_sel}")
         c1, c2, c3, c4 = st.columns(4)
-        df_mes = df_base[df_base["Mes_Nome"] == mes_sel]
-        with c1: draw_card("VEÍCULOS ATIVOS", len(get_ativos(df_mes)))
-        with c2: draw_card("KM MENSAL", fmt_br(df_mes['Quilometragem'].sum()))
-        with c3: draw_card("CUSTO MANUT.", fmt_br(df_mes['Custo de manutenção'].sum(), True))
+        df_filtrado_mes_manut = df_base[(df_base["Mes_Nome"] == mes_sel) & (~df_base["Placa"].str.startswith("COMBUSTÍVEL"))]
+        with c1: draw_card("VEÍCULOS ATIVOS", len(get_ativos(df_filtrado_mes_manut)))
+        with c2: draw_card("KM MENSAL", fmt_br(df_filtrado_mes_manut['Quilometragem'].sum()))
+        with c3: draw_card("CUSTO MANUT.", fmt_br(df_filtrado_mes_manut['Custo de manutenção'].sum(), True))
         with c4: draw_card("ORÇAMENTO", fmt_br(df_base[df_base["Mes_Num"]<=mes_num_atual]['Custo de manutenção'].sum(), True))
         
         g1, g2 = st.columns(2)
         with g1:
-            st.markdown('<div class="chart-title">Ranking KM</div>', unsafe_allow_html=True)
-            st.plotly_chart(px.bar(df_mes.nlargest(10, 'Quilometragem'), x='Quilometragem', y='Placa', orientation='h'), use_container_width=True)
+            st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
+            top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
+            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
+            fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
+            st.plotly_chart(fig_km, use_container_width=True)
         with g2:
-            st.markdown('<div class="chart-title">Ranking Manutenção</div>', unsafe_allow_html=True)
-            st.plotly_chart(px.bar(df_mes.nlargest(10, 'Custo de manutenção'), x='Custo de manutenção', y='Placa', orientation='h'), use_container_width=True)
+            st.markdown('<div class="chart-title">Ranking de Manutenção (Top 10)</div>', unsafe_allow_html=True)
+            top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
+            fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
+            st.plotly_chart(fig_custo, use_container_width=True)
 
     with tab2:
-        st.markdown("### 📈 Resumo Acumulado")
+        st.markdown(f"### 📈 Resumo Acumulado Manutenção")
         df_acum = df_base[df_base["Mes_Num"] <= mes_num_atual].groupby(['Mes_Nome', 'Mes_Num', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         st.plotly_chart(px.line(df_acum, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True), use_container_width=True)
 
     with tab3:
-        st.markdown("### ⛽ Gestão de Combustível")
+        st.markdown(f"### ⛽ Gestão de Combustível")
         df_comb = df_base[df_base["Mes_Num"] <= mes_num_atual]
         st.plotly_chart(px.bar(df_comb.groupby('Base')['Custo Combustível'].sum().reset_index(), x='Custo Combustível', y='Base', orientation='h'), use_container_width=True)
 
@@ -109,8 +118,8 @@ if not df.empty:
         st.markdown("### 🛡️ Gestão de Custos Fixos")
         df_fixos = df_base[df_base["Mes_Num"] <= mes_num_atual]
         c1, c2 = st.columns(2)
-        with c1: draw_card("SEGURO", fmt_br(df_fixos['Custo de seguro'].sum(), True))
-        with c2: draw_card("RASTREADOR", fmt_br(df_fixos['Custo de Rastreador'].sum(), True))
+        with c1: draw_card("CUSTO SEGURO", fmt_br(df_fixos['Custo de seguro'].sum(), True))
+        with c2: draw_card("CUSTO RASTREADOR", fmt_br(df_fixos['Custo de Rastreador'].sum(), True))
         st.plotly_chart(px.line(df_fixos.groupby('Mes_Nome')[['Custo de seguro', 'Custo de Rastreador']].sum().reset_index(), x='Mes_Nome', y=['Custo de seguro', 'Custo de Rastreador'], markers=True), use_container_width=True)
 
     with tab5:
