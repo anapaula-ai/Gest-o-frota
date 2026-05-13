@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 
-# 2. Estilização CSS (Ajustada para Alinhamento Perfeito)
+# 2. Estilização CSS
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
@@ -20,57 +20,19 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        height: 200px; /* Altura fixa para o card */
+        height: 200px;
         display: flex;
         flex-direction: column;
-        justify-content: flex-start; /* Alinha tudo no topo */
+        justify-content: flex-start;
         margin-bottom: 10px;
     }
     
-    /* Blocos com altura fixa para garantir alinhamento horizontal */
-    .metric-label { 
-        color: #546E7A !important; 
-        font-size: 11px; 
-        font-weight: 700; 
-        text-transform: uppercase; 
-        height: 35px; /* Garante que o valor comece na mesma linha */
-        display: flex;
-        align-items: center;
-    }
-    .metric-value { 
-        color: #1A237E !important; 
-        font-size: 24px; 
-        font-weight: 800; 
-        height: 40px; /* Garante que o subtexto comece na mesma linha */
-        display: flex;
-        align-items: center;
-    }
-    .metric-subtext { 
-        color: #333333 !important; 
-        font-size: 13px; 
-        font-weight: 500; 
-        height: 25px; /* Espaço fixo para o texto de 'Média' ou 'Consumido' */
-        display: flex;
-        align-items: center;
-    }
+    .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
+    .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; height: 40px; display: flex; align-items: center; }
+    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; height: 25px; display: flex; align-items: center; }
     
-    .trend-container {
-        height: 25px; /* Espaço fixo para a seta de tendência */
-        display: flex;
-        align-items: center;
-        margin-top: 5px;
-    }
-
-    .chart-title {
-        height: 50px; 
-        display: flex; 
-        align-items: center; 
-        font-size: 16px; 
-        font-weight: 700; 
-        color: #1A237E !important; 
-        text-align: left;
-        margin-bottom: 5px;
-    }
+    .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
+    .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     .stTabs [data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
     .stTabs [aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; background-color: rgba(255,255,255,0.3) !important; }
@@ -82,14 +44,19 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Estilos de texto (Chumbo Negrito)
 ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
 
-# Funções de Apoio
 def fmt_br(valor, is_moeda=False):
     if is_moeda:
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{valor:,.0f}".replace(",", ".")
+
+# Função corrigida para contagem de ativos
+def get_ativos(df):
+    return df[
+        (df["Placa"].str.len() == 7) & 
+        (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO", case=False, na=True))
+    ]["Placa"].unique()
 
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None):
     trend_html = ""
@@ -110,7 +77,6 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
         </div>
     """, unsafe_allow_html=True)
 
-# 3. Carregamento de Dados
 @st.cache_data
 def load_data():
     try:
@@ -125,19 +91,10 @@ def load_data():
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
         
-        # --- LIMPEZA DE ESPAÇOS INVISÍVEIS PARA EVITAR DUPLICIDADE ---
-        if 'Centro de Custo' in df.columns:
-            df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
-        if 'Base' in df.columns:
-            df['Base'] = df['Base'].astype(str).str.strip()
-        if 'Instituição' in df.columns:
-            df['Instituição'] = df['Instituição'].astype(str).str.strip()
-        
-        # Limpeza rigorosa nas Placas
-        if 'Placa' in df.columns:
-            df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
-            df['Placa'] = df['Placa'].replace('NAN', '') 
-        # -------------------------------------------------------------------
+        if 'Centro de Custo' in df.columns: df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
+        if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
+        if 'Instituição' in df.columns: df['Instituição'] = df['Instituição'].astype(str).str.strip()
+        if 'Placa' in df.columns: df['Placa'] = df['Placa'].astype(str).str.strip().str.upper().replace('NAN', '')
         
         return df
     except Exception as e:
@@ -145,44 +102,33 @@ def load_data():
         return pd.DataFrame()
 
 df = load_data()
-
 ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
 ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
 
 if not df.empty:
-    # 4. Sidebar
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
     ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
     df_ano = df[df["Ano"] == ano_sel]
-    
-    # --- NOVO FILTRO DE INSTITUIÇÃO (SELECTBOX COM OPÇÃO "TODAS") ---
-    opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].unique())
+    opcoes_inst =["TODAS"] + sorted(df_ano["Instituição"].unique())
     inst_sel = st.sidebar.selectbox("Instituição", options=opcoes_inst)
     
     if inst_sel == "TODAS":
         df_temp_inst = df_ano.copy()
-        inst_ativas = df_ano["Instituição"].unique() # Para usar no orçamento
+        inst_ativas = df_ano["Instituição"].unique()
     else:
         df_temp_inst = df_ano[df_ano["Instituição"] == inst_sel]
-        inst_ativas = [inst_sel] # Para usar no orçamento
+        inst_ativas = [inst_sel]
     
-    # --- NOVO FILTRO DE CENTRO DE CUSTO (SELECTBOX COM OPÇÃO "TODOS") ---
     col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
     opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
     cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
     
-    if cc_sel == "TODOS":
-        df_base = df_temp_inst.copy()
-    else:
-        df_base = df_temp_inst[df_temp_inst[col_cc] == cc_sel]
-    # ------------------------------------------------------------------
-    
+    df_base = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Separação de Dados
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
@@ -191,7 +137,6 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # 5. Dashboard
     tab1, tab2, tab3, tab4 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "📑 Detalhamento"])
 
     with tab1:
@@ -199,12 +144,8 @@ if not df.empty:
         c1, c2, c3, c4 = st.columns(4)
         
         with c1:
-            placas_m = df_filtrado_mes_manut[df_filtrado_mes_manut["Placa"] != ""]["Placa"].unique()
-            ativos_m = len(placas_m)
-            
-            placas_a = df_anterior_manut[df_anterior_manut["Placa"] != ""]["Placa"].unique()
-            ativos_a = len(placas_a)
-            
+            ativos_m = len(get_ativos(df_filtrado_mes_manut))
+            ativos_a = len(get_ativos(df_anterior_manut))
             trend_at = ((ativos_m - ativos_a) / ativos_a * 100) if ativos_a > 0 else 0
             draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_m), trend=trend_at, is_lower_better=False)
         
@@ -216,7 +157,7 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_veiculos = ativos_m
+            num_veiculos = len(get_ativos(df_filtrado_mes_manut))
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
@@ -227,6 +168,7 @@ if not df.empty:
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido", progress=perc_manut)
 
+        # Gráficos... (código original mantido)
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
@@ -241,8 +183,8 @@ if not df.empty:
                 with rv2:
                     st.info(f"📍 **Base:** {df_veiculo['Base'].iloc[-1]}\n\n💰 **Gasto Total Ano:** {fmt_br(df_veiculo['Custo de manutenção'].sum(), True)}\n\n🛣️ **KM Total Ano:** {fmt_br(df_veiculo['Quilometragem'].sum())}")
             st.markdown("---")
-
-        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Rankings... (código original mantido)
         g1, g2 = st.columns(2)
         with g1:
             st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
@@ -261,6 +203,7 @@ if not df.empty:
             fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
+    # Abas 2, 3 e 4 mantidas exatamente como antes
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
