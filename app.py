@@ -133,10 +133,10 @@ def load_data():
         if 'Instituição' in df.columns:
             df['Instituição'] = df['Instituição'].astype(str).str.strip()
         
-        # NOVO: Limpeza rigorosa nas Placas
+        # Limpeza rigorosa nas Placas
         if 'Placa' in df.columns:
             df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
-            df['Placa'] = df['Placa'].replace('NAN', '') # Remove placas nulas que viraram texto 'NAN'
+            df['Placa'] = df['Placa'].replace('NAN', '') 
         # -------------------------------------------------------------------
         
         return df
@@ -155,23 +155,34 @@ if not df.empty:
     ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
     df_ano = df[df["Ano"] == ano_sel]
     
-    inst_sel = st.sidebar.multiselect("Instituição", options=sorted(df_ano["Instituição"].unique()), default=sorted(df_ano["Instituição"].unique()))
+    # --- NOVO FILTRO DE INSTITUIÇÃO (SELECTBOX COM OPÇÃO "TODAS") ---
+    opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].unique())
+    inst_sel = st.sidebar.selectbox("Instituição", options=opcoes_inst)
     
-    # --- FILTRO DE CENTRO DE CUSTO (EM CASCATA) ---
-    df_temp_inst = df_ano[df_ano["Instituição"].isin(inst_sel)]
+    if inst_sel == "TODAS":
+        df_temp_inst = df_ano.copy()
+        inst_ativas = df_ano["Instituição"].unique() # Para usar no orçamento
+    else:
+        df_temp_inst = df_ano[df_ano["Instituição"] == inst_sel]
+        inst_ativas = [inst_sel] # Para usar no orçamento
+    
+    # --- NOVO FILTRO DE CENTRO DE CUSTO (SELECTBOX COM OPÇÃO "TODOS") ---
     col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
-    opcoes_cc = sorted(df_temp_inst[col_cc].dropna().unique())
-    cc_sel = st.sidebar.multiselect("Centro de Custo / Base", options=opcoes_cc, default=opcoes_cc)
-    # ----------------------------------------------
+    opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
+    cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
+    
+    if cc_sel == "TODOS":
+        df_base = df_temp_inst.copy()
+    else:
+        df_base = df_temp_inst[df_temp_inst[col_cc] == cc_sel]
+    # ------------------------------------------------------------------
     
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-    # Filtros
-    df_base = df_temp_inst[df_temp_inst[col_cc].isin(cc_sel)]
-    
+    # Separação de Dados
     df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
     df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
@@ -188,7 +199,6 @@ if not df.empty:
         c1, c2, c3, c4 = st.columns(4)
         
         with c1:
-            # NOVO: Conta apenas placas que não estão vazias
             placas_m = df_filtrado_mes_manut[df_filtrado_mes_manut["Placa"] != ""]["Placa"].unique()
             ativos_m = len(placas_m)
             
@@ -206,13 +216,13 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_veiculos = ativos_m # Usando a variável corrigida
+            num_veiculos = ativos_m
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
         
         with c4:
-            orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_sel)
+            orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
             gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido", progress=perc_manut)
@@ -275,7 +285,7 @@ if not df.empty:
 
         k1, k2 = st.columns([1, 2])
         with k1:
-            orc_total_comb = sum(ORCAMENTOS_COMB.get(inst, 0) for inst in inst_sel)
+            orc_total_comb = sum(ORCAMENTOS_COMB.get(inst, 0) for inst in inst_ativas)
             gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
