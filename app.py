@@ -124,6 +124,16 @@ def load_data():
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
         df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
+        
+        # --- LIMPEZA DE ESPAÇOS INVISÍVEIS PARA EVITAR DUPLICIDADE ---
+        if 'Centro de Custo' in df.columns:
+            df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
+        if 'Base' in df.columns:
+            df['Base'] = df['Base'].astype(str).str.strip()
+        if 'Instituição' in df.columns:
+            df['Instituição'] = df['Instituição'].astype(str).str.strip()
+        # -------------------------------------------------------------------
+        
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados: {e}")
