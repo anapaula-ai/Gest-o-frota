@@ -116,11 +116,17 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
         </div>
     """, unsafe_allow_html=True)
 
-@st.cache_data
+# CONFIGURAÇÃO DE ATUALIZAÇÃO: ttl=600 atualiza o cache a cada 10 minutos
+@st.cache_data(ttl=600)
 def load_data():
     try:
-        df = pd.read_excel("manutencao.xlsx")
-        df['Mês Referência'] = pd.to_datetime(df['Mês Referência'])
+        # Link gerado via Google Sheets (Publicado na Web como CSV)
+        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxz7i11I5up50_doRgWqoqytaBRr2AB_z18WJv2sLX_Fv14B5U1QZ_puMo6pn-6KvNsxR-CUji5xyE/pub?output=csv"
+        
+        # Lê o CSV da internet. 'decimal' e 'thousands' previnem erros caso o Google Sheets esteja em português
+        df = pd.read_csv(url_planilha, decimal=',', thousands='.')
+        
+        df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                     7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
@@ -145,7 +151,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados: {e}")
+        st.error(f"Erro ao carregar dados do Google Sheets: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -246,7 +252,6 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Gráfico com largura total abaixo dos cards
                 fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
                 fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
                 fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
@@ -367,4 +372,4 @@ if not df.empty:
         st.markdown("### 📑 Detalhamento dos Dados")
         st.dataframe(df_base.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
 else:
-    st.warning("Verifique o arquivo manutencao.xlsx")
+    st.warning("Verifique o arquivo da planilha online.")
