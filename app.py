@@ -20,7 +20,7 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        height: 200px;
+        min-height: 200px; /* Alterado para min-height para o card crescer se o texto for longo */
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -30,8 +30,16 @@ st.markdown("""
     .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
     .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; height: 40px; display: flex; align-items: center; }
     
-    /* Alterado de height fixo para min-height para caber os textos de Saldo sem cortar em telas menores */
-    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; min-height: 25px; display: flex; align-items: center; }
+    /* Layout atualizado para suportar múltiplas linhas de forma limpa */
+    .metric-subtext { 
+        color: #333333 !important; 
+        font-size: 13px; 
+        font-weight: 500; 
+        min-height: 25px; 
+        display: block; 
+        line-height: 1.5; 
+        margin-top: 8px; 
+    }
     
     .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
@@ -264,7 +272,6 @@ if not df.empty:
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
-                # Modificado: fonte do nome da base reduzida para 9.5px
                 top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
             else:
                 top10_km['Placa_Base'] = []
@@ -281,7 +288,6 @@ if not df.empty:
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty:
-                # Modificado: fonte do nome da base reduzida para 9.5px
                 top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
             else:
                 top10_custo['Placa_Base'] = []
@@ -300,11 +306,12 @@ if not df.empty:
         with ca1:
             orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
             gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
-            saldo_manut = orc_total_manut - gasto_total_acum_manut # Cálculo de saldo
+            saldo_manut = orc_total_manut - gasto_total_acum_manut
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             
-            # Adicionado o saldo no subtítulo do Card
-            draw_card("ORÇAMENTO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), f"Saldo Anual: {fmt_br(saldo_manut, True)} ({perc_manut:.1f}%)", progress=perc_manut)
+            # Subtexto formatado com 3 linhas usando HTML
+            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_manut, True)}</b><br>Percentual Consumido: <b>{perc_manut:.1f}%</b>"
+            draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut)
         
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
@@ -312,7 +319,6 @@ if not df.empty:
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
-        # Removido o (Até {mes_sel}) do título
         st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
         custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         
@@ -335,12 +341,13 @@ if not df.empty:
             gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
-            saldo_comb = orc_total_comb - gasto_acum_comb # Cálculo de saldo
+            saldo_comb = orc_total_comb - gasto_acum_comb
             perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
             
-            # Adicionado o saldo no subtítulo do Card
-            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), f"Saldo Anual: {fmt_br(saldo_comb, True)} | No Mês: {fmt_br(gasto_m_comb, True)}", trend=trend_comb, progress=perc_comb)
+            # Subtexto formatado com 3 linhas usando HTML
+            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_comb, True)}</b><br>Percentual Consumido: <b>{perc_comb:.1f}%</b>"
+            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb)
         
         st.markdown("---")
         st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
@@ -362,19 +369,21 @@ if not df.empty:
         gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
         gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
         
-        saldo_seguro = orc_seguro - gasto_seguro # Cálculo de saldo
-        saldo_rastreador = orc_rastreador - gasto_rastreador # Cálculo de saldo
+        saldo_seguro = orc_seguro - gasto_seguro
+        saldo_rastreador = orc_rastreador - gasto_rastreador
         
         perc_seguro = (gasto_seguro / orc_seguro * 100) if orc_seguro > 0 else 0
         perc_rastreador = (gasto_rastreador / orc_rastreador * 100) if orc_rastreador > 0 else 0
         
         cf1, cf2 = st.columns(2)
         with cf1:
-            # Adicionado o saldo no subtítulo do Card
-            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), f"Saldo: {fmt_br(saldo_seguro, True)} (de {fmt_br(orc_seguro, True)})", progress=perc_seguro)
+            # Subtexto formatado
+            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_seguro, True)}</b><br>Percentual Consumido: <b>{perc_seguro:.1f}%</b>"
+            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro)
         with cf2:
-            # Adicionado o saldo no subtítulo do Card
-            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), f"Saldo: {fmt_br(saldo_rastreador, True)} (de {fmt_br(orc_rastreador, True)})", progress=perc_rastreador)
+            # Subtexto formatado
+            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_rastreador, True)}</b><br>Percentual Consumido: <b>{perc_rastreador:.1f}%</b>"
+            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador)
             
         st.markdown("---")
         st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
