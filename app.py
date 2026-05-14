@@ -120,10 +120,8 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # Link gerado via Google Sheets (Publicado na Web como CSV)
         url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxz7i11I5up50_doRgWqoqytaBRr2AB_z18WJv2sLX_Fv14B5U1QZ_puMo6pn-6KvNsxR-CUji5xyE/pub?output=csv"
         
-        # Lê o CSV da internet. 'decimal' e 'thousands' previnem erros caso o Google Sheets esteja em português
         df = pd.read_csv(url_planilha, decimal=',', thousands='.')
         
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
@@ -230,7 +228,6 @@ if not df.empty:
                 v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
                 v_base = df_veiculo['Base'].iloc[-1]
                 
-                # NOVO CARD DE INDICADORES ALINHADOS
                 st.markdown(f"""
                 <div class="raiox-container">
                     <div class="raiox-item">
@@ -264,18 +261,37 @@ if not df.empty:
         with g1:
             st.markdown('<div class="chart-title">Ranking de Quilometragem (Top 10)</div>', unsafe_allow_html=True)
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
-            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
+            
+            # Adicionando a Base junto à Placa
+            if not top10_km.empty:
+                top10_km['Placa_Base'] = top10_km['Placa'] + ' (' + top10_km['Base'] + ')'
+            else:
+                top10_km['Placa_Base'] = []
+                
+            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa_Base', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
             fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
-            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.5]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            
+            # Margem 'l' ajustada para 180 para caber o texto com a base
+            fig_km.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=180, r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.5]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black"), title=""))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
+            
         with g2:
             st.markdown('<div class="chart-title">Ranking de Manutenção (Top 10)</div>', unsafe_allow_html=True)
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
-            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
+            
+            # Adicionando a Base junto à Placa
+            if not top10_custo.empty:
+                top10_custo['Placa_Base'] = top10_custo['Placa'] + ' (' + top10_custo['Base'] + ')'
+            else:
+                top10_custo['Placa_Base'] = []
+                
+            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa_Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
             fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
-            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=80, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            
+            # Margem 'l' ajustada para 180 para caber o texto com a base
+            fig_custo.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=180, r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black"), title=""))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
