@@ -29,7 +29,9 @@ st.markdown("""
     
     .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
     .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; height: 40px; display: flex; align-items: center; }
-    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; height: 25px; display: flex; align-items: center; }
+    
+    /* Alterado de height fixo para min-height para caber os textos de Saldo sem cortar em telas menores */
+    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; min-height: 25px; display: flex; align-items: center; }
     
     .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
@@ -262,8 +264,8 @@ if not df.empty:
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
-                # Placa em Negrito e Base mais fina e translúcida (cinza)
-                top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:11px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
+                # Modificado: fonte do nome da base reduzida para 9.5px
+                top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
             else:
                 top10_km['Placa_Base'] = []
                 
@@ -271,7 +273,6 @@ if not df.empty:
             fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
             
-            # Removido o "Arial Black" da tickfont para deixar o texto limpo e leve
             fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=100, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.5]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             
@@ -280,7 +281,8 @@ if not df.empty:
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty:
-                top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:11px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
+                # Modificado: fonte do nome da base reduzida para 9.5px
+                top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
             else:
                 top10_custo['Placa_Base'] = []
                 
@@ -288,7 +290,6 @@ if not df.empty:
             fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
             
-            # Removido o "Arial Black" aqui também
             fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=130, t=0, b=0), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.7]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
@@ -299,8 +300,11 @@ if not df.empty:
         with ca1:
             orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
             gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
+            saldo_manut = orc_total_manut - gasto_total_acum_manut # Cálculo de saldo
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
-            draw_card("ORÇAMENTO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido do ano", progress=perc_manut)
+            
+            # Adicionado o saldo no subtítulo do Card
+            draw_card("ORÇAMENTO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), f"Saldo Anual: {fmt_br(saldo_manut, True)} ({perc_manut:.1f}%)", progress=perc_manut)
         
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
@@ -308,7 +312,8 @@ if not df.empty:
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
-        st.markdown(f'<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção Acumulado (Até {mes_sel})</div>', unsafe_allow_html=True)
+        # Removido o (Até {mes_sel}) do título
+        st.markdown('<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
         custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         
         if not custo_base_acum.empty:
@@ -330,9 +335,12 @@ if not df.empty:
             gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
+            saldo_comb = orc_total_comb - gasto_acum_comb # Cálculo de saldo
             perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
-            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), f"Gasto no mês: {fmt_br(gasto_m_comb, True)}", trend=trend_comb, progress=perc_comb)
+            
+            # Adicionado o saldo no subtítulo do Card
+            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), f"Saldo Anual: {fmt_br(saldo_comb, True)} | No Mês: {fmt_br(gasto_m_comb, True)}", trend=trend_comb, progress=perc_comb)
         
         st.markdown("---")
         st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
@@ -354,14 +362,19 @@ if not df.empty:
         gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
         gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
         
+        saldo_seguro = orc_seguro - gasto_seguro # Cálculo de saldo
+        saldo_rastreador = orc_rastreador - gasto_rastreador # Cálculo de saldo
+        
         perc_seguro = (gasto_seguro / orc_seguro * 100) if orc_seguro > 0 else 0
         perc_rastreador = (gasto_rastreador / orc_rastreador * 100) if orc_rastreador > 0 else 0
         
         cf1, cf2 = st.columns(2)
         with cf1:
-            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), f"Orçamento: {fmt_br(orc_seguro, True)}", progress=perc_seguro)
+            # Adicionado o saldo no subtítulo do Card
+            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), f"Saldo: {fmt_br(saldo_seguro, True)} (de {fmt_br(orc_seguro, True)})", progress=perc_seguro)
         with cf2:
-            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), f"Orçamento: {fmt_br(orc_rastreador, True)}", progress=perc_rastreador)
+            # Adicionado o saldo no subtítulo do Card
+            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), f"Saldo: {fmt_br(saldo_rastreador, True)} (de {fmt_br(orc_rastreador, True)})", progress=perc_rastreador)
             
         st.markdown("---")
         st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
