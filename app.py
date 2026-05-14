@@ -39,8 +39,12 @@ st.markdown("""
 
     .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
     .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
+    
+    /* Configuração da Barra de Progresso */
     .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 10px; }
-    .progress-fill { background-color: #F57C00; height: 8px; border-radius: 10px; }
+    .progress-fill { height: 8px; border-radius: 10px; }
+    .bg-normal { background-color: #F57C00; } /* Laranja (Normal) */
+    .bg-alert { background-color: #D32F2F !important; } /* Vermelho (Acima de 100%) */
     </style>
     """, unsafe_allow_html=True)
 
@@ -64,7 +68,11 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
         icon = "↓" if trend <= 0 else "↑"
         trend_html = f'<div class="{color}">{icon} {abs(trend):.1f}% vs mês ant.</div>'
     
-    prog_html = f'<div class="progress-bg"><div class="progress-fill" style="width: {min(progress, 100)}%;"></div></div>' if progress is not None else ""
+    prog_html = ""
+    if progress is not None:
+        # Se passar de 100%, muda a classe para vermelho (bg-alert)
+        prog_color = "bg-alert" if progress > 100 else "bg-normal"
+        prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div>'
     
     st.markdown(f"""
         <div class="metric-container">
@@ -86,13 +94,11 @@ def load_data():
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
         
-        # Garante que todas as colunas de custo sejam lidas como números corretamente
         df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
         df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
         df['Custo de seguro'] = pd.to_numeric(df.get('Custo de seguro', 0), errors='coerce').fillna(0)
         df['Custo de Rastreador'] = pd.to_numeric(df.get('Custo de Rastreador', 0), errors='coerce').fillna(0)
         
-        # Leitura da coluna de combustível
         if 'Custo de combustível' in df.columns:
             df['Custo Combustível'] = pd.to_numeric(df['Custo de combustível'], errors='coerce').fillna(0)
         else:
@@ -154,7 +160,8 @@ if not df.empty:
 
     with tab1:
         st.markdown(f"### 📊 Desempenho Mensal Manutenção - {mes_sel}")
-        c1, c2, c3, c4 = st.columns(4)
+        # Reduzido de 4 para 3 colunas, pois o Orçamento foi para a aba 2
+        c1, c2, c3 = st.columns(3)
         
         with c1:
             ativos_m = len(get_ativos(df_filtrado_mes_manut))
@@ -174,12 +181,6 @@ if not df.empty:
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
-        
-        with c4:
-            orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
-            gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
-            perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
-            draw_card("ORÇAMENTO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido", progress=perc_manut)
 
         if busca_placa:
             st.markdown("---")
@@ -187,13 +188,24 @@ if not df.empty:
             df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
             if not df_veiculo.empty:
                 rv1, rv2 = st.columns([2, 1])
+                
+                # Cálculo do Custo por KM exclusivo do veículo pesquisado
+                v_gasto_total = df_veiculo['Custo de manutenção'].sum()
+                v_km_total = df_veiculo['Quilometragem'].sum()
+                v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
+                
                 with rv1:
                     fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
                     fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
                     fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
                     st.plotly_chart(fig_raiox, use_container_width=True)
                 with rv2:
-                    st.info(f"📍 **Base:** {df_veiculo['Base'].iloc[-1]}\n\n💰 **Gasto Total Ano:** {fmt_br(df_veiculo['Custo de manutenção'].sum(), True)}\n\n🛣️ **KM Total Ano:** {fmt_br(df_veiculo['Quilometragem'].sum())}")
+                    st.info(f"""
+                    📍 **Base:** {df_veiculo['Base'].iloc[-1]}  
+                    💰 **Gasto Total Ano:** {fmt_br(v_gasto_total, True)}  
+                    🛣️ **KM Total Ano:** {fmt_br(v_km_total)}  
+                    📊 **Custo por KM:** {fmt_br(v_custo_km, True)}/km
+                    """)
             st.markdown("---")
         
         g1, g2 = st.columns(2)
@@ -216,19 +228,30 @@ if not df.empty:
 
     with tab2:
         st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
+        
+        # CARD DE ORÇAMENTO (Movido para a aba Resumo Acumulado)
+        ca1, ca2, ca3 = st.columns(3)
+        with ca1:
+            orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
+            gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
+            perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
+            draw_card("ORÇAMENTO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), f"{perc_manut:.1f}% consumido do ano", progress=perc_manut)
+        
+        st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
-        st.markdown(f'<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção em {mes_sel}</div>', unsafe_allow_html=True)
-        custo_base_mes = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
-        if not custo_base_mes.empty:
-            fig_base_mes = px.bar(custo_base_mes, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
-            fig_base_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-            max_cb = custo_base_mes['Custo de manutenção'].max()
-            fig_base_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
-            st.plotly_chart(fig_base_mes, use_container_width=True, config={'displayModeBar': False})
+        st.markdown(f'<div class="chart-title">Top 10 Bases com Maior Custo de Manutenção Acumulado (Até {mes_sel})</div>', unsafe_allow_html=True)
+        custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+        
+        if not custo_base_acum.empty:
+            fig_base_acum = px.bar(custo_base_acum, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
+            fig_base_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+            max_cb = custo_base_acum['Custo de manutenção'].max()
+            fig_base_acum.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=100, r=150, t=0, b=0), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")))
+            st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
         st.markdown(f"### ⛽ Gestão de Combustível - {ano_sel}")
@@ -256,17 +279,13 @@ if not df.empty:
             fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial Black")), showlegend=False, coloraxis_showscale=False)
             st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
 
-    # NOVA ABA: CUSTOS FIXOS ADAPTADA PARA LER AS COLUNAS E/F
     with tab4:
         st.markdown(f"### 🛡️ Gestão de Custos Fixos - {ano_sel}")
-        
-        # Filtra os dados de toda a base (pois agora Seguro e Rastreador são colunas em todos os carros)
         df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
         
         orc_seguro = sum(ORCAMENTOS_SEGURO.get(inst, 0) for inst in inst_ativas)
         orc_rastreador = sum(ORCAMENTOS_RASTREADOR.get(inst, 0) for inst in inst_ativas)
         
-        # SOMA AGORA BASEADA NAS COLUNAS CORRETAS DO SEU EXCEL
         gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
         gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
         
@@ -282,10 +301,7 @@ if not df.empty:
         st.markdown("---")
         st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
         
-        # Agrupa os valores de seguro e rastreador por mês
         evol_fixos = df_fixos_acum.groupby(['Mes_Nome', 'Mes_Num'])[['Custo de seguro', 'Custo de Rastreador']].sum().reset_index().sort_values('Mes_Num')
-        
-        # Transforma as duas colunas em linhas para gerar o gráfico lado a lado (melt)
         evol_fixos_melted = evol_fixos.melt(id_vars=['Mes_Nome', 'Mes_Num'], 
                                             value_vars=['Custo de seguro', 'Custo de Rastreador'], 
                                             var_name='Tipo Despesa', 
