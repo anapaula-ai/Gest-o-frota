@@ -20,7 +20,7 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        min-height: 200px; /* Alterado para min-height para o card crescer se o texto for longo */
+        min-height: 200px; 
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -30,7 +30,6 @@ st.markdown("""
     .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
     .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; height: 40px; display: flex; align-items: center; }
     
-    /* Layout atualizado para suportar múltiplas linhas de forma limpa */
     .metric-subtext { 
         color: #333333 !important; 
         font-size: 13px; 
@@ -50,13 +49,12 @@ st.markdown("""
     .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
     .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
     
-    /* Configuração da Barra de Progresso */
+    /* Configuração da Barra de Progresso ajustada para o novo modelo */
     .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 10px; }
     .progress-fill { height: 8px; border-radius: 10px; }
-    .bg-normal { background-color: #F57C00; } /* Laranja (Normal) */
+    .bg-normal { background-color: #F57C00; } /* Laranja retornado ao original */
     .bg-alert { background-color: #D32F2F !important; } /* Vermelho (Acima de 100%) */
     
-    /* Estilização dos Indicadores do Raio-X */
     .raiox-container {
         display: flex;
         flex-wrap: wrap;
@@ -104,7 +102,8 @@ def get_ativos(df):
         (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO|RASTREADOR", case=False, na=True))
     ]["Placa"].unique()
 
-def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None):
+# Função draw_card com o novo parâmetro "progress_text"
+def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
     trend_html = ""
     if trend is not None and trend != 0:
         color = "trend-down" if (trend <= 0 if is_lower_better else trend >= 0) else "trend-up"
@@ -114,7 +113,14 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
     prog_html = ""
     if progress is not None:
         prog_color = "bg-alert" if progress > 100 else "bg-normal"
-        prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div>'
+        prog_html = f"""
+            <div class="progress-bg">
+                <div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div>
+            </div>
+            <div style="font-size: 13.5px; color: #333333; margin-top: 6px; font-weight: 500;">
+                {progress_text}
+            </div>
+        """
     
     st.markdown(f"""
         <div class="metric-container">
@@ -309,9 +315,11 @@ if not df.empty:
             saldo_manut = orc_total_manut - gasto_total_acum_manut
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             
-            # Subtexto formatado com 3 linhas usando HTML
-            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_manut, True)}</b><br>Percentual Consumido: <b>{perc_manut:.1f}%</b>"
-            draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut)
+            # Texto reajustado
+            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
+            prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
+            
+            draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
         
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
@@ -345,19 +353,38 @@ if not df.empty:
             perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
             
-            # Subtexto formatado com 3 linhas usando HTML
-            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_comb, True)}</b><br>Percentual Consumido: <b>{perc_comb:.1f}%</b>"
-            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb)
+            # Texto reajustado
+            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
+            prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
+            
+            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb, progress_text=prog_text_comb)
         
         st.markdown("---")
-        st.markdown(f'<div class="chart-title">Ranking de Custos de Combustível por Base - {mes_sel}</div>', unsafe_allow_html=True)
-        custo_comb_base = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().sort_values('Custo Combustível', ascending=True)
-        if not custo_comb_base.empty:
-            fig_comb = px.bar(custo_comb_base, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color='Custo Combustível', color_continuous_scale='Blues')
-            fig_comb.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-            max_cc = custo_comb_base['Custo Combustível'].max()
-            fig_comb.update_layout(height=max(400, len(custo_comb_base) * 35), separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif")), showlegend=False, coloraxis_showscale=False)
-            st.plotly_chart(fig_comb, use_container_width=True, config={'displayModeBar': False})
+        
+        # Criação de duas colunas para comparar o Mês Atual e o Acumulado (Top 10)
+        col_g1, col_g2 = st.columns(2)
+        
+        with col_g1:
+            st.markdown(f'<div class="chart-title">Top 10 Bases (Mês: {mes_sel})</div>', unsafe_allow_html=True)
+            custo_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
+            
+            if not custo_comb_base_mes.empty:
+                fig_comb_mes = px.bar(custo_comb_base_mes, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#0288D1'])
+                fig_comb_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                max_cc_m = custo_comb_base_mes['Custo Combustível'].max()
+                fig_comb_mes.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=100), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_m * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
+                st.plotly_chart(fig_comb_mes, use_container_width=True, config={'displayModeBar': False})
+        
+        with col_g2:
+            st.markdown(f'<div class="chart-title">Top 10 Bases (Acumulado Ano)</div>', unsafe_allow_html=True)
+            custo_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
+            
+            if not custo_comb_base_acum.empty:
+                fig_comb_acum = px.bar(custo_comb_base_acum, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#F57C00'])
+                fig_comb_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                max_cc_a = custo_comb_base_acum['Custo Combustível'].max()
+                fig_comb_acum.update_layout(height=400, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=100), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.6]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
+                st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab4:
         st.markdown(f"### 🛡️ Gestão de Custos Fixos - {ano_sel}")
@@ -377,13 +404,16 @@ if not df.empty:
         
         cf1, cf2 = st.columns(2)
         with cf1:
-            # Subtexto formatado
-            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_seguro, True)}</b><br>Percentual Consumido: <b>{perc_seguro:.1f}%</b>"
-            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro)
+            # Texto reajustado
+            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b>"
+            prog_text_seguro = f"{perc_seguro:.1f}% &middot; Saldo {fmt_br(saldo_seguro, True)}"
+            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro, progress_text=prog_text_seguro)
+            
         with cf2:
-            # Subtexto formatado
-            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b><br>Saldo Restante: <b>{fmt_br(saldo_rastreador, True)}</b><br>Percentual Consumido: <b>{perc_rastreador:.1f}%</b>"
-            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador)
+            # Texto reajustado
+            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b>"
+            prog_text_rastreador = f"{perc_rastreador:.1f}% &middot; Saldo {fmt_br(saldo_rastreador, True)}"
+            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador, progress_text=prog_text_rastreador)
             
         st.markdown("---")
         st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
