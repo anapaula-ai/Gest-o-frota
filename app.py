@@ -106,7 +106,6 @@ def get_ativos(df):
         (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO|RASTREADOR", case=False, na=True))
     ]["Placa"].unique()
 
-# Função draw_card sem indentação no bloco HTML
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
     trend_html = ""
     if trend is not None and trend != 0:
@@ -205,10 +204,10 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📑 Detalhamento"])
+    # Atualizamos as abas para incluir a aba 5 "Raio-X da Base"
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
-        # Título atualizado com |
         st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
         c1, c2, c3 = st.columns(3)
         
@@ -307,7 +306,6 @@ if not df.empty:
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
-        # Título atualizado com |
         st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
         
         ca1, ca2, ca3 = st.columns(3)
@@ -323,7 +321,6 @@ if not df.empty:
             draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
             
         with ca2:
-            # NOVO CARD DE QUILOMETRAGEM ACUMULADA
             km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
             sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
             draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
@@ -346,7 +343,6 @@ if not df.empty:
             st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
-        # Título atualizado com |
         st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
         df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
@@ -396,7 +392,6 @@ if not df.empty:
                 st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab4:
-        # Título atualizado com |
         st.markdown(f"### 🛡️ Gestão de Custos Fixos | {ano_sel}")
         df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
         
@@ -442,13 +437,97 @@ if not df.empty:
         else:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
+    # NOVA ABA: RAIO-X DA BASE
     with tab5:
+        st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
+        
+        base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_temp_inst[col_cc].dropna().unique()))
+        
+        if base_raiox:
+            df_rx_base = df_temp_inst[df_temp_inst[col_cc] == base_raiox]
+            df_rx_mes = df_rx_base[df_rx_base['Mes_Nome'] == mes_sel]
+            df_rx_acum = df_rx_base[df_rx_base['Mes_Num'] <= mes_num_atual]
+            
+            km_mes = df_rx_mes['Quilometragem'].sum()
+            km_acum = df_rx_acum['Quilometragem'].sum()
+            
+            manut_mes = df_rx_mes['Custo de manutenção'].sum()
+            manut_acum = df_rx_acum['Custo de manutenção'].sum()
+            
+            comb_mes = df_rx_mes['Custo Combustível'].sum()
+            comb_acum = df_rx_acum['Custo Combustível'].sum()
+            
+            fixo_mes = df_rx_mes['Custo de seguro'].sum() + df_rx_mes['Custo de Rastreador'].sum()
+            fixo_acum = df_rx_acum['Custo de seguro'].sum() + df_rx_acum['Custo de Rastreador'].sum()
+            
+            total_mes = manut_mes + comb_mes + fixo_mes
+            total_acum = manut_acum + comb_acum + fixo_acum
+            
+            cpk_mes = total_mes / km_mes if km_mes > 0 else 0
+            cpk_acum = total_acum / km_acum if km_acum > 0 else 0
+            
+            st.markdown(f"""
+            <div class="raiox-container">
+                <div class="raiox-item">
+                    <div class="raiox-label">🛣️ KM Rodado (Mês)</div>
+                    <div class="raiox-value">{fmt_br(km_mes)}</div>
+                    <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(km_acum)}</div>
+                </div>
+                <div class="raiox-item">
+                    <div class="raiox-label">🔧 Manutenção (Mês)</div>
+                    <div class="raiox-value">{fmt_br(manut_mes, True)}</div>
+                    <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(manut_acum, True)}</div>
+                </div>
+                <div class="raiox-item">
+                    <div class="raiox-label">⛽ Combustível (Mês)</div>
+                    <div class="raiox-value">{fmt_br(comb_mes, True)}</div>
+                    <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(comb_acum, True)}</div>
+                </div>
+                <div class="raiox-item">
+                    <div class="raiox-label">💰 Custo Total (Mês)</div>
+                    <div class="raiox-value">{fmt_br(total_mes, True)}</div>
+                    <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(total_acum, True)}</div>
+                </div>
+                <div class="raiox-item">
+                    <div class="raiox-label">📊 Custo por KM (Mês)</div>
+                    <div class="raiox-value">{fmt_br(cpk_mes, True)}</div>
+                    <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(cpk_acum, True)}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            col_rx1, col_rx2 = st.columns(2)
+            
+            with col_rx1:
+                evol_rx = df_rx_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador']].sum().reset_index()
+                evol_rx['Custo Total'] = evol_rx['Custo de manutenção'] + evol_rx['Custo Combustível'] + evol_rx['Custo de seguro'] + evol_rx['Custo de Rastreador']
+                evol_rx = evol_rx.sort_values('Mes_Num')
+                
+                fig_rx_line = px.line(evol_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução do Custo Total | {base_raiox}")
+                fig_rx_line.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
+                fig_rx_line.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
+                st.plotly_chart(fig_rx_line, use_container_width=True)
+            
+            with col_rx2:
+                df_breakdown = pd.DataFrame({
+                    'Categoria': ['Manutenção', 'Combustível', 'Custos Fixos (Seguro + Rastreador)'],
+                    'Valor': [manut_acum, comb_acum, fixo_acum]
+                })
+                # Filtra caso alguma categoria seja 0 para não aparecer no gráfico de pizza
+                df_breakdown = df_breakdown[df_breakdown['Valor'] > 0]
+                
+                if not df_breakdown.empty:
+                    fig_rx_pie = px.pie(df_breakdown, names='Categoria', values='Valor', title=f"Composição de Custos Acumulados | {base_raiox}", hole=0.4, color_discrete_sequence=['#F57C00', '#0288D1', '#1A237E'])
+                    fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
+                    st.plotly_chart(fig_rx_pie, use_container_width=True)
+
+    with tab6:
         st.markdown("### 📑 Detalhamento dos Dados")
         
-        # Prepara a tabela e o arquivo para download
         df_download = df_base.drop(columns=['Mes_Num', 'Ano'])
         
-        # Botão de Download (O formato escolhido já resolve o problema de vírgulas, ponto e vírgula e acentos no Excel)
         csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
         st.download_button(
             label="📥 Baixar Relatório Completo (Excel/CSV)",
