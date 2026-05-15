@@ -204,7 +204,6 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # Atualizamos as abas para incluir a aba 5 "Raio-X da Base"
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
@@ -437,7 +436,6 @@ if not df.empty:
         else:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
-    # NOVA ABA: RAIO-X DA BASE
     with tab5:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
@@ -457,11 +455,9 @@ if not df.empty:
             comb_mes = df_rx_mes['Custo Combustível'].sum()
             comb_acum = df_rx_acum['Custo Combustível'].sum()
             
-            fixo_mes = df_rx_mes['Custo de seguro'].sum() + df_rx_mes['Custo de Rastreador'].sum()
-            fixo_acum = df_rx_acum['Custo de seguro'].sum() + df_rx_acum['Custo de Rastreador'].sum()
-            
-            total_mes = manut_mes + comb_mes + fixo_mes
-            total_acum = manut_acum + comb_acum + fixo_acum
+            # Cálculo sem o Seguro e Rastreador
+            total_mes = manut_mes + comb_mes
+            total_acum = manut_acum + comb_acum
             
             cpk_mes = total_mes / km_mes if km_mes > 0 else 0
             cpk_acum = total_acum / km_acum if km_acum > 0 else 0
@@ -501,8 +497,9 @@ if not df.empty:
             col_rx1, col_rx2 = st.columns(2)
             
             with col_rx1:
-                evol_rx = df_rx_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador']].sum().reset_index()
-                evol_rx['Custo Total'] = evol_rx['Custo de manutenção'] + evol_rx['Custo Combustível'] + evol_rx['Custo de seguro'] + evol_rx['Custo de Rastreador']
+                # Agrupamento e cálculo da linha do tempo apenas com Manutenção e Combustível
+                evol_rx = df_rx_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível']].sum().reset_index()
+                evol_rx['Custo Total'] = evol_rx['Custo de manutenção'] + evol_rx['Custo Combustível']
                 evol_rx = evol_rx.sort_values('Mes_Num')
                 
                 fig_rx_line = px.line(evol_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução do Custo Total | {base_raiox}")
@@ -511,15 +508,15 @@ if not df.empty:
                 st.plotly_chart(fig_rx_line, use_container_width=True)
             
             with col_rx2:
+                # Tabela para alimentar o gráfico de rosca (sem custos fixos)
                 df_breakdown = pd.DataFrame({
-                    'Categoria': ['Manutenção', 'Combustível', 'Custos Fixos (Seguro + Rastreador)'],
-                    'Valor': [manut_acum, comb_acum, fixo_acum]
+                    'Categoria': ['Manutenção', 'Combustível'],
+                    'Valor': [manut_acum, comb_acum]
                 })
-                # Filtra caso alguma categoria seja 0 para não aparecer no gráfico de pizza
                 df_breakdown = df_breakdown[df_breakdown['Valor'] > 0]
                 
                 if not df_breakdown.empty:
-                    fig_rx_pie = px.pie(df_breakdown, names='Categoria', values='Valor', title=f"Composição de Custos Acumulados | {base_raiox}", hole=0.4, color_discrete_sequence=['#F57C00', '#0288D1', '#1A237E'])
+                    fig_rx_pie = px.pie(df_breakdown, names='Categoria', values='Valor', title=f"Composição de Custos Acumulados | {base_raiox}", hole=0.4, color_discrete_sequence=['#F57C00', '#0288D1'])
                     fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
                     st.plotly_chart(fig_rx_pie, use_container_width=True)
 
