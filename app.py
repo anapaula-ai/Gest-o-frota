@@ -102,7 +102,7 @@ def get_ativos(df):
         (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO|RASTREADOR", case=False, na=True))
     ]["Placa"].unique()
 
-# Função draw_card com o novo parâmetro "progress_text"
+# Função draw_card corrigida (sem espaços no início das linhas HTML para evitar bug do Markdown)
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
     trend_html = ""
     if trend is not None and trend != 0:
@@ -113,24 +113,18 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
     prog_html = ""
     if progress is not None:
         prog_color = "bg-alert" if progress > 100 else "bg-normal"
-        prog_html = f"""
-            <div class="progress-bg">
-                <div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div>
-            </div>
-            <div style="font-size: 13.5px; color: #333333; margin-top: 6px; font-weight: 500;">
-                {progress_text}
-            </div>
-        """
+        prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div><div style="font-size: 13.5px; color: #333333; margin-top: 6px; font-weight: 500;">{progress_text}</div>'
     
-    st.markdown(f"""
-        <div class="metric-container">
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-            <div class="metric-subtext">{subtext}</div>
-            <div class="trend-container">{trend_html}</div>
-            {prog_html}
-        </div>
-    """, unsafe_allow_html=True)
+    html_card = f"""
+<div class="metric-container">
+<div class="metric-label">{label}</div>
+<div class="metric-value">{value}</div>
+<div class="metric-subtext">{subtext}</div>
+<div class="trend-container">{trend_html}</div>
+{prog_html}
+</div>
+"""
+    st.markdown(html_card, unsafe_allow_html=True)
 
 @st.cache_data(ttl=600)
 def load_data():
@@ -315,7 +309,6 @@ if not df.empty:
             saldo_manut = orc_total_manut - gasto_total_acum_manut
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             
-            # Texto reajustado
             sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
             prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
             
@@ -353,7 +346,6 @@ if not df.empty:
             perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
             
-            # Texto reajustado
             sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
             prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
             
@@ -361,7 +353,6 @@ if not df.empty:
         
         st.markdown("---")
         
-        # Criação de duas colunas para comparar o Mês Atual e o Acumulado (Top 10)
         col_g1, col_g2 = st.columns(2)
         
         with col_g1:
@@ -404,13 +395,11 @@ if not df.empty:
         
         cf1, cf2 = st.columns(2)
         with cf1:
-            # Texto reajustado
             sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b>"
             prog_text_seguro = f"{perc_seguro:.1f}% &middot; Saldo {fmt_br(saldo_seguro, True)}"
             draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro, progress_text=prog_text_seguro)
             
         with cf2:
-            # Texto reajustado
             sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b>"
             prog_text_rastreador = f"{perc_rastreador:.1f}% &middot; Saldo {fmt_br(saldo_rastreador, True)}"
             draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador, progress_text=prog_text_rastreador)
