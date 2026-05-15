@@ -86,6 +86,10 @@ st.markdown("""
         font-weight: 800;
         margin-top: 5px;
     }
+    
+    /* Ajuste para botão de download */
+    .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
+    .stDownloadButton button:hover { background-color: #E65100 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -204,7 +208,8 @@ if not df.empty:
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📑 Detalhamento"])
 
     with tab1:
-        st.markdown(f"### 📊 Desempenho Mensal Manutenção - {mes_sel}")
+        # Título atualizado com |
+        st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
         c1, c2, c3 = st.columns(3)
         
         with c1:
@@ -266,12 +271,11 @@ if not df.empty:
                 st.warning("Veículo não encontrado nesta seleção.")
             st.markdown("---")
         
-        # Espaçamento para não ficar tão grudado nos cartões
         st.markdown("<br>", unsafe_allow_html=True)
         
         g1, g2 = st.columns(2)
         with g1:
-            st.markdown('<div class="chart-title">Top 10 veículos: Maior Quilometragem</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
@@ -283,12 +287,11 @@ if not df.empty:
             fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
             
-            # Tamanho padronizado (height=450) e margem direita aumentada para o texto não sumir (r=150)
             fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             
         with g2:
-            st.markdown('<div class="chart-title">Top 10 veículos: Maior Custo de Manutenção</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty:
@@ -300,12 +303,12 @@ if not df.empty:
             fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
             
-            # Tamanho padronizado (height=450) e margem direita aumentada para o texto não sumir (r=150)
             fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
-        st.markdown(f"### 📈 Resumo Acumulado Manutenção - {ano_sel}")
+        # Título atualizado com |
+        st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
         
         ca1, ca2, ca3 = st.columns(3)
         with ca1:
@@ -318,6 +321,12 @@ if not df.empty:
             prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
             
             draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
+            
+        with ca2:
+            # NOVO CARD DE QUILOMETRAGEM ACUMULADA
+            km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
+            sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
+            draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
         
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
@@ -325,7 +334,7 @@ if not df.empty:
         st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
-        st.markdown('<div class="chart-title">Top 10 bases: Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
         custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         
         if not custo_base_acum.empty:
@@ -333,12 +342,12 @@ if not df.empty:
             fig_base_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_cb = custo_base_acum['Custo de manutenção'].max()
             
-            # Tamanho padronizado (height=450)
             fig_base_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif")))
             st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab3:
-        st.markdown(f"### ⛽ Gestão de Combustível - {ano_sel}")
+        # Título atualizado com |
+        st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
         df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
@@ -363,7 +372,7 @@ if not df.empty:
         col_g1, col_g2 = st.columns(2)
         
         with col_g1:
-            st.markdown(f'<div class="chart-title">Top 10 Bases — Custo de Combustível em {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível em {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
             custo_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
             if not custo_comb_base_mes.empty:
@@ -371,12 +380,11 @@ if not df.empty:
                 fig_comb_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_m = custo_comb_base_mes['Custo Combustível'].max()
                 
-                # Tamanho padronizado (height=450)
                 fig_comb_mes.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_m * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_mes, use_container_width=True, config={'displayModeBar': False})
         
         with col_g2:
-            st.markdown(f'<div class="chart-title">Top 10 Bases — Custo de Combustível Acumulado em {ano_sel}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível Acumulado em {ano_sel}</div>', unsafe_allow_html=True)
             custo_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
             if not custo_comb_base_acum.empty:
@@ -384,12 +392,12 @@ if not df.empty:
                 fig_comb_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_a = custo_comb_base_acum['Custo Combustível'].max()
                 
-                # Tamanho padronizado (height=450)
                 fig_comb_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab4:
-        st.markdown(f"### 🛡️ Gestão de Custos Fixos - {ano_sel}")
+        # Título atualizado com |
+        st.markdown(f"### 🛡️ Gestão de Custos Fixos | {ano_sel}")
         df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
         
         orc_seguro = sum(ORCAMENTOS_SEGURO.get(inst, 0) for inst in inst_ativas)
@@ -436,6 +444,20 @@ if not df.empty:
 
     with tab5:
         st.markdown("### 📑 Detalhamento dos Dados")
-        st.dataframe(df_base.drop(columns=['Mes_Num', 'Ano']), use_container_width=True)
+        
+        # Prepara a tabela e o arquivo para download
+        df_download = df_base.drop(columns=['Mes_Num', 'Ano'])
+        
+        # Botão de Download (O formato escolhido já resolve o problema de vírgulas, ponto e vírgula e acentos no Excel)
+        csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+        st.download_button(
+            label="📥 Baixar Relatório Completo (Excel/CSV)",
+            data=csv_data,
+            file_name=f"Relatorio_Frotas_{inst_sel}_{mes_sel}_{ano_sel}.csv",
+            mime="text/csv"
+        )
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.dataframe(df_download, use_container_width=True)
 else:
     st.warning("Verifique o arquivo da planilha online.")
