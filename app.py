@@ -68,7 +68,7 @@ st.markdown("""
     }
     .raiox-item {
         flex: 1;
-        min-width: 150px;
+        min-width: 130px;
         text-align: center;
         border-right: 1px solid #E0E0E0;
     }
@@ -77,13 +77,13 @@ st.markdown("""
     }
     .raiox-label {
         color: #546E7A !important;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
     }
     .raiox-value {
         color: #1A237E !important;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 800;
         margin-top: 5px;
     }
@@ -300,7 +300,7 @@ if not df.empty:
             else:
                 draw_card("🏆 VEÍCULO MAIOR KM/MÊS", "0", "Sem registros no mês")
 
-        # --- DESTAQUE: BALÃO DE BUSCA DE PLACA ---
+        # --- DESTAQUE: BALÃO DE BUSCA DE PLACA NA ABA 1 ---
         if busca_placa:
             df_veiculo_completo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
             df_veiculo_acum = df_veiculo_completo[df_veiculo_completo["Mes_Num"] <= mes_num_atual]
@@ -309,11 +309,15 @@ if not df.empty:
             if not df_veiculo_acum.empty:
                 v_km_mes = df_veiculo_mes['Quilometragem'].sum()
                 v_manut_mes = df_veiculo_mes['Custo de manutenção'].sum()
-                v_cpk_mes = v_manut_mes / v_km_mes if v_km_mes > 0 else 0
+                v_comb_mes = df_veiculo_mes['Custo Combustível'].sum()
+                v_total_mes = v_manut_mes + v_comb_mes
+                v_cpk_mes = v_total_mes / v_km_mes if v_km_mes > 0 else 0
                 
                 v_km_acum = df_veiculo_acum['Quilometragem'].sum()
                 v_manut_acum = df_veiculo_acum['Custo de manutenção'].sum()
-                v_cpk_acum = v_manut_acum / v_km_acum if v_km_acum > 0 else 0
+                v_comb_acum = df_veiculo_acum['Custo Combustível'].sum()
+                v_total_acum = v_manut_acum + v_comb_acum
+                v_cpk_acum = v_total_acum / v_km_acum if v_km_acum > 0 else 0
                 
                 v_base = df_veiculo_acum['Base'].iloc[-1]
                 
@@ -335,6 +339,16 @@ if not df.empty:
                             <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_manut_acum, True)}</div>
                         </div>
                         <div class="raiox-item">
+                            <div class="raiox-label">⛽ Combustível (Mês)</div>
+                            <div class="raiox-value">{fmt_br(v_comb_mes, True)}</div>
+                            <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_comb_acum, True)}</div>
+                        </div>
+                        <div class="raiox-item">
+                            <div class="raiox-label">💰 Custo Total (Mês)</div>
+                            <div class="raiox-value">{fmt_br(v_total_mes, True)}</div>
+                            <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_total_acum, True)}</div>
+                        </div>
+                        <div class="raiox-item">
                             <div class="raiox-label">📊 Custo por KM (Mês)</div>
                             <div class="raiox-value">{fmt_br(v_cpk_mes, True)}</div>
                             <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_cpk_acum, True)}</div>
@@ -343,7 +357,11 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                fig_raiox = px.line(df_veiculo_acum, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos de Manutenção no Ano")
+                evol_v_balao = df_veiculo_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível']].sum().reset_index()
+                evol_v_balao['Custo Total'] = evol_v_balao['Custo de manutenção'] + evol_v_balao['Custo Combustível']
+                evol_v_balao = evol_v_balao.sort_values('Mes_Num')
+                
+                fig_raiox = px.line(evol_v_balao, x='Mes_Nome', y='Custo Total', markers=True, title=f"Histórico de Custos (Manutenção + Combustível) no Ano | {busca_placa}")
                 fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
                 fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
                 st.plotly_chart(fig_raiox, use_container_width=True)
@@ -571,7 +589,6 @@ if not df.empty:
         if cc_sel == "TODOS":
             st.info("💡 Por favor, selecione uma **Centro de Custo / Base** específica no filtro do menu lateral à esquerda para visualizar o Raio-X.")
         else:
-            # Dropdown exclusivo para os veículos que pertencem a essa base
             placas_da_base = sorted(get_ativos(df_base))
             placa_rx = st.selectbox("🔍 Filtrar por Veículo específico desta base (Opcional):", ["VISÃO GERAL DA BASE"] + list(placas_da_base))
             st.markdown("<br>", unsafe_allow_html=True)
@@ -586,7 +603,6 @@ if not df.empty:
                 manut_mes = df_rx_mes['Custo de manutenção'].sum()
                 manut_acum = df_rx_acum['Custo de manutenção'].sum()
                 
-                # Para a base, pegamos o combustível total dela
                 df_rx_comb = df_apenas_comb[df_apenas_comb[col_cc] == cc_sel]
                 df_comb_mes = df_rx_comb[df_rx_comb['Mes_Nome'] == mes_sel]
                 df_comb_acum = df_rx_comb[df_rx_comb['Mes_Num'] <= mes_num_atual]
@@ -657,18 +673,22 @@ if not df.empty:
                         st.plotly_chart(fig_rx_pie, use_container_width=True)
 
             else:
-                # Mostrar o Raio X do VEÍCULO ESPECÍFICO selecionado
+                # Mostrar o Raio X COMPLETO do VEÍCULO ESPECÍFICO selecionado
                 df_rx_v_comp = df_base[df_base['Placa'] == placa_rx].sort_values("Mes_Num")
                 df_rx_v_acum = df_rx_v_comp[df_rx_v_comp['Mes_Num'] <= mes_num_atual]
                 df_rx_v_mes = df_rx_v_comp[df_rx_v_comp['Mes_Nome'] == mes_sel]
                 
                 v_km_m = df_rx_v_mes['Quilometragem'].sum()
                 v_manut_m = df_rx_v_mes['Custo de manutenção'].sum()
-                v_cpk_m = v_manut_m / v_km_m if v_km_m > 0 else 0
+                v_comb_m = df_rx_v_mes['Custo Combustível'].sum()
+                v_total_m = v_manut_m + v_comb_m
+                v_cpk_m = v_total_m / v_km_m if v_km_m > 0 else 0
                 
                 v_km_a = df_rx_v_acum['Quilometragem'].sum()
                 v_manut_a = df_rx_v_acum['Custo de manutenção'].sum()
-                v_cpk_a = v_manut_a / v_km_a if v_km_a > 0 else 0
+                v_comb_a = df_rx_v_acum['Custo Combustível'].sum()
+                v_total_a = v_manut_a + v_comb_a
+                v_cpk_a = v_total_a / v_km_a if v_km_a > 0 else 0
                 
                 st.markdown(f"""
                 <div class="raiox-container">
@@ -677,7 +697,7 @@ if not df.empty:
                         <div class="raiox-value" style="font-size: 18px;">{placa_rx}</div>
                     </div>
                     <div class="raiox-item">
-                        <div class="raiox-label">🛣️ KM Rodado (Mês)</div>
+                        <div class="raiox-label">🛣️ KM (Mês)</div>
                         <div class="raiox-value">{fmt_br(v_km_m)}</div>
                         <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_km_a)}</div>
                     </div>
@@ -687,17 +707,48 @@ if not df.empty:
                         <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_manut_a, True)}</div>
                     </div>
                     <div class="raiox-item">
-                        <div class="raiox-label">📊 Custo por KM (Mês)</div>
+                        <div class="raiox-label">⛽ Combustível (Mês)</div>
+                        <div class="raiox-value">{fmt_br(v_comb_m, True)}</div>
+                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_comb_a, True)}</div>
+                    </div>
+                    <div class="raiox-item">
+                        <div class="raiox-label">💰 Custo Total (Mês)</div>
+                        <div class="raiox-value">{fmt_br(v_total_m, True)}</div>
+                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_total_a, True)}</div>
+                    </div>
+                    <div class="raiox-item">
+                        <div class="raiox-label">📊 Custo/KM (Mês)</div>
                         <div class="raiox-value">{fmt_br(v_cpk_m, True)}</div>
                         <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(v_cpk_a, True)}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                fig_rx_v = px.line(df_rx_v_acum, x='Mes_Nome', y='Custo de manutenção', markers=True, title=f"Histórico de Gastos de Manutenção no Ano | {placa_rx}")
-                fig_rx_v.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
-                fig_rx_v.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
-                st.plotly_chart(fig_rx_v, use_container_width=True)
+                col_rx1, col_rx2 = st.columns(2)
+                
+                with col_rx1:
+                    evol_v_rx = df_rx_v_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível']].sum().reset_index()
+                    evol_v_rx['Custo Total'] = evol_v_rx['Custo de manutenção'] + evol_v_rx['Custo Combustível']
+                    evol_v_rx = evol_v_rx.sort_values('Mes_Num')
+                    
+                    fig_rx_line = px.line(evol_v_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução de Custos no Ano | {placa_rx}")
+                    fig_rx_line.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
+                    fig_rx_line.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
+                    st.plotly_chart(fig_rx_line, use_container_width=True)
+                
+                with col_rx2:
+                    df_break_v = pd.DataFrame({
+                        'Categoria': ['Manutenção', 'Combustível'],
+                        'Valor': [v_manut_a, v_comb_a]
+                    })
+                    df_break_v = df_break_v[df_break_v['Valor'] > 0]
+                    
+                    if not df_break_v.empty:
+                        fig_rx_pie = px.pie(df_break_v, names='Categoria', values='Valor', title=f"Composição de Custos Acumulados | {placa_rx}", hole=0.4, color_discrete_sequence=['#F57C00', '#0288D1'])
+                        fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
+                        st.plotly_chart(fig_rx_pie, use_container_width=True)
+                    else:
+                        st.info("Este veículo não possui custos acumulados de Manutenção ou Combustível para exibir no gráfico.")
 
     with tab6:
         st.markdown("### 📑 Detalhamento dos Dados")
