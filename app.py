@@ -54,6 +54,7 @@ st.markdown("""
     .progress-fill { height: 8px; border-radius: 10px; }
     .bg-normal { background-color: #F57C00; } 
     .bg-alert { background-color: #D32F2F !important; } 
+    .bg-success { background-color: #388E3C !important; }
     
     .raiox-container {
         display: flex;
@@ -128,6 +129,23 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 </div>
 """
     st.markdown(html_card, unsafe_allow_html=True)
+
+def calcular_projecao(gasto_acumulado, orcamento_total, mes_atual):
+    if orcamento_total <= 0 or mes_atual == 0:
+        return "Aguardando dados suficientes...", "bg-normal"
+    
+    gasto_medio_mensal = gasto_acumulado / mes_atual
+    projecao_anual = gasto_medio_mensal * 12
+    
+    if projecao_anual > orcamento_total:
+        meses_duracao = orcamento_total / gasto_medio_mensal if gasto_medio_mensal > 0 else 12
+        mes_estouro = min(int(meses_duracao) + 1, 12)
+        meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
+                    7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+        return f"⚠️ Se o gasto médio atual se mantiver, o orçamento vai estourar em {meses_pt.get(mes_estouro)}.", "bg-alert"
+    else:
+        perc = (projecao_anual / orcamento_total) * 100
+        return f"✅ Projeção de fechar o ano usando apenas {perc:.1f}% da verba.", "bg-success"
 
 @st.cache_data(ttl=600)
 def load_data():
@@ -229,6 +247,24 @@ if not df.empty:
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
 
+        # NOVOS CARDS: Maiores Custos e KMs no Mês
+        cm1, cm2 = st.columns(2)
+        with cm1:
+            if not df_filtrado_mes_manut.empty and df_filtrado_mes_manut['Custo de manutenção'].sum() > 0:
+                veiculo_maior_custo = df_filtrado_mes_manut.loc[df_filtrado_mes_manut['Custo de manutenção'].idxmax()]
+                draw_card("🚨 VEÍCULO C/ MAIOR CUSTO MANUT. (MÊS)", fmt_br(veiculo_maior_custo['Custo de manutenção'], True), 
+                          f"Placa: <b>{veiculo_maior_custo['Placa']}</b> &middot; Base: {veiculo_maior_custo['Base']}")
+            else:
+                draw_card("🚨 VEÍCULO C/ MAIOR CUSTO MANUT. (MÊS)", "R$ 0,00", "Sem registros no mês")
+                
+        with cm2:
+            if not df_filtrado_mes_manut.empty and df_filtrado_mes_manut['Quilometragem'].sum() > 0:
+                veiculo_maior_km = df_filtrado_mes_manut.loc[df_filtrado_mes_manut['Quilometragem'].idxmax()]
+                draw_card("🛣️ VEÍCULO QUE MAIS RODOU (MÊS)", fmt_br(veiculo_maior_km['Quilometragem']), 
+                          f"Placa: <b>{veiculo_maior_km['Placa']}</b> &middot; Base: {veiculo_maior_km['Base']}", is_lower_better=False)
+            else:
+                draw_card("🛣️ VEÍCULO QUE MAIS RODOU (MÊS)", "0", "Sem registros no mês")
+
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
@@ -267,9 +303,8 @@ if not df.empty:
                 st.plotly_chart(fig_raiox, use_container_width=True)
             else:
                 st.warning("Veículo não encontrado nesta seleção.")
-            st.markdown("---")
         
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
         
         g1, g2 = st.columns(2)
         with g1:
@@ -307,23 +342,68 @@ if not df.empty:
     with tab2:
         st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
         
+        # Variáveis globais e de comparação para o CPK
+        df_comb_acumulado = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
+        gasto_total_acum_comb = df_comb_acumulado["Custo Combustível"].sum()
+        gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
+        km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
+        
+        custo_global_acumulado = gasto_total_acum_manut + gasto_total_acum_comb
+        cpk_global_acumulado = custo_global_acumulado / km_acumulado if km_acumulado > 0 else 0
+        
+        # Comparação CPK Mês Anterior (Acumulado)
+        df_acum_ant_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual - 1]
+        df_acum_ant_comb = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual - 1]
+        gasto_ant_geral = df_acum_ant_manut['Custo de manutenção'].sum() + df_acum_ant_comb['Custo Combustível'].sum()
+        km_ant = df_acum_ant_manut['Quilometragem'].sum()
+        cpk_ant = gasto_ant_geral / km_ant if km_ant > 0 else 0
+        trend_cpk = ((cpk_global_acumulado - cpk_ant) / cpk_ant * 100) if cpk_ant > 0 else 0
+
+        # LINHA 1 DE CARDS
         ca1, ca2, ca3 = st.columns(3)
         with ca1:
             orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
-            gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
             saldo_manut = orc_total_manut - gasto_total_acum_manut
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
-            
             sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
             prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
-            
             draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
             
         with ca2:
-            km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
+            texto_projecao, cor_projecao = calcular_projecao(gasto_total_acum_manut, orc_total_manut, mes_num_atual)
+            st.markdown(f"""
+            <div class="metric-container" style="border-top: 4px solid {'#D32F2F' if cor_projecao == 'bg-alert' else '#388E3C'};">
+                <div class="metric-label" style="color: {'#D32F2F' if cor_projecao == 'bg-alert' else '#388E3C'} !important;">🔮 PROJEÇÃO DE ORÇAMENTO (MANUTENÇÃO)</div>
+                <div class="metric-subtext" style="font-size: 15.5px; margin-top: 20px; font-weight: 600; color: #333 !important;">
+                    {texto_projecao}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with ca3:
+            sub_cpk = "Soma Manutenção + Combustível / KM"
+            draw_card("📊 CUSTO POR KM (GLOBAL)", fmt_br(cpk_global_acumulado, True), sub_cpk, trend=trend_cpk)
+
+        # LINHA 2 DE CARDS
+        cb1, cb2, cb3 = st.columns(3)
+        with cb1:
             sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
             draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
-        
+            
+        with cb2:
+            veiculos_unicos = len(get_ativos(df_acumulado_ate_mes_manut))
+            media_anual_veiculo = gasto_total_acum_manut / veiculos_unicos if veiculos_unicos > 0 else 0
+            draw_card("CUSTO MANUT. MÉDIO POR VEÍCULO", fmt_br(media_anual_veiculo, True), f"Baseado em <b>{veiculos_unicos}</b> veículos ativos")
+            
+        with cb3:
+            if not df_acumulado_ate_mes_manut.empty:
+                km_por_placa = df_acumulado_ate_mes_manut.groupby(['Placa', 'Base'])['Quilometragem'].sum().reset_index()
+                top_km_ano = km_por_placa.loc[km_por_placa['Quilometragem'].idxmax()]
+                draw_card("🏆 MAIOR QUILOMETRAGEM (ANO)", fmt_br(top_km_ano['Quilometragem']), 
+                          f"Placa: <b>{top_km_ano['Placa']}</b> &middot; Base: {top_km_ano['Base']}", is_lower_better=False)
+            else:
+                draw_card("🏆 MAIOR QUILOMETRAGEM (ANO)", "0", "Sem registros")
+
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
