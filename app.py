@@ -225,7 +225,10 @@ if not df.empty:
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
-        st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
+        st.markdown(f"### 📊 Visão Mensal | {mes_sel}/{ano_sel}")
+        
+        # --- BLOCO 1: FROTA E MANUTENÇÃO ---
+        st.markdown("#### 🔧 Frota e Custos de Manutenção")
         c1, c2, c3 = st.columns(3)
         
         with c1:
@@ -235,35 +238,54 @@ if not df.empty:
             draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_m), trend=trend_at, is_lower_better=False)
         
         with c2:
-            km_m = df_filtrado_mes_manut['Quilometragem'].sum()
-            km_a = df_anterior_manut['Quilometragem'].sum()
-            draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=((km_m-km_a)/km_a*100) if km_a>0 else 0, is_lower_better=False)
-        
-        with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
             num_veiculos = len(get_ativos(df_filtrado_mes_manut))
             custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
-            draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
+            draw_card("CUSTO TOTAL MANUTENÇÃO/MÊS", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
 
-        # NOVOS CARDS: Maiores Custos e KMs no Mês
-        cm1, cm2 = st.columns(2)
-        with cm1:
+        with c3:
             if not df_filtrado_mes_manut.empty and df_filtrado_mes_manut['Custo de manutenção'].sum() > 0:
                 veiculo_maior_custo = df_filtrado_mes_manut.loc[df_filtrado_mes_manut['Custo de manutenção'].idxmax()]
-                draw_card("🚨 VEÍCULO C/ MAIOR CUSTO MANUT. (MÊS)", fmt_br(veiculo_maior_custo['Custo de manutenção'], True), 
+                draw_card("🚨 VEÍCULO MAIOR CUSTO MANUTENÇÃO/MÊS", fmt_br(veiculo_maior_custo['Custo de manutenção'], True), 
                           f"Placa: <b>{veiculo_maior_custo['Placa']}</b> &middot; Base: {veiculo_maior_custo['Base']}")
             else:
-                draw_card("🚨 VEÍCULO C/ MAIOR CUSTO MANUT. (MÊS)", "R$ 0,00", "Sem registros no mês")
-                
-        with cm2:
+                draw_card("🚨 VEÍCULO MAIOR CUSTO MANUTENÇÃO/MÊS", "R$ 0,00", "Sem registros no mês")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # --- BLOCO 2: QUILOMETRAGEM E EFICIÊNCIA ---
+        st.markdown("#### 🛣️ Quilometragem e Eficiência")
+        km1, km2, km3 = st.columns(3)
+        
+        with km1:
+            km_m = df_filtrado_mes_manut['Quilometragem'].sum()
+            km_a = df_anterior_manut['Quilometragem'].sum()
+            draw_card("KM TOTAL/MÊS", fmt_br(km_m), trend=((km_m-km_a)/km_a*100) if km_a>0 else 0, is_lower_better=False)
+            
+        with km2:
+            # Puxa o custo de combustível do mês atual e anterior para juntar com a manutenção e calcular o CPK do Mês
+            df_comb_mes_atual = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
+            df_comb_mes_ant = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
+            
+            custo_total_m = custo_m + df_comb_mes_atual["Custo Combustível"].sum()
+            custo_total_a = custo_a + df_comb_mes_ant["Custo Combustível"].sum()
+            
+            cpk_m = custo_total_m / km_m if km_m > 0 else 0
+            cpk_a = custo_total_a / km_a if km_a > 0 else 0
+            trend_cpk_m = ((cpk_m - cpk_a) / cpk_a * 100) if cpk_a > 0 else 0
+            
+            draw_card("CUSTO POR KM MÉDIO/MÊS", fmt_br(cpk_m, True), "Soma (Manutenção + Combustível) / KM", trend=trend_cpk_m)
+            
+        with km3:
             if not df_filtrado_mes_manut.empty and df_filtrado_mes_manut['Quilometragem'].sum() > 0:
                 veiculo_maior_km = df_filtrado_mes_manut.loc[df_filtrado_mes_manut['Quilometragem'].idxmax()]
-                draw_card("🛣️ VEÍCULO QUE MAIS RODOU (MÊS)", fmt_br(veiculo_maior_km['Quilometragem']), 
+                draw_card("🏆 VEÍCULO MAIOR KM/MÊS", fmt_br(veiculo_maior_km['Quilometragem']), 
                           f"Placa: <b>{veiculo_maior_km['Placa']}</b> &middot; Base: {veiculo_maior_km['Base']}", is_lower_better=False)
             else:
-                draw_card("🛣️ VEÍCULO QUE MAIS RODOU (MÊS)", "0", "Sem registros no mês")
+                draw_card("🏆 VEÍCULO MAIOR KM/MÊS", "0", "Sem registros no mês")
 
         if busca_placa:
             st.markdown("---")
@@ -308,7 +330,7 @@ if not df.empty:
         
         g1, g2 = st.columns(2)
         with g1:
-            st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem (Mês)</div>', unsafe_allow_html=True)
             top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
@@ -324,7 +346,7 @@ if not df.empty:
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             
         with g2:
-            st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção (Mês)</div>', unsafe_allow_html=True)
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty:
@@ -399,10 +421,10 @@ if not df.empty:
             if not df_acumulado_ate_mes_manut.empty:
                 km_por_placa = df_acumulado_ate_mes_manut.groupby(['Placa', 'Base'])['Quilometragem'].sum().reset_index()
                 top_km_ano = km_por_placa.loc[km_por_placa['Quilometragem'].idxmax()]
-                draw_card("🏆 MAIOR QUILOMETRAGEM (ANO)", fmt_br(top_km_ano['Quilometragem']), 
+                draw_card("🏆 VEÍCULO MAIOR KM (ACUMULADO NO ANO)", fmt_br(top_km_ano['Quilometragem']), 
                           f"Placa: <b>{top_km_ano['Placa']}</b> &middot; Base: {top_km_ano['Base']}", is_lower_better=False)
             else:
-                draw_card("🏆 MAIOR QUILOMETRAGEM (ANO)", "0", "Sem registros")
+                draw_card("🏆 VEÍCULO MAIOR KM (ACUMULADO NO ANO)", "0", "Sem registros")
 
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
