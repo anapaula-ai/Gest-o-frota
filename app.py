@@ -145,7 +145,7 @@ def calcular_projecao(gasto_acumulado, orcamento_total, mes_atual):
         return f"⚠️ Se o gasto médio atual se mantiver, o orçamento vai estourar em {meses_pt.get(mes_estouro)}.", "bg-alert"
     else:
         perc = (projecao_anual / orcamento_total) * 100
-        return f"✅ Projeção de fechar o ano usando apenas {perc:.1f}% da verba.", "bg-success"
+        return f"✅ Projeção de fechar o ano usando apenas {perc:.1f}% do previsto.", "bg-success"
 
 @st.cache_data(ttl=600)
 def load_data():
@@ -362,7 +362,7 @@ if not df.empty:
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
     with tab2:
-        st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
+        st.markdown(f"### 📈 Resumo Acumulado | {ano_sel}")
         
         # Variáveis globais e de comparação para o CPK
         df_comb_acumulado = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
@@ -381,7 +381,8 @@ if not df.empty:
         cpk_ant = gasto_ant_geral / km_ant if km_ant > 0 else 0
         trend_cpk = ((cpk_global_acumulado - cpk_ant) / cpk_ant * 100) if cpk_ant > 0 else 0
 
-        # LINHA 1 DE CARDS
+        # --- BLOCO 1: MANUTENÇÃO ---
+        st.markdown("#### 🔧 Custos de Manutenção")
         ca1, ca2, ca3 = st.columns(3)
         with ca1:
             orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
@@ -389,42 +390,46 @@ if not df.empty:
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
             prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
-            draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
+            draw_card("EXECUÇÃO MANUTENÇÃO", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
             
         with ca2:
+            veiculos_unicos = len(get_ativos(df_acumulado_ate_mes_manut))
+            media_anual_veiculo = gasto_total_acum_manut / veiculos_unicos if veiculos_unicos > 0 else 0
+            draw_card("CUSTO MÉDIO MANUTENÇÃO/ANO", fmt_br(media_anual_veiculo, True), f"Baseado em <b>{veiculos_unicos}</b> veículos ativos")
+            
+        with ca3:
             texto_projecao, cor_projecao = calcular_projecao(gasto_total_acum_manut, orc_total_manut, mes_num_atual)
             st.markdown(f"""
             <div class="metric-container" style="border-top: 4px solid {'#D32F2F' if cor_projecao == 'bg-alert' else '#388E3C'};">
-                <div class="metric-label" style="color: {'#D32F2F' if cor_projecao == 'bg-alert' else '#388E3C'} !important;">🔮 PROJEÇÃO DE ORÇAMENTO (MANUTENÇÃO)</div>
+                <div class="metric-label" style="color: {'#D32F2F' if cor_projecao == 'bg-alert' else '#388E3C'} !important;">🔮 PROJEÇÃO DE ORÇAMENTO</div>
                 <div class="metric-subtext" style="font-size: 15.5px; margin-top: 20px; font-weight: 600; color: #333 !important;">
                     {texto_projecao}
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-        with ca3:
-            sub_cpk = "Soma Manutenção + Combustível / KM"
-            draw_card("📊 CUSTO POR KM (GLOBAL)", fmt_br(cpk_global_acumulado, True), sub_cpk, trend=trend_cpk)
-
-        # LINHA 2 DE CARDS
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # --- BLOCO 2: QUILOMETRAGEM E EFICIÊNCIA ---
+        st.markdown("#### 🛣️ Quilometragem e Eficiência")
         cb1, cb2, cb3 = st.columns(3)
         with cb1:
             sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
-            draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
+            draw_card("KM TOTAL/ANO", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
             
         with cb2:
-            veiculos_unicos = len(get_ativos(df_acumulado_ate_mes_manut))
-            media_anual_veiculo = gasto_total_acum_manut / veiculos_unicos if veiculos_unicos > 0 else 0
-            draw_card("CUSTO MANUT. MÉDIO POR VEÍCULO", fmt_br(media_anual_veiculo, True), f"Baseado em <b>{veiculos_unicos}</b> veículos ativos")
+            sub_cpk = "Soma Manutenção + Combustível / KM"
+            draw_card("CUSTO POR KM MÉDIO/ANO", fmt_br(cpk_global_acumulado, True), sub_cpk, trend=trend_cpk)
             
         with cb3:
             if not df_acumulado_ate_mes_manut.empty:
                 km_por_placa = df_acumulado_ate_mes_manut.groupby(['Placa', 'Base'])['Quilometragem'].sum().reset_index()
                 top_km_ano = km_por_placa.loc[km_por_placa['Quilometragem'].idxmax()]
-                draw_card("🏆 VEÍCULO MAIOR KM (ACUMULADO NO ANO)", fmt_br(top_km_ano['Quilometragem']), 
+                draw_card("🏆 VEÍCULO MAIOR KM/ANO", fmt_br(top_km_ano['Quilometragem']), 
                           f"Placa: <b>{top_km_ano['Placa']}</b> &middot; Base: {top_km_ano['Base']}", is_lower_better=False)
             else:
-                draw_card("🏆 VEÍCULO MAIOR KM (ACUMULADO NO ANO)", "0", "Sem registros")
+                draw_card("🏆 VEÍCULO MAIOR KM/ANO", "0", "Sem registros")
 
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
