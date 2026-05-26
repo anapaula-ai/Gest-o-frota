@@ -498,7 +498,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando onde os veículos estão alocados no mês selecionado. (O tamanho da marcação e o número representam o volume de veículos).")
+        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos atrelados a ela.")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -522,31 +522,34 @@ if not df.empty:
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
-            # CRIANDO O NOVO ESTILO DO MAPA (Nítido com OpenStreetMap + Balão de Texto)
-            fig_mapa = px.scatter_mapbox(
-                df_com_coord, 
-                lat="lat", 
-                lon="lon", 
-                hover_name="Base", 
-                hover_data={"lat": False, "lon": False, "Veículos Ativos": True},
-                size="Veículos Ativos", 
-                color="Veículos Ativos", 
-                color_continuous_scale="Reds", # Cor quente que lembra pinos do mapa
-                size_max=30, 
-                zoom=5.5,    
-                text="Veículos Ativos", # Mostra o balão com o número de veículos flutuando
-                center={"lat": -10.5, "lon": -40.5},
-                mapbox_style="open-street-map" # Troca para o mapa idêntico ao Google Maps, super nítido
+            # CRIANDO O MAPA COM PINOS E TEXTOS PARA APRESENTAÇÃO
+            fig_mapa = go.Figure(go.Scattermapbox(
+                lat=df_com_coord['lat'],
+                lon=df_com_coord['lon'],
+                mode='markers+text',
+                marker=go.scattermapbox.Marker(
+                    size=22,           # Tamanho fixo e grande (parecido com um Pin de mapa)
+                    color='#D32F2F',   # Vermelho escuro de destaque
+                    opacity=0.95
+                ),
+                text=df_com_coord['Veículos Ativos'].astype(str),
+                textposition='middle center', # Coloca o número de veículos exatamente DENTRO do círculo
+                textfont=dict(size=12, color='white', family='Arial Black'),
+                hoverinfo='text',
+                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Veículos Alocados: " + df_com_coord['Veículos Ativos'].astype(str)
+            ))
+
+            fig_mapa.update_layout(
+                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
+                mapbox=dict(
+                    center=go.layout.mapbox.Center(lat=-10.5, lon=-40.5), # Centralizado na região nordeste
+                    zoom=5.2
+                ),
+                margin={"r":0,"t":10,"l":0,"b":0},
+                height=550,
+                showlegend=False
             )
             
-            # Aqui foi corrigido o erro! Removida a borda que o scatter_mapbox não aceita.
-            fig_mapa.update_traces(
-                textposition='top right', # Ajustado para o texto não ficar em cima da bolinha
-                textfont=dict(size=15, color='#1A237E', family='Arial Black'), 
-                marker=dict(opacity=0.9) 
-            )
-            
-            fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
             st.plotly_chart(fig_mapa, use_container_width=True)
         else:
             st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
