@@ -498,7 +498,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando onde os veículos estão alocados no mês selecionado. (O tamanho do círculo representa o volume de veículos).")
+        st.markdown("Visão geográfica indicando onde os veículos estão alocados no mês selecionado. (O tamanho da marcação e o número representam o volume de veículos).")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -507,28 +507,22 @@ if not df.empty:
         # --- FUNÇÃO TRADUTORA INTELIGENTE ---
         def buscar_coordenada(nome_base, eixo):
             if pd.isna(nome_base): return None
-            
-            # Limpa o texto da planilha (tira acentos e deixa maiúsculo)
             nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
-            
             for chave, coords in COORDENADAS_BASES.items():
-                # Limpa o texto do nosso dicionário
                 chave_limpa = ''.join(c for c in unicodedata.normalize('NFD', chave) if unicodedata.category(c) != 'Mn').upper()
-                
-                # Ex: Verifica se "ACAUA" (dicionário) está dentro de "ACAUA (268)" (planilha)
-                if chave_limpa in nome_limpo:
-                    return coords.get(eixo)
+                if chave_limpa in nome_limpo: return coords.get(eixo)
             return None
 
-        # Puxa Latitude e Longitude usando nossa função inteligente
+        # Puxa Latitude e Longitude
         df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
         df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
-        # Separa as bases que têm coordenadas das que não têm
+        # Separa as bases com e sem coordenadas
         df_com_coord = df_mapa.dropna(subset=['lat', 'lon'])
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
+            # CRIANDO O NOVO ESTILO DO MAPA (Nítido com OpenStreetMap + Balão de Texto)
             fig_mapa = px.scatter_mapbox(
                 df_com_coord, 
                 lat="lat", 
@@ -537,12 +531,21 @@ if not df.empty:
                 hover_data={"lat": False, "lon": False, "Veículos Ativos": True},
                 size="Veículos Ativos", 
                 color="Veículos Ativos", 
-                color_continuous_scale="Oranges",
-                size_max=35, # Tamanho máximo da bolha
-                zoom=5.5,    # Zoom inicial focado no nordeste
-                center={"lat": -10.5, "lon": -40.5}, # Centralizando na região principal
-                mapbox_style="carto-positron" # Estilo de mapa claro e limpo
+                color_continuous_scale="Reds", # Cor quente que lembra pinos do mapa
+                size_max=30, 
+                zoom=5.5,    
+                text="Veículos Ativos", # Mostra o balão com o número de veículos flutuando
+                center={"lat": -10.5, "lon": -40.5},
+                mapbox_style="open-street-map" # Troca para o mapa idêntico ao Google Maps, super nítido
             )
+            
+            # Estiliza o pino/balão de texto
+            fig_mapa.update_traces(
+                textposition='top center', 
+                textfont=dict(size=15, color='#1A237E', family='Arial Black'), 
+                marker=dict(opacity=0.9, line=dict(width=2, color='DarkRed')) # Coloca uma borda na bolinha imitando pin
+            )
+            
             fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
             st.plotly_chart(fig_mapa, use_container_width=True)
         else:
