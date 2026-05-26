@@ -539,11 +539,11 @@ if not df.empty:
                 mapbox_style="open-street-map" # Troca para o mapa idêntico ao Google Maps, super nítido
             )
             
-            # Estiliza o pino/balão de texto
+            # Aqui foi corrigido o erro! Removida a borda que o scatter_mapbox não aceita.
             fig_mapa.update_traces(
-                textposition='top center', 
+                textposition='top right', # Ajustado para o texto não ficar em cima da bolinha
                 textfont=dict(size=15, color='#1A237E', family='Arial Black'), 
-                marker=dict(opacity=0.9, line=dict(width=2, color='DarkRed')) # Coloca uma borda na bolinha imitando pin
+                marker=dict(opacity=0.9) 
             )
             
             fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
