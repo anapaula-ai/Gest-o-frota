@@ -173,13 +173,62 @@ ORCAMENTOS_SEGURO = {"AMES": 186682.00, "IAV": 115461.00}
 ORCAMENTOS_RASTREADOR = {"AMES": 0.00, "IAV": 10194.00} 
 
 # 📍 COORDENADAS DAS BASES PARA O MAPA
-# Substitua os nomes "BASE 1", "BASE 2", etc., pelo NOME EXATO que aparece na sua planilha.
-# Depois, coloque a latitude e longitude correspondente (pode pegar no Google Maps clicando com o botão direito).
 COORDENADAS_BASES = {
-    "NOME DA BASE AQUI": {"lat": -20.3155, "lon": -40.3128}, # Exemplo
-    "OUTRA BASE AQUI": {"lat": -20.3297, "lon": -40.3504},   # Exemplo
-    # Adicione todas as suas bases aqui embaixo seguindo o mesmo padrão:
-    # "NOME DA BASE": {"lat": 00.000, "lon": 00.000},
+    "ACAUÃ": {"lat": -8.2195, "lon": -41.0825},
+    "AFRÂNIO": {"lat": -8.5147, "lon": -41.0117},
+    "AMÉRICA DOURADA": {"lat": -11.4553, "lon": -41.4361},
+    "BETÂNIA DO PIAUÍ": {"lat": -8.1469, "lon": -40.7967},
+    "BOM JESUS DA LAPA": {"lat": -13.2536, "lon": -43.4181},
+    "BONINAL": {"lat": -12.6078, "lon": -41.8294},
+    "BOQUIRA": {"lat": -12.8236, "lon": -42.7303},
+    "BROTAS DE MACAÚBAS": {"lat": -12.0011, "lon": -42.6289},
+    "CAFARNAUM": {"lat": -11.6917, "lon": -41.4708},
+    "CARIDADE": {"lat": -7.7347, "lon": -40.9856},
+    "CASA NOVA": {"lat": -9.1656, "lon": -40.9725},
+    "CATURAMA": {"lat": -13.2981, "lon": -42.2742},
+    "CENTRAL": {"lat": -11.1350, "lon": -42.1128},
+    "CONCEIÇÃO DO CANINDÉ": {"lat": -7.8761, "lon": -41.5936},
+    "CURRAL NOVO DO PIAUÍ": {"lat": -7.7989, "lon": -40.8008},
+    "EMAS": {"lat": -7.0264, "lon": -37.7558},
+    "IBITIARA": {"lat": -12.6394, "lon": -42.2156},
+    "IBOTIRAMA": {"lat": -12.1856, "lon": -43.2208},
+    "IMACULADA": {"lat": -7.3969, "lon": -37.8519},
+    "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
+    "JACOBINA": {"lat": -11.1814, "lon": -40.5186},
+    "JACOBINA DO PIAUÍ": {"lat": -7.9408, "lon": -41.2064},
+    "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
+    "JUSSARA": {"lat": -11.0264, "lon": -41.9708},
+    "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
+    "LAPÃO": {"lat": -11.3831, "lon": -41.8317},
+    "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
+    "MATUREIA": {"lat": -7.2661, "lon": -37.3517},
+    "MIGUEL CALMON": {"lat": -11.4283, "lon": -40.5950},
+    "MIRANGABA": {"lat": -10.9328, "lon": -40.2794},
+    "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
+    "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569},
+    "OLHO D'ÁGUA": {"lat": -7.2281, "lon": -37.7347},
+    "OLIVEIRA DOS BREJINHOS": {"lat": -12.3169, "lon": -42.8967},
+    "OUROLÂNDIA": {"lat": -10.8406, "lon": -40.8047},
+    "PARATINGA": {"lat": -12.6908, "lon": -43.1844},
+    "PATOS": {"lat": -7.0194, "lon": -37.2800},
+    "PAULISTANA": {"lat": -8.1367, "lon": -41.1444},
+    "PETROLINA": {"lat": -9.3956, "lon": -40.5019},
+    "PIANCÓ": {"lat": -7.2033, "lon": -37.9281},
+    "PIATÃ": {"lat": -13.1517, "lon": -41.7719},
+    "QUEIMADA NOVA": {"lat": -8.5678, "lon": -41.4278},
+    "REMANSO": {"lat": -9.6200, "lon": -42.0800},
+    "SANTA MARIA DA BOA VISTA": {"lat": -8.8078, "lon": -39.8256},
+    "SANTO ANTÔNIO DE LISBOA": {"lat": -7.0628, "lon": -41.2292},
+    "SÃO GABRIEL": {"lat": -11.2253, "lon": -41.9056},
+    "SÃO JOSÉ DE PRINCESA": {"lat": -7.7328, "lon": -38.0833},
+    "SERRA GRANDE": {"lat": -7.2750, "lon": -38.3667},
+    "TANQUE NOVO": {"lat": -13.6264, "lon": -42.5414},
+    "TEIXEIRA": {"lat": -7.3933, "lon": -37.2536},
+    "UMBURANAS": {"lat": -10.7417, "lon": -41.3414},
+    "VÁRZEA NOVA": {"lat": -11.2464, "lon": -40.9706},
+    "XIQUE-XIQUE": {"lat": -10.8239, "lon": -42.7300},
+    "BS CASINHAS": {"lat": -10.0758, "lon": -38.4797}, 
+    "BS RIACHO DO SOBRADO": {"lat": -9.2732, "lon": -40.7254}
 }
 
 if not df.empty:
@@ -214,7 +263,7 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # CRIADA UMA NOVA ABA AQUI: "🗺️ Mapa da Frota"
+    # AS 7 ABAS DO SISTEMA
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
@@ -455,11 +504,11 @@ if not df.empty:
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
-        # Puxa a Latitude e Longitude de dentro do Dicionário que criamos lá em cima
+        # Puxa a Latitude e Longitude de dentro do Dicionário
         df_mapa['lat'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lat', None))
         df_mapa['lon'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lon', None))
         
-        # Separa as bases que você já cadastrou as coordenadas das que faltam cadastrar
+        # Separa as bases que têm coordenadas das que não têm
         df_com_coord = df_mapa.dropna(subset=['lat', 'lon'])
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
@@ -474,16 +523,17 @@ if not df.empty:
                 color="Veículos Ativos", 
                 color_continuous_scale="Oranges",
                 size_max=35, # Tamanho máximo da bolha
-                zoom=6, 
+                zoom=5.5,    # Zoom inicial focado no nordeste
+                center={"lat": -10.5, "lon": -40.5}, # Centralizando no polígono PE/BA/PI/PB
                 mapbox_style="carto-positron" # Estilo de mapa claro e limpo
             )
             fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
             st.plotly_chart(fig_mapa, use_container_width=True)
         else:
-            st.info("📍 **Mapa indisponível no momento.** Para ver o mapa, cadastre a Latitude e Longitude das suas Bases no dicionário `COORDENADAS_BASES` dentro do código.")
+            st.info("📍 **Mapa indisponível no momento.**")
             
         if not df_sem_coord.empty:
-            st.warning(f"⚠️ Atenção: As seguintes bases da sua planilha ainda não possuem coordenadas cadastradas no código: **{', '.join(df_sem_coord['Base'].tolist())}**")
+            st.warning(f"⚠️ Atenção: As seguintes bases da sua planilha não foram encontradas no banco de coordenadas geográficas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
 
     with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
