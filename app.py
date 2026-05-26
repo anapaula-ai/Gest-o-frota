@@ -498,7 +498,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse em cima do Pin para ver o nome da base e a quantidade de veículos.")
+        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -513,36 +513,41 @@ if not df.empty:
                 if chave_limpa in nome_limpo: return coords.get(eixo)
             return None
 
-        # Puxa Latitude e Longitude
+        # Puxa Latitude e Longitude certificando que são números (float) para o Plotly não falhar
         df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
         df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
         # Separa as bases com e sem coordenadas
-        df_com_coord = df_mapa.dropna(subset=['lat', 'lon'])
+        df_com_coord = df_mapa.dropna(subset=['lat', 'lon']).copy()
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
             
-            # --- O GRANDE TRUQUE DO PIN PARA APRESENTAÇÃO ---
-            # Como a plataforma pede licença paga pra desenhar o Pin, 
-            # Nós desenhamos o Emoji clássico de mapa com o número de veículos ao lado!
+            # Garante formato numérico correto para as coordenadas
+            df_com_coord['lat'] = df_com_coord['lat'].astype(float)
+            df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
+            # CRIANDO O NOVO ESTILO DO MAPA (Circulo Vermelho Clássico + Número Interno)
             fig_mapa = go.Figure(go.Scattermapbox(
                 lat=df_com_coord['lat'],
                 lon=df_com_coord['lon'],
-                mode='text',
-                # Cria a visualização "📍 12"
-                text="📍 " + df_com_coord['Veículos Ativos'].astype(str),
-                textposition='middle center',
-                textfont=dict(size=26, color='#D32F2F', family='Arial Black'),
+                mode='markers+text',
+                marker=dict(
+                    size=26,           # Bolinha de tamanho fixo bem visível em apresentações
+                    color='#D32F2F',   # Vermelho escuro clássico de pin de mapa
+                    opacity=1.0        # Bolinha sólida
+                ),
+                text=df_com_coord['Veículos Ativos'].astype(str),
+                textposition='middle center', # Coloca o número de veículos exatamente DENTRO da bolinha!
+                textfont=dict(size=14, color='white', family='Arial Black'), # Fonte branca para dar contraste no vermelho
                 hoverinfo='text',
-                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Veículos Alocados: " + df_com_coord['Veículos Ativos'].astype(str)
+                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
             ))
 
             fig_mapa.update_layout(
-                mapbox_style="open-street-map", # Mapa super nítido (idêntico Google Maps)
+                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
                 mapbox=dict(
-                    center=go.layout.mapbox.Center(lat=-10.5, lon=-40.5), # Centralizado
+                    center=dict(lat=-10.5, lon=-40.5), # Centralizado na região principal
                     zoom=5.2
                 ),
                 margin={"r":0,"t":10,"l":0,"b":0},
