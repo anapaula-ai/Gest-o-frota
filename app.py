@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import unicodedata
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
@@ -195,14 +196,13 @@ COORDENADAS_BASES = {
     "IMACULADA": {"lat": -7.3969, "lon": -37.8519},
     "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
     "JACOBINA": {"lat": -11.1814, "lon": -40.5186},
-    "JACOBINA DO PIAUÍ": {"lat": -7.9408, "lon": -41.2064},
     "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
     "JUSSARA": {"lat": -11.0264, "lon": -41.9708},
     "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
     "LAPÃO": {"lat": -11.3831, "lon": -41.8317},
     "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
     "MATUREIA": {"lat": -7.2661, "lon": -37.3517},
-    "MIGUEL CALMON": {"lat": -11.4283, "lon": -40.5950},
+    "MIGUEL CALMOM": {"lat": -11.4283, "lon": -40.5950},
     "MIRANGABA": {"lat": -10.9328, "lon": -40.2794},
     "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
     "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569},
@@ -500,13 +500,29 @@ if not df.empty:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
         st.markdown("Visão geográfica indicando onde os veículos estão alocados no mês selecionado. (O tamanho do círculo representa o volume de veículos).")
         
-        # Cria um DataFrame que conta apenas os veículos únicos de cada base neste mês
+        # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
-        # Puxa a Latitude e Longitude de dentro do Dicionário
-        df_mapa['lat'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lat', None))
-        df_mapa['lon'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lon', None))
+        # --- FUNÇÃO TRADUTORA INTELIGENTE ---
+        def buscar_coordenada(nome_base, eixo):
+            if pd.isna(nome_base): return None
+            
+            # Limpa o texto da planilha (tira acentos e deixa maiúsculo)
+            nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
+            
+            for chave, coords in COORDENADAS_BASES.items():
+                # Limpa o texto do nosso dicionário
+                chave_limpa = ''.join(c for c in unicodedata.normalize('NFD', chave) if unicodedata.category(c) != 'Mn').upper()
+                
+                # Ex: Verifica se "ACAUA" (dicionário) está dentro de "ACAUA (268)" (planilha)
+                if chave_limpa in nome_limpo:
+                    return coords.get(eixo)
+            return None
+
+        # Puxa Latitude e Longitude usando nossa função inteligente
+        df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
+        df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
         # Separa as bases que têm coordenadas das que não têm
         df_com_coord = df_mapa.dropna(subset=['lat', 'lon'])
@@ -524,16 +540,16 @@ if not df.empty:
                 color_continuous_scale="Oranges",
                 size_max=35, # Tamanho máximo da bolha
                 zoom=5.5,    # Zoom inicial focado no nordeste
-                center={"lat": -10.5, "lon": -40.5}, # Centralizando no polígono PE/BA/PI/PB
+                center={"lat": -10.5, "lon": -40.5}, # Centralizando na região principal
                 mapbox_style="carto-positron" # Estilo de mapa claro e limpo
             )
             fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
             st.plotly_chart(fig_mapa, use_container_width=True)
         else:
-            st.info("📍 **Mapa indisponível no momento.**")
+            st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
             
         if not df_sem_coord.empty:
-            st.warning(f"⚠️ Atenção: As seguintes bases da sua planilha não foram encontradas no banco de coordenadas geográficas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
+            st.warning(f"⚠️ Atenção: Os seguintes centros de custo não possuem coordenadas geográficas atreladas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
 
     with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
