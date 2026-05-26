@@ -172,6 +172,16 @@ ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
 ORCAMENTOS_SEGURO = {"AMES": 186682.00, "IAV": 115461.00}
 ORCAMENTOS_RASTREADOR = {"AMES": 0.00, "IAV": 10194.00} 
 
+# 📍 COORDENADAS DAS BASES PARA O MAPA
+# Substitua os nomes "BASE 1", "BASE 2", etc., pelo NOME EXATO que aparece na sua planilha.
+# Depois, coloque a latitude e longitude correspondente (pode pegar no Google Maps clicando com o botão direito).
+COORDENADAS_BASES = {
+    "NOME DA BASE AQUI": {"lat": -20.3155, "lon": -40.3128}, # Exemplo
+    "OUTRA BASE AQUI": {"lat": -20.3297, "lon": -40.3504},   # Exemplo
+    # Adicione todas as suas bases aqui embaixo seguindo o mesmo padrão:
+    # "NOME DA BASE": {"lat": 00.000, "lon": 00.000},
+}
+
 if not df.empty:
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
     ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
@@ -204,7 +214,8 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "📍 Raio-X da Base", "📑 Detalhamento"])
+    # CRIADA UMA NOVA ABA AQUI: "🗺️ Mapa da Frota"
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
@@ -437,6 +448,44 @@ if not df.empty:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
     with tab5:
+        st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
+        st.markdown("Visão geográfica indicando onde os veículos estão alocados no mês selecionado. (O tamanho do círculo representa o volume de veículos).")
+        
+        # Cria um DataFrame que conta apenas os veículos únicos de cada base neste mês
+        df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
+        df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
+        
+        # Puxa a Latitude e Longitude de dentro do Dicionário que criamos lá em cima
+        df_mapa['lat'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lat', None))
+        df_mapa['lon'] = df_mapa['Base'].map(lambda x: COORDENADAS_BASES.get(x, {}).get('lon', None))
+        
+        # Separa as bases que você já cadastrou as coordenadas das que faltam cadastrar
+        df_com_coord = df_mapa.dropna(subset=['lat', 'lon'])
+        df_sem_coord = df_mapa[df_mapa['lat'].isna()]
+        
+        if not df_com_coord.empty:
+            fig_mapa = px.scatter_mapbox(
+                df_com_coord, 
+                lat="lat", 
+                lon="lon", 
+                hover_name="Base", 
+                hover_data={"lat": False, "lon": False, "Veículos Ativos": True},
+                size="Veículos Ativos", 
+                color="Veículos Ativos", 
+                color_continuous_scale="Oranges",
+                size_max=35, # Tamanho máximo da bolha
+                zoom=6, 
+                mapbox_style="carto-positron" # Estilo de mapa claro e limpo
+            )
+            fig_mapa.update_layout(margin={"r":0,"t":20,"l":0,"b":0}, height=500)
+            st.plotly_chart(fig_mapa, use_container_width=True)
+        else:
+            st.info("📍 **Mapa indisponível no momento.** Para ver o mapa, cadastre a Latitude e Longitude das suas Bases no dicionário `COORDENADAS_BASES` dentro do código.")
+            
+        if not df_sem_coord.empty:
+            st.warning(f"⚠️ Atenção: As seguintes bases da sua planilha ainda não possuem coordenadas cadastradas no código: **{', '.join(df_sem_coord['Base'].tolist())}**")
+
+    with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
         base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_temp_inst[col_cc].dropna().unique()))
@@ -520,7 +569,7 @@ if not df.empty:
                     fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
                     st.plotly_chart(fig_rx_pie, use_container_width=True)
 
-    with tab6:
+    with tab7:
         st.markdown("### 📑 Detalhamento dos Dados")
         
         df_download = df_base.drop(columns=['Mes_Num', 'Ano'])
