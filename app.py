@@ -106,18 +106,6 @@ def get_ativos(df):
         (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO|RASTREADOR", case=False, na=True))
     ]["Placa"].unique()
 
-def get_projecao_html(gasto_acum, orcamento, mes_atual):
-    """Calcula a projeção anual baseada no gasto médio até o mês atual."""
-    if mes_atual == 0 or orcamento == 0: 
-        return ""
-    projecao_anual = (gasto_acum / mes_atual) * 12
-    diferenca = orcamento - projecao_anual
-    
-    if diferenca >= 0:
-        return f"<span style='color:#388E3C; font-weight:700;'>Proj. Fim de Ano: Sobra de {fmt_br(diferenca, True)}</span>"
-    else:
-        return f"<span style='color:#D32F2F; font-weight:700;'>Proj. Fim de Ano: Estouro de {fmt_br(abs(diferenca), True)}</span>"
-
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
     trend_html = ""
     if trend is not None and trend != 0:
@@ -297,14 +285,6 @@ if not df.empty:
             fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
             
-            # Adicionando linha de média
-            media_km_frota = df_filtrado_mes_manut[df_filtrado_mes_manut['Quilometragem'] > 0]['Quilometragem'].mean()
-            if pd.notna(media_km_frota):
-                fig_km.add_vline(x=media_km_frota, line_dash="dash", line_color="#D32F2F", 
-                                 annotation_text=f"Média: {fmt_br(media_km_frota)}", 
-                                 annotation_position="top right",
-                                 annotation_font=dict(size=11, color="#D32F2F"))
-
             fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             
@@ -321,14 +301,6 @@ if not df.empty:
             fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
             
-            # Adicionando linha de média
-            media_custo_frota = df_filtrado_mes_manut[df_filtrado_mes_manut['Custo de manutenção'] > 0]['Custo de manutenção'].mean()
-            if pd.notna(media_custo_frota):
-                fig_custo.add_vline(x=media_custo_frota, line_dash="dash", line_color="#D32F2F", 
-                                    annotation_text=f"Média: {fmt_br(media_custo_frota, True)}", 
-                                    annotation_position="top right",
-                                    annotation_font=dict(size=11, color="#D32F2F"))
-
             fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
             st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
 
@@ -342,9 +314,7 @@ if not df.empty:
             saldo_manut = orc_total_manut - gasto_total_acum_manut
             perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             
-            # Adicionado o componente de PROJEÇÃO
-            proj_html = get_projecao_html(gasto_total_acum_manut, orc_total_manut, mes_num_atual)
-            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b><br>{proj_html}"
+            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
             prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
             
             draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
@@ -361,22 +331,12 @@ if not df.empty:
 
         st.markdown("---")
         st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
-        
-        todos_custos_base = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index()
-        custo_base_acum = todos_custos_base.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+        custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         
         if not custo_base_acum.empty:
             fig_base_acum = px.bar(custo_base_acum, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
             fig_base_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_cb = custo_base_acum['Custo de manutenção'].max()
-            
-            # Linha de Média por Base
-            media_base_geral = todos_custos_base[todos_custos_base['Custo de manutenção'] > 0]['Custo de manutenção'].mean()
-            if pd.notna(media_base_geral):
-                fig_base_acum.add_vline(x=media_base_geral, line_dash="dash", line_color="#D32F2F", 
-                                        annotation_text=f"Média/Base: {fmt_br(media_base_geral, True)}", 
-                                        annotation_position="top right",
-                                        annotation_font=dict(size=11, color="#D32F2F"))
             
             fig_base_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif")))
             st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
@@ -397,9 +357,7 @@ if not df.empty:
             perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
             
-            # Adicionado o componente de PROJEÇÃO
-            proj_html_comb = get_projecao_html(gasto_acum_comb, orc_total_comb, mes_num_atual)
-            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b><br>{proj_html_comb}"
+            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
             prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
             
             draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb, progress_text=prog_text_comb)
@@ -410,42 +368,24 @@ if not df.empty:
         
         with col_g1:
             st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível em {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
-            todos_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index()
-            custo_comb_base_mes = todos_comb_base_mes.nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
+            custo_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
             if not custo_comb_base_mes.empty:
                 fig_comb_mes = px.bar(custo_comb_base_mes, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#0288D1'])
                 fig_comb_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_m = custo_comb_base_mes['Custo Combustível'].max()
                 
-                # Linha de Média por Base
-                media_comb_mes_frota = todos_comb_base_mes[todos_comb_base_mes['Custo Combustível'] > 0]['Custo Combustível'].mean()
-                if pd.notna(media_comb_mes_frota):
-                    fig_comb_mes.add_vline(x=media_comb_mes_frota, line_dash="dash", line_color="#D32F2F", 
-                                           annotation_text=f"Média/Base: {fmt_br(media_comb_mes_frota, True)}", 
-                                           annotation_position="top right",
-                                           annotation_font=dict(size=11, color="#D32F2F"))
-                
                 fig_comb_mes.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_m * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_mes, use_container_width=True, config={'displayModeBar': False})
         
         with col_g2:
             st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível Acumulado em {ano_sel}</div>', unsafe_allow_html=True)
-            todos_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index()
-            custo_comb_base_acum = todos_comb_base_acum.nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
+            custo_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
             if not custo_comb_base_acum.empty:
                 fig_comb_acum = px.bar(custo_comb_base_acum, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#F57C00'])
                 fig_comb_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_a = custo_comb_base_acum['Custo Combustível'].max()
-                
-                # Linha de Média por Base
-                media_comb_acum_frota = todos_comb_base_acum[todos_comb_base_acum['Custo Combustível'] > 0]['Custo Combustível'].mean()
-                if pd.notna(media_comb_acum_frota):
-                    fig_comb_acum.add_vline(x=media_comb_acum_frota, line_dash="dash", line_color="#D32F2F", 
-                                            annotation_text=f"Média/Base: {fmt_br(media_comb_acum_frota, True)}", 
-                                            annotation_position="top right",
-                                            annotation_font=dict(size=11, color="#D32F2F"))
                 
                 fig_comb_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
@@ -468,14 +408,12 @@ if not df.empty:
         
         cf1, cf2 = st.columns(2)
         with cf1:
-            proj_html_seg = get_projecao_html(gasto_seguro, orc_seguro, mes_num_atual)
-            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b><br>{proj_html_seg}"
+            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b>"
             prog_text_seguro = f"{perc_seguro:.1f}% &middot; Saldo {fmt_br(saldo_seguro, True)}"
             draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro, progress_text=prog_text_seguro)
             
         with cf2:
-            proj_html_ras = get_projecao_html(gasto_rastreador, orc_rastreador, mes_num_atual)
-            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b><br>{proj_html_ras}"
+            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b>"
             prog_text_rastreador = f"{perc_rastreador:.1f}% &middot; Saldo {fmt_br(saldo_rastreador, True)}"
             draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador, progress_text=prog_text_rastreador)
             
