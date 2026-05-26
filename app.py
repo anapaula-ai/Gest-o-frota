@@ -498,7 +498,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos atrelados a ela.")
+        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse em cima do Pin para ver o nome da base e a quantidade de veículos.")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -522,27 +522,27 @@ if not df.empty:
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
-            # CRIANDO O MAPA COM PINOS E TEXTOS PARA APRESENTAÇÃO
+            
+            # --- O GRANDE TRUQUE DO PIN PARA APRESENTAÇÃO ---
+            # Como a plataforma pede licença paga pra desenhar o Pin, 
+            # Nós desenhamos o Emoji clássico de mapa com o número de veículos ao lado!
+            
             fig_mapa = go.Figure(go.Scattermapbox(
                 lat=df_com_coord['lat'],
                 lon=df_com_coord['lon'],
-                mode='markers+text',
-                marker=go.scattermapbox.Marker(
-                    size=22,           # Tamanho fixo e grande (parecido com um Pin de mapa)
-                    color='#D32F2F',   # Vermelho escuro de destaque
-                    opacity=0.95
-                ),
-                text=df_com_coord['Veículos Ativos'].astype(str),
-                textposition='middle center', # Coloca o número de veículos exatamente DENTRO do círculo
-                textfont=dict(size=12, color='white', family='Arial Black'),
+                mode='text',
+                # Cria a visualização "📍 12"
+                text="📍 " + df_com_coord['Veículos Ativos'].astype(str),
+                textposition='middle center',
+                textfont=dict(size=26, color='#D32F2F', family='Arial Black'),
                 hoverinfo='text',
                 hovertext="<b>" + df_com_coord['Base'] + "</b><br>Veículos Alocados: " + df_com_coord['Veículos Ativos'].astype(str)
             ))
 
             fig_mapa.update_layout(
-                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
+                mapbox_style="open-street-map", # Mapa super nítido (idêntico Google Maps)
                 mapbox=dict(
-                    center=go.layout.mapbox.Center(lat=-10.5, lon=-40.5), # Centralizado na região nordeste
+                    center=go.layout.mapbox.Center(lat=-10.5, lon=-40.5), # Centralizado
                     zoom=5.2
                 ),
                 margin={"r":0,"t":10,"l":0,"b":0},
