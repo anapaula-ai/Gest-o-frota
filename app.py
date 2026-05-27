@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import pydeck as pdk  # <--- NOVA BIBLIOTECA PARA O MAPA 3D
+import pydeck as pdk  
 import unicodedata
 
 # 1. Configuração da Página
@@ -499,7 +499,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. **A altura das colunas em 3D** reflete a quantidade de veículos concentrados na respectiva localidade. (Passe o mouse por cima de uma coluna para ver mais detalhes).")
+        st.markdown("Visão geográfica indicando as bases operacionais. Os pins em estilo 3D indicam as localidades (Passe o mouse por cima de um balão para ver mais detalhes da base correspondente).")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -527,41 +527,63 @@ if not df.empty:
             df_com_coord['lat'] = df_com_coord['lat'].astype(float)
             df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
-            # Ajuste de nomenclatura p/ não dar erro interno no PyDeck em hover
+            # Ajuste de nomenclatura p/ não dar erro interno no PyDeck
             df_com_coord['Total_Veiculos'] = df_com_coord['Veículos Ativos']
+            df_com_coord['Total_Veiculos_str'] = df_com_coord['Veículos Ativos'].astype(str)
             
-            # --- PYDECK (DECK.GL) PARA MAPA 3D ---
-            # Define o Layer das Colunas 3D
-            layer = pdk.Layer(
-                "ColumnLayer",
+            # --- URL OFICIAL DE UM BALÃO ESTILO GOOGLE MAPS ---
+            URL_PIN_MAPA = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Google_Maps_pin.svg/512px-Google_Maps_pin.svg.png"
+            
+            # Adiciona os metadados da imagem ao DataFrame
+            df_com_coord['icon_data'] = [{
+                "url": URL_PIN_MAPA,
+                "width": 512,
+                "height": 884,
+                "anchorY": 884
+            }] * len(df_com_coord)
+
+            # CAMADA 1: O BALÃO (ÍCONE DE PIN DE MAPA)
+            layer_icon = pdk.Layer(
+                type="IconLayer",
                 data=df_com_coord,
-                get_position=['lon', 'lat'],
-                get_elevation='Total_Veiculos',
-                elevation_scale=15000,    # Fator de multiplicação de altura
-                radius=10000,             # Largura da base em metros (10km de raio na tela)
-                get_fill_color=[211, 47, 47, 230], # Vermelho clássico (com opacidade para enxergar o mapa)
-                pickable=True,            # Permite o Hover (tooltip)
-                auto_highlight=True,      # Brilha ao passar o mouse
+                get_icon="icon_data",
+                get_size=50,             # Tamanho visual do balão
+                size_scale=1,
+                get_position=["lon", "lat"],
+                pickable=True,
+                auto_highlight=True
             )
 
-            # Visão inicial do mapa focada no cenário com ângulo 3D (pitch)
+            # CAMADA 2: O NÚMERO DE VEÍCULOS (TEXTO DENTRO DO BALÃO)
+            layer_text = pdk.Layer(
+                type="TextLayer",
+                data=df_com_coord,
+                get_position=["lon", "lat"],
+                get_text="Total_Veiculos_str",
+                get_size=14,                     # Tamanho da fonte
+                get_color=[255, 255, 255, 255],  # Cor Branca
+                get_alignment_baseline="'center'",
+                get_pixel_offset=[0, -35],       # Joga o texto X pixels para cima, parando exatamente no meio da "bolinha" vermelha
+                font_weight="bold"
+            )
+
+            # Visão inicial com inclinação 3D do mapa
             view_state = pdk.ViewState(
                 latitude=-10.5,
                 longitude=-40.5,
                 zoom=5.2,
-                pitch=50,   # Aqui ocorre a "mágica" para tombar o mapa pro efeito 3D
+                pitch=50,   # Posição inclinada imitando o 3D
                 bearing=0
             )
 
-            # Renderiza a junção no mapa
+            # Renderiza as duas camadas (Balão + Texto) sobre o mapa
             r = pdk.Deck(
-                layers=[layer],
+                layers=[layer_icon, layer_text],
                 initial_view_state=view_state,
                 tooltip={"html": "<b>{Base}</b><br>Total de Veículos: {Total_Veiculos}"},
-                map_style=None # Mantém o estilo claro e padrão do Streamlit
+                map_style=None
             )
             
-            # Exibe no Streamlit
             st.pydeck_chart(r, use_container_width=True)
             
         else:
