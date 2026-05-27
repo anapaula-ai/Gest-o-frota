@@ -523,15 +523,30 @@ if not df.empty:
             df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
             # MAPA ESTILO DASHBOARD EXECUTIVO (Plotly Carto-Positron)
-            fig_mapa = go.Figure(go.Scattermapbox(
+            fig_mapa = go.Figure()
+            
+            # Camada 1: Borda Branca (Marcador um pouco maior, simulando line-width)
+            fig_mapa.add_trace(go.Scattermapbox(
+                lat=df_com_coord['lat'],
+                lon=df_com_coord['lon'],
+                mode='markers',
+                marker=dict(
+                    size=34,         # Fica por baixo, fazendo a vez da borda
+                    color='#FFFFFF', # Cor da borda
+                    opacity=1.0
+                ),
+                hoverinfo='skip'     # Desabilita interação na borda
+            ))
+
+            # Camada 2: Miolo Vermelho com o Texto
+            fig_mapa.add_trace(go.Scattermapbox(
                 lat=df_com_coord['lat'],
                 lon=df_com_coord['lon'],
                 mode='markers+text',
                 marker=dict(
-                    size=28, # Tamanho do marcador redondo (imita um Pin circular)
-                    color='#D32F2F', # Vermelho escuro clássico 
-                    opacity=0.95,
-                    line=dict(width=2.5, color='#FFFFFF') # Borda branca bonita de alto contraste
+                    size=26,         # Ligeiramente menor para deixar a borda branca à mostra
+                    color='#D32F2F', # Vermelho escuro clássico
+                    opacity=0.95
                 ),
                 text=df_com_coord['Veículos Ativos'].astype(str),
                 textposition='middle center',
