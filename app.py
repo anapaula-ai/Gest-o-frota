@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import pydeck as pdk  
 import unicodedata
 
 # 1. Configuração da Página
@@ -499,13 +498,12 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. Os pins em estilo 3D indicam as localidades (Passe o mouse por cima de um balão para ver mais detalhes da base correspondente).")
+        st.markdown("Visão geográfica indicando as bases operacionais. **O número em destaque** indica a quantidade de veículos concentrados na respectiva localidade.")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
-        # --- FUNÇÃO TRADUTORA INTELIGENTE ---
         def buscar_coordenada(nome_base, eixo):
             if pd.isna(nome_base): return None
             nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
@@ -517,74 +515,43 @@ if not df.empty:
         df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
         df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
-        # Separa as bases com e sem coordenadas
         df_com_coord = df_mapa.dropna(subset=['lat', 'lon']).copy()
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
-            
-            # Garante formato numérico correto para as coordenadas
             df_com_coord['lat'] = df_com_coord['lat'].astype(float)
             df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
-            # Ajuste de nomenclatura p/ não dar erro interno no PyDeck
-            df_com_coord['Total_Veiculos'] = df_com_coord['Veículos Ativos']
-            df_com_coord['Total_Veiculos_str'] = df_com_coord['Veículos Ativos'].astype(str)
-            
-            # --- URL OFICIAL DE UM BALÃO ESTILO GOOGLE MAPS ---
-            URL_PIN_MAPA = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Google_Maps_pin.svg/512px-Google_Maps_pin.svg.png"
-            
-            # Adiciona os metadados da imagem ao DataFrame
-            df_com_coord['icon_data'] = [{
-                "url": URL_PIN_MAPA,
-                "width": 512,
-                "height": 884,
-                "anchorY": 884
-            }] * len(df_com_coord)
+            # MAPA ESTILO DASHBOARD EXECUTIVO (Plotly Carto-Positron)
+            fig_mapa = go.Figure(go.Scattermapbox(
+                lat=df_com_coord['lat'],
+                lon=df_com_coord['lon'],
+                mode='markers+text',
+                marker=dict(
+                    size=28, # Tamanho do marcador redondo (imita um Pin circular)
+                    color='#D32F2F', # Vermelho escuro clássico 
+                    opacity=0.95,
+                    line=dict(width=2.5, color='#FFFFFF') # Borda branca bonita de alto contraste
+                ),
+                text=df_com_coord['Veículos Ativos'].astype(str),
+                textposition='middle center',
+                textfont=dict(size=13, color='white', family='Arial Black'),
+                hoverinfo='text',
+                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
+            ))
 
-            # CAMADA 1: O BALÃO (ÍCONE DE PIN DE MAPA)
-            layer_icon = pdk.Layer(
-                type="IconLayer",
-                data=df_com_coord,
-                get_icon="icon_data",
-                get_size=50,             # Tamanho visual do balão
-                size_scale=1,
-                get_position=["lon", "lat"],
-                pickable=True,
-                auto_highlight=True
-            )
-
-            # CAMADA 2: O NÚMERO DE VEÍCULOS (TEXTO DENTRO DO BALÃO)
-            layer_text = pdk.Layer(
-                type="TextLayer",
-                data=df_com_coord,
-                get_position=["lon", "lat"],
-                get_text="Total_Veiculos_str",
-                get_size=14,                     # Tamanho da fonte
-                get_color=[255, 255, 255, 255],  # Cor Branca
-                get_alignment_baseline="'center'",
-                get_pixel_offset=[0, -35],       # Joga o texto X pixels para cima, parando exatamente no meio da "bolinha" vermelha
-                font_weight="bold"
-            )
-
-            # Visão inicial com inclinação 3D do mapa
-            view_state = pdk.ViewState(
-                latitude=-10.5,
-                longitude=-40.5,
-                zoom=5.2,
-                pitch=50,   # Posição inclinada imitando o 3D
-                bearing=0
-            )
-
-            # Renderiza as duas camadas (Balão + Texto) sobre o mapa
-            r = pdk.Deck(
-                layers=[layer_icon, layer_text],
-                initial_view_state=view_state,
-                tooltip={"html": "<b>{Base}</b><br>Total de Veículos: {Total_Veiculos}"},
-                map_style=None
+            fig_mapa.update_layout(
+                mapbox_style="carto-positron", # Estilo Premium: fundo em escala de cinza pra dar destaque aos dados
+                mapbox=dict(
+                    center=dict(lat=-10.5, lon=-40.5),
+                    zoom=5.2
+                ),
+                margin={"r":0,"t":10,"l":0,"b":0},
+                height=550,
+                showlegend=False
             )
             
-            st.pydeck_chart(r, use_container_width=True)
+            st.plotly_chart(fig_mapa, use_container_width=True)
             
         else:
             st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
