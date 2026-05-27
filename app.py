@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import pydeck as pdk  # <--- NOVA BIBLIOTECA PARA O MAPA 3D
 import unicodedata
 
 # 1. Configuração da Página
@@ -498,7 +499,7 @@ if not df.empty:
 
     with tab5:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
+        st.markdown("Visão geográfica indicando as bases operacionais. **A altura das colunas em 3D** reflete a quantidade de veículos concentrados na respectiva localidade. (Passe o mouse por cima de uma coluna para ver mais detalhes).")
         
         # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
@@ -513,7 +514,6 @@ if not df.empty:
                 if chave_limpa in nome_limpo: return coords.get(eixo)
             return None
 
-        # Puxa Latitude e Longitude certificando que são números (float) para o Plotly não falhar
         df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
         df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
@@ -527,35 +527,43 @@ if not df.empty:
             df_com_coord['lat'] = df_com_coord['lat'].astype(float)
             df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
-            # CRIANDO O NOVO ESTILO DO MAPA (Circulo Vermelho Clássico + Número Interno)
-            fig_mapa = go.Figure(go.Scattermapbox(
-                lat=df_com_coord['lat'],
-                lon=df_com_coord['lon'],
-                mode='markers+text',
-                marker=dict(
-                    size=26,           # Bolinha de tamanho fixo bem visível em apresentações
-                    color='#D32F2F',   # Vermelho escuro clássico de pin de mapa
-                    opacity=1.0        # Bolinha sólida
-                ),
-                text=df_com_coord['Veículos Ativos'].astype(str),
-                textposition='middle center', # Coloca o número de veículos exatamente DENTRO da bolinha!
-                textfont=dict(size=14, color='white', family='Arial Black'), # Fonte branca para dar contraste no vermelho
-                hoverinfo='text',
-                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
-            ))
+            # Ajuste de nomenclatura p/ não dar erro interno no PyDeck em hover
+            df_com_coord['Total_Veiculos'] = df_com_coord['Veículos Ativos']
+            
+            # --- PYDECK (DECK.GL) PARA MAPA 3D ---
+            # Define o Layer das Colunas 3D
+            layer = pdk.Layer(
+                "ColumnLayer",
+                data=df_com_coord,
+                get_position=['lon', 'lat'],
+                get_elevation='Total_Veiculos',
+                elevation_scale=15000,    # Fator de multiplicação de altura
+                radius=10000,             # Largura da base em metros (10km de raio na tela)
+                get_fill_color=[211, 47, 47, 230], # Vermelho clássico (com opacidade para enxergar o mapa)
+                pickable=True,            # Permite o Hover (tooltip)
+                auto_highlight=True,      # Brilha ao passar o mouse
+            )
 
-            fig_mapa.update_layout(
-                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
-                mapbox=dict(
-                    center=dict(lat=-10.5, lon=-40.5), # Centralizado na região principal
-                    zoom=5.2
-                ),
-                margin={"r":0,"t":10,"l":0,"b":0},
-                height=550,
-                showlegend=False
+            # Visão inicial do mapa focada no cenário com ângulo 3D (pitch)
+            view_state = pdk.ViewState(
+                latitude=-10.5,
+                longitude=-40.5,
+                zoom=5.2,
+                pitch=50,   # Aqui ocorre a "mágica" para tombar o mapa pro efeito 3D
+                bearing=0
+            )
+
+            # Renderiza a junção no mapa
+            r = pdk.Deck(
+                layers=[layer],
+                initial_view_state=view_state,
+                tooltip={"html": "<b>{Base}</b><br>Total de Veículos: {Total_Veiculos}"},
+                map_style=None # Mantém o estilo claro e padrão do Streamlit
             )
             
-            st.plotly_chart(fig_mapa, use_container_width=True)
+            # Exibe no Streamlit
+            st.pydeck_chart(r, use_container_width=True)
+            
         else:
             st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
             
