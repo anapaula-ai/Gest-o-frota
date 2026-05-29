@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import unicodedata
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
@@ -132,12 +133,9 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # ⬇️ AQUI ESTÁ A MUDANÇA PRINCIPAL! ⬇️
-        # Lendo o arquivo Excel que está no seu GitHub:
-        nome_do_arquivo = "NOME_DO_SEU_ARQUIVO.xlsx" # <--- TROQUE ISTO PELO NOME EXATO DO ARQUIVO!
+        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxz7i11I5up50_doRgWqoqytaBRr2AB_z18WJv2sLX_Fv14B5U1QZ_puMo6pn-6KvNsxR-CUji5xyE/pub?output=csv"
         
-        df = pd.read_excel(nome_do_arquivo)
-        # ⬆️ FIM DA MUDANÇA PRINCIPAL ⬆️
+        df = pd.read_csv(url_planilha, decimal=',', thousands='.')
         
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
@@ -164,7 +162,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados do arquivo Excel: {e}")
+        st.error(f"Erro ao carregar dados do Google Sheets: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -174,6 +172,64 @@ ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
 ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
 ORCAMENTOS_SEGURO = {"AMES": 186682.00, "IAV": 115461.00}
 ORCAMENTOS_RASTREADOR = {"AMES": 0.00, "IAV": 10194.00} 
+
+# 📍 COORDENADAS DAS BASES PARA O MAPA
+COORDENADAS_BASES = {
+    "ACAUÃ": {"lat": -8.2195, "lon": -41.0825},
+    "AFRÂNIO": {"lat": -8.5147, "lon": -41.0117},
+    "AMÉRICA DOURADA": {"lat": -11.4553, "lon": -41.4361},
+    "BETÂNIA DO PIAUÍ": {"lat": -8.1469, "lon": -40.7967},
+    "BOM JESUS DA LAPA": {"lat": -13.2536, "lon": -43.4181},
+    "BONINAL": {"lat": -12.6078, "lon": -41.8294},
+    "BOQUIRA": {"lat": -12.8236, "lon": -42.7303},
+    "BROTAS DE MACAÚBAS": {"lat": -12.0011, "lon": -42.6289},
+    "CAFARNAUM": {"lat": -11.6917, "lon": -41.4708},
+    "CARIDADE": {"lat": -7.7347, "lon": -40.9856},
+    "CASA NOVA": {"lat": -9.1656, "lon": -40.9725},
+    "CATURAMA": {"lat": -13.2981, "lon": -42.2742},
+    "CENTRAL": {"lat": -11.1350, "lon": -42.1128},
+    "CONCEIÇÃO DO CANINDÉ": {"lat": -7.8761, "lon": -41.5936},
+    "CURRAL NOVO DO PIAUÍ": {"lat": -7.7989, "lon": -40.8008},
+    "EMAS": {"lat": -7.0264, "lon": -37.7558},
+    "IBITIARA": {"lat": -12.6394, "lon": -42.2156},
+    "IBOTIRAMA": {"lat": -12.1856, "lon": -43.2208},
+    "IMACULADA": {"lat": -7.3969, "lon": -37.8519},
+    "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
+    "JACOBINA": {"lat": -11.1814, "lon": -40.5186},
+    "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
+    "JUSSARA": {"lat": -11.0264, "lon": -41.9708},
+    "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
+    "LAPÃO": {"lat": -11.3831, "lon": -41.8317},
+    "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
+    "MATUREIA": {"lat": -7.2661, "lon": -37.3517},
+    "MIGUEL CALMOM": {"lat": -11.4283, "lon": -40.5950},
+    "MIRANGABA": {"lat": -10.9328, "lon": -40.2794},
+    "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
+    "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569},
+    "OLHO D'ÁGUA": {"lat": -7.2281, "lon": -37.7347},
+    "OLIVEIRA DOS BREJINHOS": {"lat": -12.3169, "lon": -42.8967},
+    "OUROLÂNDIA": {"lat": -10.8406, "lon": -40.8047},
+    "PARATINGA": {"lat": -12.6908, "lon": -43.1844},
+    "PATOS": {"lat": -7.0194, "lon": -37.2800},
+    "PAULISTANA": {"lat": -8.1367, "lon": -41.1444},
+    "PETROLINA": {"lat": -9.3956, "lon": -40.5019},
+    "PIANCÓ": {"lat": -7.2033, "lon": -37.9281},
+    "PIATÃ": {"lat": -13.1517, "lon": -41.7719},
+    "QUEIMADA NOVA": {"lat": -8.5678, "lon": -41.4278},
+    "REMANSO": {"lat": -9.6200, "lon": -42.0800},
+    "SANTA MARIA DA BOA VISTA": {"lat": -8.8078, "lon": -39.8256},
+    "SANTO ANTÔNIO DE LISBOA": {"lat": -7.0628, "lon": -41.2292},
+    "SÃO GABRIEL": {"lat": -11.2253, "lon": -41.9056},
+    "SÃO JOSÉ DE PRINCESA": {"lat": -7.7328, "lon": -38.0833},
+    "SERRA GRANDE": {"lat": -7.2750, "lon": -38.3667},
+    "TANQUE NOVO": {"lat": -13.6264, "lon": -42.5414},
+    "TEIXEIRA": {"lat": -7.3933, "lon": -37.2536},
+    "UMBURANAS": {"lat": -10.7417, "lon": -41.3414},
+    "VÁRZEA NOVA": {"lat": -11.2464, "lon": -40.9706},
+    "XIQUE-XIQUE": {"lat": -10.8239, "lon": -42.7300},
+    "BS CASINHAS": {"lat": -10.0758, "lon": -38.4797}, 
+    "BS RIACHO DO SOBRADO": {"lat": -9.2732, "lon": -40.7254}
+}
 
 if not df.empty:
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
@@ -207,15 +263,8 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # AS 6 ABAS DO SISTEMA
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📌 Visão Mensal", 
-        "📈 Resumo Acumulado", 
-        "⛽ Combustível", 
-        "🛡️ Custos Fixos", 
-        "📍 Raio-X da Base", 
-        "📑 Detalhamento"
-    ])
+    # AS 7 ABAS DO SISTEMA
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
@@ -448,6 +497,72 @@ if not df.empty:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
     with tab5:
+        st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
+        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
+        
+        # Conta veículos únicos de cada base neste mês
+        df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
+        df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
+        
+        # --- FUNÇÃO TRADUTORA INTELIGENTE ---
+        def buscar_coordenada(nome_base, eixo):
+            if pd.isna(nome_base): return None
+            nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
+            for chave, coords in COORDENADAS_BASES.items():
+                chave_limpa = ''.join(c for c in unicodedata.normalize('NFD', chave) if unicodedata.category(c) != 'Mn').upper()
+                if chave_limpa in nome_limpo: return coords.get(eixo)
+            return None
+
+        # Puxa Latitude e Longitude certificando que são números (float) para o Plotly não falhar
+        df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
+        df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
+        
+        # Separa as bases com e sem coordenadas
+        df_com_coord = df_mapa.dropna(subset=['lat', 'lon']).copy()
+        df_sem_coord = df_mapa[df_mapa['lat'].isna()]
+        
+        if not df_com_coord.empty:
+            
+            # Garante formato numérico correto para as coordenadas
+            df_com_coord['lat'] = df_com_coord['lat'].astype(float)
+            df_com_coord['lon'] = df_com_coord['lon'].astype(float)
+            
+            # CRIANDO O NOVO ESTILO DO MAPA (Circulo Vermelho Clássico + Número Interno)
+            fig_mapa = go.Figure(go.Scattermapbox(
+                lat=df_com_coord['lat'],
+                lon=df_com_coord['lon'],
+                mode='markers+text',
+                marker=dict(
+                    size=26,           # Bolinha de tamanho fixo bem visível em apresentações
+                    color='#D32F2F',   # Vermelho escuro clássico de pin de mapa
+                    opacity=1.0        # Bolinha sólida
+                ),
+                text=df_com_coord['Veículos Ativos'].astype(str),
+                textposition='middle center', # Coloca o número de veículos exatamente DENTRO da bolinha!
+                textfont=dict(size=14, color='white', family='Arial Black'), # Fonte branca para dar contraste no vermelho
+                hoverinfo='text',
+                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
+            ))
+
+            fig_mapa.update_layout(
+                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
+                mapbox=dict(
+                    center=dict(lat=-10.5, lon=-40.5), # Centralizado na região principal
+                    zoom=5.2
+                ),
+                margin={"r":0,"t":10,"l":0,"b":0},
+                height=550,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_mapa, use_container_width=True)
+        else:
+            st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
+            
+        if not df_sem_coord.empty:
+            st.warning(f"⚠️ Atenção: Os seguintes centros de custo não possuem coordenadas geográficas atreladas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
+
+    with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
         base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_temp_inst[col_cc].dropna().unique()))
@@ -531,7 +646,7 @@ if not df.empty:
                     fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
                     st.plotly_chart(fig_rx_pie, use_container_width=True)
 
-    with tab6:
+    with tab7:
         st.markdown("### 📑 Detalhamento dos Dados")
         
         df_download = df_base.drop(columns=['Mes_Num', 'Ano'])
@@ -547,4 +662,4 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         st.dataframe(df_download, use_container_width=True)
 else:
-    st.warning("Verifique o arquivo excel e garanta que ele está na mesma pasta do código.")
+    st.warning("Verifique o arquivo da planilha online.")
