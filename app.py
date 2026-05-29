@@ -132,9 +132,12 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxz7i11I5up50_doRgWqoqytaBRr2AB_z18WJv2sLX_Fv14B5U1QZ_puMo6pn-6KvNsxR-CUji5xyE/pub?output=csv"
+        # ⬇️ AQUI ESTÁ A MUDANÇA PRINCIPAL! ⬇️
+        # Lendo o arquivo Excel que está no seu GitHub:
+        nome_do_arquivo = "NOME_DO_SEU_ARQUIVO.xlsx" # <--- TROQUE ISTO PELO NOME EXATO DO ARQUIVO!
         
-        df = pd.read_csv(url_planilha, decimal=',', thousands='.')
+        df = pd.read_excel(nome_do_arquivo)
+        # ⬆️ FIM DA MUDANÇA PRINCIPAL ⬆️
         
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
@@ -161,7 +164,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados do Google Sheets: {e}")
+        st.error(f"Erro ao carregar dados do arquivo Excel: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -204,7 +207,7 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # AS 6 ABAS DO SISTEMA (Mapa removido)
+    # AS 6 ABAS DO SISTEMA
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📌 Visão Mensal", 
         "📈 Resumo Acumulado", 
@@ -544,4 +547,4 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         st.dataframe(df_download, use_container_width=True)
 else:
-    st.warning("Verifique o arquivo da planilha online.")
+    st.warning("Verifique o arquivo excel e garanta que ele está na mesma pasta do código.")
