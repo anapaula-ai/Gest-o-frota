@@ -104,7 +104,7 @@ def fmt_br(valor, is_moeda=False):
 def get_ativos(df):
     return df[
         (df["Placa"].str.len() == 7) & 
-        (~df["Placa"].str.contains("COMBUSTÍVEL|SEGURO|FINANC|CONSÓRCIO|RASTREADOR", case=False, na=True))
+        (~df["Placa"].str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST", case=False, na=True))
     ]["Placa"].unique()
 
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
@@ -138,7 +138,7 @@ def to_float(serie):
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # LINK DA PLANILHA NO GITHUB JÁ CONFIGURADO
+        # LINK DA PLANILHA NO GITHUB
         url_planilha = "https://raw.githubusercontent.com/anapaula-ai/Gest-o-frota/main/manutencao.xlsx"
         
         if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
@@ -167,7 +167,11 @@ def load_data():
         if 'Centro de Custo' in df.columns: df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
         if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
         if 'Instituição' in df.columns: df['Instituição'] = df['Instituição'].astype(str).str.strip()
-        if 'Placa' in df.columns: df['Placa'] = df['Placa'].astype(str).str.strip().str.upper().replace('NAN', '')
+        
+        # Limpeza Anti-Duplicação de Placas (Remove hifens, espaços e transforma em maiúscula)
+        if 'Placa' in df.columns: 
+            df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
+            df['Placa'] = df['Placa'].str.replace('-', '', regex=False).str.replace(' ', '', regex=False).replace('NAN', '')
         
         return df
     except Exception as e:
@@ -251,10 +255,11 @@ if not df.empty:
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            ativos_m = len(get_ativos(df_filtrado_mes_manut))
-            ativos_a = len(get_ativos(df_anterior_manut))
-            trend_at = ((ativos_m - ativos_a) / ativos_a * 100) if ativos_a > 0 else 0
-            draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_m), trend=trend_at, is_lower_better=False)
+            ativos_ano = len(get_ativos(df_base)) # Total verdadeiro de carros daquele ano
+            ativos_m = len(get_ativos(df_filtrado_mes_manut)) # Apenas do mês
+            
+            subtext_ativos = f"Com custo em {mes_sel}: <b>{ativos_m}</b> veículos"
+            draw_card("VEÍCULOS NA FROTA (ANO)", fmt_br(ativos_ano), subtext_ativos, is_lower_better=False)
         
         with c2:
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
@@ -264,10 +269,10 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_veiculos = len(get_ativos(df_filtrado_mes_manut))
-            custo_medio = custo_m / num_veiculos if num_veiculos > 0 else 0
+            num_veiculos_mes = len(get_ativos(df_filtrado_mes_manut))
+            custo_medio = custo_m / num_veiculos_mes if num_veiculos_mes > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
-            draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo", trend=trend_c)
+            draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo (mês)", trend=trend_c)
 
         if busca_placa:
             st.markdown("---")
