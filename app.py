@@ -138,8 +138,8 @@ def to_float(serie):
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # LINK DA PLANILHA NO GITHUB
-        url_planilha = "https://raw.githubusercontent.com/anapaula-ai/Gest-o-frota/main/manutencao.xlsx"
+        # LINK DO GOOGLE SHEETS
+        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTicWmhRZqU_8nrWC5o7paXkH_BDO4SkgzrzAIKaXiN3pnZYk4UjTxqzpwGQ1bdGr6mYzJw94mR1V4Y/pub?output=csv"
         
         if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
             df = pd.read_csv(url_planilha, decimal=',', thousands='.')
@@ -175,7 +175,7 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados. Verifique se o link está correto e se 'openpyxl' está no requirements.txt: {e}")
+        st.error(f"Erro ao carregar dados. Verifique se o link está correto: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -635,4 +635,4 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         st.dataframe(df_download, use_container_width=True)
 else:
-    st.warning("Verifique o link do arquivo da planilha online ou se a biblioteca openpyxl está instalada.")
+    st.warning("Verifique o link do arquivo da planilha online ou certifique-se de que os dados foram publicados.")
