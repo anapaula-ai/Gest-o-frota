@@ -256,10 +256,7 @@ if not df.empty:
         
         with c1:
             ativos_ano = len(get_ativos(df_base)) # Total verdadeiro de carros daquele ano
-            ativos_m = len(get_ativos(df_filtrado_mes_manut)) # Apenas do mês
-            
-            subtext_ativos = f"Com custo em {mes_sel}: <b>{ativos_m}</b> veículos"
-            draw_card("VEÍCULOS NA FROTA (ANO)", fmt_br(ativos_ano), subtext_ativos, is_lower_better=False)
+            draw_card("VEÍCULOS NA FROTA (ANO)", fmt_br(ativos_ano), is_lower_better=False)
         
         with c2:
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
