@@ -130,12 +130,21 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 """
     st.markdown(html_card, unsafe_allow_html=True)
 
+def to_float(serie):
+    if str(serie.dtype) == 'object':
+        return pd.to_numeric(serie.str.replace('.', '', regex=False).str.replace(',', '.', regex=False), errors='coerce').fillna(0)
+    return pd.to_numeric(serie, errors='coerce').fillna(0)
+
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxz7i11I5up50_doRgWqoqytaBRr2AB_z18WJv2sLX_Fv14B5U1QZ_puMo6pn-6KvNsxR-CUji5xyE/pub?output=csv"
+        # LINK DA PLANILHA NO GITHUB JÁ CONFIGURADO
+        url_planilha = "https://raw.githubusercontent.com/anapaula-ai/Gest-o-frota/main/manutencao.xlsx"
         
-        df = pd.read_csv(url_planilha, decimal=',', thousands='.')
+        if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
+            df = pd.read_csv(url_planilha, decimal=',', thousands='.')
+        else:
+            df = pd.read_excel(url_planilha)
         
         df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
         meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
@@ -143,15 +152,15 @@ def load_data():
         df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
         df['Mes_Num'] = df['Mês Referência'].dt.month
         
-        df['Quilometragem'] = pd.to_numeric(df['Quilometragem'], errors='coerce').fillna(0)
-        df['Custo de manutenção'] = pd.to_numeric(df['Custo de manutenção'], errors='coerce').fillna(0)
-        df['Custo de seguro'] = pd.to_numeric(df.get('Custo de seguro', 0), errors='coerce').fillna(0)
-        df['Custo de Rastreador'] = pd.to_numeric(df.get('Custo de Rastreador', 0), errors='coerce').fillna(0)
+        df['Quilometragem'] = to_float(df['Quilometragem'])
+        df['Custo de manutenção'] = to_float(df['Custo de manutenção'])
+        df['Custo de seguro'] = to_float(df.get('Custo de seguro', 0))
+        df['Custo de Rastreador'] = to_float(df.get('Custo de Rastreador', 0))
         
         if 'Custo de combustível' in df.columns:
-            df['Custo Combustível'] = pd.to_numeric(df['Custo de combustível'], errors='coerce').fillna(0)
+            df['Custo Combustível'] = to_float(df['Custo de combustível'])
         else:
-            df['Custo Combustível'] = pd.to_numeric(df.iloc[:, 3], errors='coerce').fillna(0)
+            df['Custo Combustível'] = to_float(df.iloc[:, 3])
 
         df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
         
@@ -162,73 +171,45 @@ def load_data():
         
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar dados do Google Sheets: {e}")
+        st.error(f"Erro ao carregar dados. Verifique se o link está correto e se 'openpyxl' está no requirements.txt: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
-# VERBAS
-ORCAMENTOS_MANUT = {"AMES": 987380.00, "IAV": 305434.00}
-ORCAMENTOS_COMB = {"AMES": 1000081.06, "IAV": 264450.00}
-ORCAMENTOS_SEGURO = {"AMES": 186682.00, "IAV": 115461.00}
-ORCAMENTOS_RASTREADOR = {"AMES": 0.00, "IAV": 10194.00} 
+# VERBAS (Definidas apenas para 2026)
+ORCAMENTOS_MANUT_2026 = {"AMES": 987380.00, "IAV": 305434.00}
+ORCAMENTOS_COMB_2026 = {"AMES": 1000081.06, "IAV": 264450.00}
+ORCAMENTOS_SEGURO_2026 = {"AMES": 186682.00, "IAV": 115461.00}
+ORCAMENTOS_RASTREADOR_2026 = {"AMES": 0.00, "IAV": 10194.00} 
 
-# 📍 COORDENADAS DAS BASES PARA O MAPA
 COORDENADAS_BASES = {
-    "ACAUÃ": {"lat": -8.2195, "lon": -41.0825},
-    "AFRÂNIO": {"lat": -8.5147, "lon": -41.0117},
-    "AMÉRICA DOURADA": {"lat": -11.4553, "lon": -41.4361},
-    "BETÂNIA DO PIAUÍ": {"lat": -8.1469, "lon": -40.7967},
-    "BOM JESUS DA LAPA": {"lat": -13.2536, "lon": -43.4181},
-    "BONINAL": {"lat": -12.6078, "lon": -41.8294},
-    "BOQUIRA": {"lat": -12.8236, "lon": -42.7303},
-    "BROTAS DE MACAÚBAS": {"lat": -12.0011, "lon": -42.6289},
-    "CAFARNAUM": {"lat": -11.6917, "lon": -41.4708},
-    "CARIDADE": {"lat": -7.7347, "lon": -40.9856},
-    "CASA NOVA": {"lat": -9.1656, "lon": -40.9725},
-    "CATURAMA": {"lat": -13.2981, "lon": -42.2742},
-    "CENTRAL": {"lat": -11.1350, "lon": -42.1128},
-    "CONCEIÇÃO DO CANINDÉ": {"lat": -7.8761, "lon": -41.5936},
-    "CURRAL NOVO DO PIAUÍ": {"lat": -7.7989, "lon": -40.8008},
-    "EMAS": {"lat": -7.0264, "lon": -37.7558},
-    "IBITIARA": {"lat": -12.6394, "lon": -42.2156},
-    "IBOTIRAMA": {"lat": -12.1856, "lon": -43.2208},
-    "IMACULADA": {"lat": -7.3969, "lon": -37.8519},
-    "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
-    "JACOBINA": {"lat": -11.1814, "lon": -40.5186},
-    "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
-    "JUSSARA": {"lat": -11.0264, "lon": -41.9708},
-    "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
-    "LAPÃO": {"lat": -11.3831, "lon": -41.8317},
-    "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
-    "MATUREIA": {"lat": -7.2661, "lon": -37.3517},
-    "MIGUEL CALMOM": {"lat": -11.4283, "lon": -40.5950},
-    "MIRANGABA": {"lat": -10.9328, "lon": -40.2794},
-    "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
-    "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569},
-    "OLHO D'ÁGUA": {"lat": -7.2281, "lon": -37.7347},
-    "OLIVEIRA DOS BREJINHOS": {"lat": -12.3169, "lon": -42.8967},
-    "OUROLÂNDIA": {"lat": -10.8406, "lon": -40.8047},
-    "PARATINGA": {"lat": -12.6908, "lon": -43.1844},
-    "PATOS": {"lat": -7.0194, "lon": -37.2800},
-    "PAULISTANA": {"lat": -8.1367, "lon": -41.1444},
-    "PETROLINA": {"lat": -9.3956, "lon": -40.5019},
-    "PIANCÓ": {"lat": -7.2033, "lon": -37.9281},
-    "PIATÃ": {"lat": -13.1517, "lon": -41.7719},
-    "QUEIMADA NOVA": {"lat": -8.5678, "lon": -41.4278},
-    "REMANSO": {"lat": -9.6200, "lon": -42.0800},
-    "SANTA MARIA DA BOA VISTA": {"lat": -8.8078, "lon": -39.8256},
-    "SANTO ANTÔNIO DE LISBOA": {"lat": -7.0628, "lon": -41.2292},
-    "SÃO GABRIEL": {"lat": -11.2253, "lon": -41.9056},
-    "SÃO JOSÉ DE PRINCESA": {"lat": -7.7328, "lon": -38.0833},
-    "SERRA GRANDE": {"lat": -7.2750, "lon": -38.3667},
-    "TANQUE NOVO": {"lat": -13.6264, "lon": -42.5414},
-    "TEIXEIRA": {"lat": -7.3933, "lon": -37.2536},
-    "UMBURANAS": {"lat": -10.7417, "lon": -41.3414},
-    "VÁRZEA NOVA": {"lat": -11.2464, "lon": -40.9706},
-    "XIQUE-XIQUE": {"lat": -10.8239, "lon": -42.7300},
-    "BS CASINHAS": {"lat": -10.0758, "lon": -38.4797}, 
-    "BS RIACHO DO SOBRADO": {"lat": -9.2732, "lon": -40.7254}
+    "ACAUÃ": {"lat": -8.2195, "lon": -41.0825}, "AFRÂNIO": {"lat": -8.5147, "lon": -41.0117},
+    "AMÉRICA DOURADA": {"lat": -11.4553, "lon": -41.4361}, "BETÂNIA DO PIAUÍ": {"lat": -8.1469, "lon": -40.7967},
+    "BOM JESUS DA LAPA": {"lat": -13.2536, "lon": -43.4181}, "BONINAL": {"lat": -12.6078, "lon": -41.8294},
+    "BOQUIRA": {"lat": -12.8236, "lon": -42.7303}, "BROTAS DE MACAÚBAS": {"lat": -12.0011, "lon": -42.6289},
+    "CAFARNAUM": {"lat": -11.6917, "lon": -41.4708}, "CARIDADE": {"lat": -7.7347, "lon": -40.9856},
+    "CASA NOVA": {"lat": -9.1656, "lon": -40.9725}, "CATURAMA": {"lat": -13.2981, "lon": -42.2742},
+    "CENTRAL": {"lat": -11.1350, "lon": -42.1128}, "CONCEIÇÃO DO CANINDÉ": {"lat": -7.8761, "lon": -41.5936},
+    "CURRAL NOVO DO PIAUÍ": {"lat": -7.7989, "lon": -40.8008}, "EMAS": {"lat": -7.0264, "lon": -37.7558},
+    "IBITIARA": {"lat": -12.6394, "lon": -42.2156}, "IBOTIRAMA": {"lat": -12.1856, "lon": -43.2208},
+    "IMACULADA": {"lat": -7.3969, "lon": -37.8519}, "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
+    "JACOBINA": {"lat": -11.1814, "lon": -40.5186}, "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
+    "JUSSARA": {"lat": -11.0264, "lon": -41.9708}, "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
+    "LAPÃO": {"lat": -11.3831, "lon": -41.8317}, "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
+    "MATUREIA": {"lat": -7.2661, "lon": -37.3517}, "MIGUEL CALMOM": {"lat": -11.4283, "lon": -40.5950},
+    "MIRANGABA": {"lat": -10.9328, "lon": -40.2794}, "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
+    "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569}, "OLHO D'ÁGUA": {"lat": -7.2281, "lon": -37.7347},
+    "OLIVEIRA DOS BREJINHOS": {"lat": -12.3169, "lon": -42.8967}, "OUROLÂNDIA": {"lat": -10.8406, "lon": -40.8047},
+    "PARATINGA": {"lat": -12.6908, "lon": -43.1844}, "PATOS": {"lat": -7.0194, "lon": -37.2800},
+    "PAULISTANA": {"lat": -8.1367, "lon": -41.1444}, "PETROLINA": {"lat": -9.3956, "lon": -40.5019},
+    "PIANCÓ": {"lat": -7.2033, "lon": -37.9281}, "PIATÃ": {"lat": -13.1517, "lon": -41.7719},
+    "QUEIMADA NOVA": {"lat": -8.5678, "lon": -41.4278}, "REMANSO": {"lat": -9.6200, "lon": -42.0800},
+    "SANTA MARIA DA BOA VISTA": {"lat": -8.8078, "lon": -39.8256}, "SANTO ANTÔNIO DE LISBOA": {"lat": -7.0628, "lon": -41.2292},
+    "SÃO GABRIEL": {"lat": -11.2253, "lon": -41.9056}, "SÃO JOSÉ DE PRINCESA": {"lat": -7.7328, "lon": -38.0833},
+    "SERRA GRANDE": {"lat": -7.2750, "lon": -38.3667}, "TANQUE NOVO": {"lat": -13.6264, "lon": -42.5414},
+    "TEIXEIRA": {"lat": -7.3933, "lon": -37.2536}, "UMBURANAS": {"lat": -10.7417, "lon": -41.3414},
+    "VÁRZEA NOVA": {"lat": -11.2464, "lon": -40.9706}, "XIQUE-XIQUE": {"lat": -10.8239, "lon": -42.7300},
+    "BS CASINHAS": {"lat": -10.0758, "lon": -38.4797}, "BS RIACHO DO SOBRADO": {"lat": -9.2732, "lon": -40.7254}
 }
 
 if not df.empty:
@@ -263,8 +244,7 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    # AS 7 ABAS DO SISTEMA
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Custos Fixos", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Seguro/Rastreadores", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
 
     with tab1:
         st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
@@ -338,46 +318,45 @@ if not df.empty:
             
             if not top10_km.empty:
                 top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
+                fig_km = px.bar(top10_km, x='Quilometragem', y='Placa_Base', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
+                fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
+                fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
+                st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
             else:
-                top10_km['Placa_Base'] = []
-                
-            fig_km = px.bar(top10_km, x='Quilometragem', y='Placa_Base', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
-            fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-            max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
-            
-            fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
-            st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
+                st.info("Nenhum dado para exibir neste mês.")
             
         with g2:
             st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
             top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
-            if not top10_custo.empty:
+            if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
                 top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
+                fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa_Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
+                fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
+                fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
+                st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
             else:
-                top10_custo['Placa_Base'] = []
-                
-            fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa_Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
-            fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-            max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
-            
-            fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
-            st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
+                st.info("Nenhum custo lançado neste mês.")
 
     with tab2:
         st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
         
         ca1, ca2, ca3 = st.columns(3)
         with ca1:
-            orc_total_manut = sum(ORCAMENTOS_MANUT.get(inst, 0) for inst in inst_ativas)
             gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
-            saldo_manut = orc_total_manut - gasto_total_acum_manut
-            perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
             
-            sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
-            prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
-            
-            draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
+            if ano_sel == 2026:
+                orc_total_manut = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas)
+                saldo_manut = orc_total_manut - gasto_total_acum_manut
+                perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
+                sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
+                prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
+                draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
+            else:
+                sub_manut = "Orçamento Anual: <b>A definir</b>"
+                draw_card("CUSTO DE MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut)
             
         with ca2:
             km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
@@ -386,14 +365,15 @@ if not df.empty:
         
         st.markdown("---")
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
-        fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-        st.plotly_chart(fig_evol, use_container_width=True)
+        if not evol_inst.empty:
+            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
+            st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
         st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
         custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
         
-        if not custo_base_acum.empty:
+        if not custo_base_acum.empty and custo_base_acum['Custo de manutenção'].sum() > 0:
             fig_base_acum = px.bar(custo_base_acum, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
             fig_base_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
             max_cb = custo_base_acum['Custo de manutenção'].max()
@@ -409,18 +389,21 @@ if not df.empty:
 
         k1, k2 = st.columns([1, 2])
         with k1:
-            orc_total_comb = sum(ORCAMENTOS_COMB.get(inst, 0) for inst in inst_ativas)
             gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
-            saldo_comb = orc_total_comb - gasto_acum_comb
-            perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
             
-            sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
-            prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
-            
-            draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb, progress_text=prog_text_comb)
+            if ano_sel == 2026:
+                orc_total_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
+                saldo_comb = orc_total_comb - gasto_acum_comb
+                perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
+                sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
+                prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
+                draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb, progress_text=prog_text_comb)
+            else:
+                sub_comb = "Orçamento Anual: <b>A definir</b>"
+                draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb)
         
         st.markdown("---")
         
@@ -430,11 +413,10 @@ if not df.empty:
             st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível em {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
             custo_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
-            if not custo_comb_base_mes.empty:
+            if not custo_comb_base_mes.empty and custo_comb_base_mes['Custo Combustível'].sum() > 0:
                 fig_comb_mes = px.bar(custo_comb_base_mes, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#0288D1'])
                 fig_comb_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_m = custo_comb_base_mes['Custo Combustível'].max()
-                
                 fig_comb_mes.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_m * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_mes, use_container_width=True, config={'displayModeBar': False})
         
@@ -442,43 +424,48 @@ if not df.empty:
             st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível Acumulado em {ano_sel}</div>', unsafe_allow_html=True)
             custo_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
             
-            if not custo_comb_base_acum.empty:
+            if not custo_comb_base_acum.empty and custo_comb_base_acum['Custo Combustível'].sum() > 0:
                 fig_comb_acum = px.bar(custo_comb_base_acum, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#F57C00'])
                 fig_comb_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                 max_cc_a = custo_comb_base_acum['Custo Combustível'].max()
-                
                 fig_comb_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                 st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
 
     with tab4:
-        st.markdown(f"### 🛡️ Gestão de Custos Fixos | {ano_sel}")
+        st.markdown(f"### 🛡️ Seguro/Rastreadores | {ano_sel}")
         df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
-        
-        orc_seguro = sum(ORCAMENTOS_SEGURO.get(inst, 0) for inst in inst_ativas)
-        orc_rastreador = sum(ORCAMENTOS_RASTREADOR.get(inst, 0) for inst in inst_ativas)
         
         gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
         gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
         
-        saldo_seguro = orc_seguro - gasto_seguro
-        saldo_rastreador = orc_rastreador - gasto_rastreador
-        
-        perc_seguro = (gasto_seguro / orc_seguro * 100) if orc_seguro > 0 else 0
-        perc_rastreador = (gasto_rastreador / orc_rastreador * 100) if orc_rastreador > 0 else 0
-        
         cf1, cf2 = st.columns(2)
+        
         with cf1:
-            sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b>"
-            prog_text_seguro = f"{perc_seguro:.1f}% &middot; Saldo {fmt_br(saldo_seguro, True)}"
-            draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro, progress_text=prog_text_seguro)
-            
+            if ano_sel == 2026:
+                orc_seguro = sum(ORCAMENTOS_SEGURO_2026.get(inst, 0) for inst in inst_ativas)
+                saldo_seguro = orc_seguro - gasto_seguro
+                perc_seguro = (gasto_seguro / orc_seguro * 100) if orc_seguro > 0 else 0
+                sub_seguro = f"Orçamento Anual: <b>{fmt_br(orc_seguro, True)}</b>"
+                prog_text_seguro = f"{perc_seguro:.1f}% &middot; Saldo {fmt_br(saldo_seguro, True)}"
+                draw_card("EXECUÇÃO SEGURO DE VEÍCULOS", fmt_br(gasto_seguro, True), sub_seguro, progress=perc_seguro, progress_text=prog_text_seguro)
+            else:
+                sub_seguro = "Orçamento Anual: <b>A definir</b>"
+                draw_card("CUSTO COM SEGURO", fmt_br(gasto_seguro, True), sub_seguro)
+
         with cf2:
-            sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b>"
-            prog_text_rastreador = f"{perc_rastreador:.1f}% &middot; Saldo {fmt_br(saldo_rastreador, True)}"
-            draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador, progress_text=prog_text_rastreador)
+            if ano_sel == 2026:
+                orc_rastreador = sum(ORCAMENTOS_RASTREADOR_2026.get(inst, 0) for inst in inst_ativas)
+                saldo_rastreador = orc_rastreador - gasto_rastreador
+                perc_rastreador = (gasto_rastreador / orc_rastreador * 100) if orc_rastreador > 0 else 0
+                sub_rastreador = f"Orçamento Anual: <b>{fmt_br(orc_rastreador, True)}</b>"
+                prog_text_rastreador = f"{perc_rastreador:.1f}% &middot; Saldo {fmt_br(saldo_rastreador, True)}"
+                draw_card("EXECUÇÃO RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador, progress=perc_rastreador, progress_text=prog_text_rastreador)
+            else:
+                sub_rastreador = "Orçamento Anual: <b>A definir</b>"
+                draw_card("CUSTO COM RASTREADOR", fmt_br(gasto_rastreador, True), sub_rastreador)
             
         st.markdown("---")
-        st.markdown('<div class="chart-title">Evolução Mensal de Custos Fixos</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">Evolução Mensal de Seguro e Rastreadores</div>', unsafe_allow_html=True)
         
         evol_fixos = df_fixos_acum.groupby(['Mes_Nome', 'Mes_Num'])[['Custo de seguro', 'Custo de Rastreador']].sum().reset_index().sort_values('Mes_Num')
         evol_fixos_melted = evol_fixos.melt(id_vars=['Mes_Nome', 'Mes_Num'], 
@@ -500,11 +487,9 @@ if not df.empty:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
         st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
         
-        # Conta veículos únicos de cada base neste mês
         df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
-        # --- FUNÇÃO TRADUTORA INTELIGENTE ---
         def buscar_coordenada(nome_base, eixo):
             if pd.isna(nome_base): return None
             nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
@@ -513,43 +498,31 @@ if not df.empty:
                 if chave_limpa in nome_limpo: return coords.get(eixo)
             return None
 
-        # Puxa Latitude e Longitude certificando que são números (float) para o Plotly não falhar
         df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
         df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
         
-        # Separa as bases com e sem coordenadas
         df_com_coord = df_mapa.dropna(subset=['lat', 'lon']).copy()
         df_sem_coord = df_mapa[df_mapa['lat'].isna()]
         
         if not df_com_coord.empty:
-            
-            # Garante formato numérico correto para as coordenadas
             df_com_coord['lat'] = df_com_coord['lat'].astype(float)
             df_com_coord['lon'] = df_com_coord['lon'].astype(float)
             
-            # CRIANDO O NOVO ESTILO DO MAPA (Circulo Vermelho Clássico + Número Interno)
             fig_mapa = go.Figure(go.Scattermapbox(
                 lat=df_com_coord['lat'],
                 lon=df_com_coord['lon'],
                 mode='markers+text',
-                marker=dict(
-                    size=26,           # Bolinha de tamanho fixo bem visível em apresentações
-                    color='#D32F2F',   # Vermelho escuro clássico de pin de mapa
-                    opacity=1.0        # Bolinha sólida
-                ),
+                marker=dict(size=26, color='#D32F2F', opacity=1.0),
                 text=df_com_coord['Veículos Ativos'].astype(str),
-                textposition='middle center', # Coloca o número de veículos exatamente DENTRO da bolinha!
-                textfont=dict(size=14, color='white', family='Arial Black'), # Fonte branca para dar contraste no vermelho
+                textposition='middle center', 
+                textfont=dict(size=14, color='white', family='Arial Black'), 
                 hoverinfo='text',
                 hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
             ))
 
             fig_mapa.update_layout(
-                mapbox_style="open-street-map", # Mapa idêntico ao Google Maps
-                mapbox=dict(
-                    center=dict(lat=-10.5, lon=-40.5), # Centralizado na região principal
-                    zoom=5.2
-                ),
+                mapbox_style="open-street-map", 
+                mapbox=dict(center=dict(lat=-10.5, lon=-40.5), zoom=5.2),
                 margin={"r":0,"t":10,"l":0,"b":0},
                 height=550,
                 showlegend=False
@@ -557,7 +530,7 @@ if not df.empty:
             
             st.plotly_chart(fig_mapa, use_container_width=True)
         else:
-            st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa.**")
+            st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa neste mês.**")
             
         if not df_sem_coord.empty:
             st.warning(f"⚠️ Atenção: Os seguintes centros de custo não possuem coordenadas geográficas atreladas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
@@ -581,7 +554,6 @@ if not df.empty:
             comb_mes = df_rx_mes['Custo Combustível'].sum()
             comb_acum = df_rx_acum['Custo Combustível'].sum()
             
-            # Cálculo sem o Seguro e Rastreador
             total_mes = manut_mes + comb_mes
             total_acum = manut_acum + comb_acum
             
@@ -623,18 +595,17 @@ if not df.empty:
             col_rx1, col_rx2 = st.columns(2)
             
             with col_rx1:
-                # Agrupamento e cálculo da linha do tempo apenas com Manutenção e Combustível
                 evol_rx = df_rx_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível']].sum().reset_index()
                 evol_rx['Custo Total'] = evol_rx['Custo de manutenção'] + evol_rx['Custo Combustível']
                 evol_rx = evol_rx.sort_values('Mes_Num')
                 
-                fig_rx_line = px.line(evol_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução do Custo Total | {base_raiox}")
-                fig_rx_line.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
-                fig_rx_line.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
-                st.plotly_chart(fig_rx_line, use_container_width=True)
+                if not evol_rx.empty and evol_rx['Custo Total'].sum() > 0:
+                    fig_rx_line = px.line(evol_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução do Custo Total | {base_raiox}")
+                    fig_rx_line.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
+                    fig_rx_line.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
+                    st.plotly_chart(fig_rx_line, use_container_width=True)
             
             with col_rx2:
-                # Tabela para alimentar o gráfico de rosca (sem custos fixos)
                 df_breakdown = pd.DataFrame({
                     'Categoria': ['Manutenção', 'Combustível'],
                     'Valor': [manut_acum, comb_acum]
@@ -649,7 +620,7 @@ if not df.empty:
     with tab7:
         st.markdown("### 📑 Detalhamento dos Dados")
         
-        df_download = df_base.drop(columns=['Mes_Num', 'Ano'])
+        df_download = df_base.drop(columns=['Mes_Num'])
         
         csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
         st.download_button(
@@ -662,4 +633,4 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         st.dataframe(df_download, use_container_width=True)
 else:
-    st.warning("Verifique o arquivo da planilha online.")
+    st.warning("Verifique o link do arquivo da planilha online ou se a biblioteca openpyxl está instalada.")
