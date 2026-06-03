@@ -131,24 +131,23 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 """
     st.markdown(html_card, unsafe_allow_html=True)
 
-# CORREÇÃO DEFINITIVA DE NÚMEROS: Garante que os decimais fiquem perfeitos para os cálculos (ex: 62.591,07)
+# CORREÇÃO DEFINITIVA DE NÚMEROS: Agora garante e protege os decimais exatamente como estão na planilha!
 def to_float(serie):
     def clean_val(x):
         try:
             if pd.isna(x): return 0.0
             if isinstance(x, (int, float)): return float(x)
-            
-            x = str(x).replace('R$', '').replace('r$', '').strip()
+            x = str(x).upper().replace('R$', '').replace(' ', '').strip()
             if x == '': return 0.0
             
             if '.' in x and ',' in x:
-                x = x.replace('.', '').replace(',', '.')
+                if x.rfind(',') > x.rfind('.'):
+                    x = x.replace('.', '').replace(',', '.')
+                else:
+                    x = x.replace(',', '')
             elif ',' in x:
                 x = x.replace(',', '.')
-            elif '.' in x:
-                parts = x.split('.')
-                if len(parts) == 2 and len(parts[1]) == 3:
-                    x = x.replace('.', '')
+                
             return float(x)
         except:
             return 0.0
@@ -272,8 +271,9 @@ if not df.empty:
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
-            draw_card("VEÍCULOS ATIVOS (MÊS)", fmt_br(ativos_mes), is_lower_better=False)
+            # CORREÇÃO: Conta o total verdadeiro daquele ano, ignorando a seleção do mês específico.
+            ativos_ano = len(get_ativos(df_base)) 
+            draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_ano), is_lower_better=False)
         
         with c2:
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
@@ -283,6 +283,7 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
+            ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
             custo_medio = custo_m / ativos_mes if ativos_mes > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo (mês)", trend=trend_c)
@@ -383,13 +384,25 @@ if not df.empty:
         
         st.markdown("---")
         
-        # CORREÇÃO: Gráfico volta a plotar os valores de cada mês isolado!
+        # NOVO GRÁFICO DE APRESENTAÇÃO: Barras Agrupadas Mensais para evolução de manutenção
         st.markdown('<div class="chart-title">Evolução Mensal do Custo de Manutenção</div>', unsafe_allow_html=True)
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
+        
         if not evol_inst.empty:
-            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-            fig_evol.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=10), yaxis_title="Custo no Mês (R$)", xaxis_title="")
-            st.plotly_chart(fig_evol, use_container_width=True)
+            fig_evol = px.bar(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', 
+                              barmode='group', text='Custo de manutenção',
+                              color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
+            
+            fig_evol.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
+            max_c_evol = evol_inst['Custo de manutenção'].max() if not evol_inst.empty else 1
+            
+            fig_evol.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                                   margin=dict(r=10, l=10, t=20, b=10),
+                                   yaxis=dict(title="Custo no Mês (R$)", showgrid=True, gridcolor='#E0E0E0', range=[0, max_c_evol * 1.25]),
+                                   xaxis=dict(title=""),
+                                   legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
+                                   separators=',.')
+            st.plotly_chart(fig_evol, use_container_width=True, config={'displayModeBar': False})
 
         st.markdown("---")
         st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
@@ -409,7 +422,6 @@ if not df.empty:
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
-        # CORREÇÃO: Dois cartões. O mensal e o Anual acumulado.
         k1, k2 = st.columns(2)
         with k1:
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
@@ -503,8 +515,14 @@ if not df.empty:
         
         if evol_fixos_melted['Custo'].sum() > 0:
             fig_fixos = px.bar(evol_fixos_melted, x='Mes_Nome', y='Custo', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#1A237E", "Rastreador": "#0288D1"})
-            fig_fixos.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', yaxis_title="Custo (R$)", xaxis_title="")
-            fig_fixos.update_traces(texttemplate='<b>R$ %{y:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
+            
+            max_f = evol_fixos_melted['Custo'].max()
+            fig_fixos.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                                    yaxis=dict(title="Custo (R$)", showgrid=True, gridcolor='#E0E0E0', range=[0, max_f * 1.3]), xaxis_title="",
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
+                                    separators=',.')
+            
+            fig_fixos.update_traces(texttemplate='<b>R$ %{y:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
             st.plotly_chart(fig_fixos, use_container_width=True)
         else:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
