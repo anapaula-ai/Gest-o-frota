@@ -131,7 +131,6 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 """
     st.markdown(html_card, unsafe_allow_html=True)
 
-# CORREÇÃO DEFINITIVA DE NÚMEROS: Agora garante e protege os decimais exatamente como estão na planilha!
 def to_float(serie):
     def clean_val(x):
         try:
@@ -271,7 +270,6 @@ if not df.empty:
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            # CORREÇÃO: Conta o total verdadeiro daquele ano, ignorando a seleção do mês específico.
             ativos_ano = len(get_ativos(df_base)) 
             draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_ano), is_lower_better=False)
         
@@ -331,9 +329,19 @@ if not df.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         
         g1, g2 = st.columns(2)
+        
+        # MÁSCARA PARA IGNORAR RASTREADORES E OUTROS NÃO-VEÍCULOS NO TOP 10
+        mask_veiculos_reais = (
+            (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN")
+        )
+        df_top10 = df_filtrado_mes_manut[mask_veiculos_reais]
+
         with g1:
             st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
-            top10_km = df_filtrado_mes_manut.nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
+            # Traz apenas quem tem KM MAIOR que Zero
+            top10_km = df_top10[df_top10['Quilometragem'] > 0].nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
                 top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
@@ -347,7 +355,8 @@ if not df.empty:
             
         with g2:
             st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
-            top10_custo = df_filtrado_mes_manut.nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
+            # Traz apenas quem tem Custo MAIOR que Zero
+            top10_custo = df_top10[df_top10['Custo de manutenção'] > 0].nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
                 top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
@@ -384,7 +393,6 @@ if not df.empty:
         
         st.markdown("---")
         
-        # NOVO GRÁFICO DE APRESENTAÇÃO: Barras Agrupadas Mensais para evolução de manutenção
         st.markdown('<div class="chart-title">Evolução Mensal do Custo de Manutenção</div>', unsafe_allow_html=True)
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         
@@ -531,7 +539,9 @@ if not df.empty:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
         st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
         
-        df_mapa = df_filtrado_mes_manut.groupby('Base')['Placa'].nunique().reset_index()
+        # MÁSCARA PARA IGNORAR RASTREADORES NA CONTAGEM DO MAPA
+        df_map_veiculos = df_filtrado_mes_manut[mask_veiculos_reais]
+        df_mapa = df_map_veiculos.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
         def buscar_coordenada(nome_base, eixo):
