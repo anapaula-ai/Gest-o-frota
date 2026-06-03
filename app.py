@@ -138,8 +138,8 @@ def to_float(serie):
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # LINK DO GOOGLE SHEETS
-        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTicWmhRZqU_8nrWC5o7paXkH_BDO4SkgzrzAIKaXiN3pnZYk4UjTxqzpwGQ1bdGr6mYzJw94mR1V4Y/pub?output=csv"
+        # LINK DO GOOGLE SHEETS ATUALIZADO
+        url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
         
         if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
             df = pd.read_csv(url_planilha, decimal=',', thousands='.')
