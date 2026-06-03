@@ -101,7 +101,6 @@ def fmt_br(valor, is_moeda=False):
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{valor:,.0f}".replace(",", ".")
 
-# CORREÇÃO: Nova função para pegar carros que ignora se a placa não tiver exatos 7 caracteres.
 def get_ativos(df):
     return df[
         (~df["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
@@ -132,13 +131,28 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 """
     st.markdown(html_card, unsafe_allow_html=True)
 
-# CORREÇÃO: Limpa sujeira de digitação nos números (Ex: se foi digitado "R$ 62.591,07" ele consegue somar)
+# CORREÇÃO DEFINITIVA DE NÚMEROS: Garante que os decimais fiquem perfeitos para os cálculos (ex: 62.591,07)
 def to_float(serie):
-    if str(serie.dtype) == 'object':
-        s = serie.astype(str).str.replace('R$', '', regex=False).str.strip()
-        s = s.str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-        return pd.to_numeric(s, errors='coerce').fillna(0)
-    return pd.to_numeric(serie, errors='coerce').fillna(0)
+    def clean_val(x):
+        try:
+            if pd.isna(x): return 0.0
+            if isinstance(x, (int, float)): return float(x)
+            
+            x = str(x).replace('R$', '').replace('r$', '').strip()
+            if x == '': return 0.0
+            
+            if '.' in x and ',' in x:
+                x = x.replace('.', '').replace(',', '.')
+            elif ',' in x:
+                x = x.replace(',', '.')
+            elif '.' in x:
+                parts = x.split('.')
+                if len(parts) == 2 and len(parts[1]) == 3:
+                    x = x.replace('.', '')
+            return float(x)
+        except:
+            return 0.0
+    return serie.apply(clean_val)
 
 @st.cache_data(ttl=600)
 def load_data():
@@ -258,7 +272,6 @@ if not df.empty:
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            # CORREÇÃO: Mostra veículos que bateram ponto NESTE mês específico, em vez do ano todo.
             ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
             draw_card("VEÍCULOS ATIVOS (MÊS)", fmt_br(ativos_mes), is_lower_better=False)
         
@@ -370,12 +383,12 @@ if not df.empty:
         
         st.markdown("---")
         
-        # CORREÇÃO: Gráfico agora exibe Custo ACUMULADO (Soma gradativa dos meses, a linha só sobe).
+        # CORREÇÃO: Gráfico volta a plotar os valores de cada mês isolado!
+        st.markdown('<div class="chart-title">Evolução Mensal do Custo de Manutenção</div>', unsafe_allow_html=True)
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         if not evol_inst.empty:
-            evol_inst['Custo Acumulado'] = evol_inst.groupby('Instituição')['Custo de manutenção'].cumsum()
-            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo Acumulado', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-            fig_evol.update_layout(title="Evolução do Custo Acumulado de Manutenção", yaxis_title="Custo Acumulado (R$)")
+            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
+            fig_evol.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=10, b=10), yaxis_title="Custo no Mês (R$)", xaxis_title="")
             st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
@@ -396,7 +409,7 @@ if not df.empty:
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
-        # CORREÇÃO: Colocados 2 cartões. Indicador mensal de combustível e o Acumulado anual.
+        # CORREÇÃO: Dois cartões. O mensal e o Anual acumulado.
         k1, k2 = st.columns(2)
         with k1:
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
