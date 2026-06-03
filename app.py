@@ -101,10 +101,12 @@ def fmt_br(valor, is_moeda=False):
         return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"{valor:,.0f}".replace(",", ".")
 
+# CORREÇÃO: Nova função para pegar carros que ignora se a placa não tiver exatos 7 caracteres.
 def get_ativos(df):
     return df[
-        (df["Placa"].str.len() == 7) & 
-        (~df["Placa"].str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST", case=False, na=True))
+        (~df["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+        (df["Placa"].astype(str).str.strip() != "") & 
+        (df["Placa"].astype(str).str.upper() != "NAN")
     ]["Placa"].unique()
 
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
@@ -130,15 +132,17 @@ def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progre
 """
     st.markdown(html_card, unsafe_allow_html=True)
 
+# CORREÇÃO: Limpa sujeira de digitação nos números (Ex: se foi digitado "R$ 62.591,07" ele consegue somar)
 def to_float(serie):
     if str(serie.dtype) == 'object':
-        return pd.to_numeric(serie.str.replace('.', '', regex=False).str.replace(',', '.', regex=False), errors='coerce').fillna(0)
+        s = serie.astype(str).str.replace('R$', '', regex=False).str.strip()
+        s = s.str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        return pd.to_numeric(s, errors='coerce').fillna(0)
     return pd.to_numeric(serie, errors='coerce').fillna(0)
 
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        # LINK DO GOOGLE SHEETS ATUALIZADO
         url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
         
         if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
@@ -168,7 +172,6 @@ def load_data():
         if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
         if 'Instituição' in df.columns: df['Instituição'] = df['Instituição'].astype(str).str.strip()
         
-        # Limpeza Anti-Duplicação de Placas (Remove hifens, espaços e transforma em maiúscula)
         if 'Placa' in df.columns: 
             df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
             df['Placa'] = df['Placa'].str.replace('-', '', regex=False).str.replace(' ', '', regex=False).replace('NAN', '')
@@ -255,8 +258,9 @@ if not df.empty:
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            ativos_ano = len(get_ativos(df_base)) # Total verdadeiro de carros daquele ano
-            draw_card("VEÍCULOS NA FROTA (ANO)", fmt_br(ativos_ano), is_lower_better=False)
+            # CORREÇÃO: Mostra veículos que bateram ponto NESTE mês específico, em vez do ano todo.
+            ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
+            draw_card("VEÍCULOS ATIVOS (MÊS)", fmt_br(ativos_mes), is_lower_better=False)
         
         with c2:
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
@@ -266,8 +270,7 @@ if not df.empty:
         with c3:
             custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
             custo_a = df_anterior_manut['Custo de manutenção'].sum()
-            num_veiculos_mes = len(get_ativos(df_filtrado_mes_manut))
-            custo_medio = custo_m / num_veiculos_mes if num_veiculos_mes > 0 else 0
+            custo_medio = custo_m / ativos_mes if ativos_mes > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
             draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo (mês)", trend=trend_c)
 
@@ -366,9 +369,13 @@ if not df.empty:
             draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
         
         st.markdown("---")
+        
+        # CORREÇÃO: Gráfico agora exibe Custo ACUMULADO (Soma gradativa dos meses, a linha só sobe).
         evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
         if not evol_inst.empty:
-            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
+            evol_inst['Custo Acumulado'] = evol_inst.groupby('Instituição')['Custo de manutenção'].cumsum()
+            fig_evol = px.line(evol_inst, x='Mes_Nome', y='Custo Acumulado', color='Instituição', markers=True, color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
+            fig_evol.update_layout(title="Evolução do Custo Acumulado de Manutenção", yaxis_title="Custo Acumulado (R$)")
             st.plotly_chart(fig_evol, use_container_width=True)
 
         st.markdown("---")
@@ -389,23 +396,27 @@ if not df.empty:
         df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
-        k1, k2 = st.columns([1, 2])
+        # CORREÇÃO: Colocados 2 cartões. Indicador mensal de combustível e o Acumulado anual.
+        k1, k2 = st.columns(2)
         with k1:
-            gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
             gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
             trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
+            sub_comb_m = f"Gasto exclusivo em {mes_sel}"
+            draw_card("CUSTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), sub_comb_m, trend=trend_comb)
             
+        with k2:
+            gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
             if ano_sel == 2026:
                 orc_total_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
                 saldo_comb = orc_total_comb - gasto_acum_comb
                 perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
                 sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
                 prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
-                draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb, progress=perc_comb, progress_text=prog_text_comb)
+                draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, progress=perc_comb, progress_text=prog_text_comb)
             else:
                 sub_comb = "Orçamento Anual: <b>A definir</b>"
-                draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_acum_comb, True), sub_comb, trend=trend_comb)
+                draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_acum_comb, True), sub_comb)
         
         st.markdown("---")
         
