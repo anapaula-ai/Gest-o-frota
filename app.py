@@ -65,10 +65,11 @@ st.markdown("""
         border: 1px solid #CFD8DC;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
         margin-bottom: 20px;
+        gap: 10px;
     }
     .raiox-item {
         flex: 1;
-        min-width: 150px;
+        min-width: 130px;
         text-align: center;
         border-right: 1px solid #E0E0E0;
     }
@@ -102,10 +103,13 @@ def fmt_br(valor, is_moeda=False):
     return f"{valor:,.0f}".replace(",", ".")
 
 def get_ativos(df):
+    # As digitais já estarão fora, mas mantemos as despesas bloqueadas na contagem de ativos
+    excluir_pattern = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA"
     return df[
-        (~df["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+        (~df["Placa"].astype(str).str.contains(excluir_pattern, case=False, na=True)) &
         (df["Placa"].astype(str).str.strip() != "") & 
-        (df["Placa"].astype(str).str.upper() != "NAN")
+        (df["Placa"].astype(str).str.upper() != "NAN") &
+        (df["Placa"].astype(str).str.strip() != "0")
     ]["Placa"].unique()
 
 def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
@@ -184,6 +188,16 @@ def load_data():
         if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
         if 'Instituição' in df.columns: df['Instituição'] = df['Instituição'].astype(str).str.strip()
         
+        if 'Modelo' in df.columns: 
+            df['Modelo'] = df['Modelo'].astype(str).str.strip().replace(['0', '0.0', 'nan', 'NAN', 'None'], '-')
+        else:
+            df['Modelo'] = '-'
+            
+        if 'Motorista' in df.columns: 
+            df['Motorista'] = df['Motorista'].astype(str).str.strip().replace(['0', '0.0', 'nan', 'NAN', 'None'], '-')
+        else:
+            df['Motorista'] = '-'
+        
         if 'Placa' in df.columns: 
             df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
             df['Placa'] = df['Placa'].str.replace('-', '', regex=False).str.replace(' ', '', regex=False).replace('NAN', '')
@@ -249,7 +263,18 @@ if not df.empty:
     opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
     cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
     
-    df_base = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
+    # --------------------------------------------------------------------------------
+    # SEPARAÇÃO DE DADOS: Ocultando totalmente as Placas Digitais dos Gráficos
+    # --------------------------------------------------------------------------------
+    # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 7, Aba 8 e Busca.
+    df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
+    
+    # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos, Mapas e Top 10 (Abas 1 a 6).
+    pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+    mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
+    df_base = df_base_completa[mask_reais]
+    # --------------------------------------------------------------------------------
+
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
@@ -263,7 +288,11 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", "🛡️ Seguro/Rastreadores", "🗺️ Mapa da Frota", "📍 Raio-X da Base", "📑 Detalhamento"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
+        "🛡️ Seguro/Rastreadores", "🗺️ Mapa da Frota", "📍 Raio-X da Base", 
+        "📋 Relação da Frota", "📑 Detalhamento"
+    ])
 
     with tab1:
         st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
@@ -284,36 +313,47 @@ if not df.empty:
             ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
             custo_medio = custo_m / ativos_mes if ativos_mes > 0 else 0
             trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
-            draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo (mês)", trend=trend_c)
+            draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo ativo", trend=trend_c)
 
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
-            df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
+            # A busca usa o df_base_completa para permitir buscar os digitais também
+            df_veiculo = df_base_completa[df_base_completa["Placa"] == busca_placa].sort_values("Mes_Num")
             
             if not df_veiculo.empty:
                 v_gasto_total = df_veiculo['Custo de manutenção'].sum()
                 v_km_total = df_veiculo['Quilometragem'].sum()
                 v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
                 v_base = df_veiculo['Base'].iloc[-1]
+                v_modelo = df_veiculo['Modelo'].iloc[-1] if 'Modelo' in df_veiculo.columns else '-'
+                v_motorista = df_veiculo['Motorista'].iloc[-1] if 'Motorista' in df_veiculo.columns else '-'
                 
                 st.markdown(f"""
                 <div class="raiox-container">
                     <div class="raiox-item">
                         <div class="raiox-label">📍 Base atual</div>
-                        <div class="raiox-value">{v_base}</div>
+                        <div class="raiox-value" style="font-size: 16px;">{v_base}</div>
+                    </div>
+                    <div class="raiox-item">
+                        <div class="raiox-label">🚘 Modelo</div>
+                        <div class="raiox-value" style="font-size: 15px;">{v_modelo}</div>
+                    </div>
+                    <div class="raiox-item">
+                        <div class="raiox-label">🧑‍✈️ Motorista</div>
+                        <div class="raiox-value" style="font-size: 15px;">{v_motorista}</div>
                     </div>
                     <div class="raiox-item">
                         <div class="raiox-label">💰 Gasto Total Ano</div>
-                        <div class="raiox-value">{fmt_br(v_gasto_total, True)}</div>
+                        <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_gasto_total, True)}</div>
                     </div>
                     <div class="raiox-item">
                         <div class="raiox-label">🛣️ KM Total Ano</div>
-                        <div class="raiox-value">{fmt_br(v_km_total)}</div>
+                        <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_km_total)}</div>
                     </div>
                     <div class="raiox-item">
                         <div class="raiox-label">📊 Custo por KM</div>
-                        <div class="raiox-value">{fmt_br(v_custo_km, True)}/km</div>
+                        <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_custo_km, True)}/km</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -330,17 +370,17 @@ if not df.empty:
         
         g1, g2 = st.columns(2)
         
-        # MÁSCARA PARA IGNORAR RASTREADORES E OUTROS NÃO-VEÍCULOS NO TOP 10
+        # MÁSCARA PARA IGNORAR DESPESAS - (As placas digitais JÁ FORAM filtradas no df_base)
         mask_veiculos_reais = (
             (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
             (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
-            (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN")
+            (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN") &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "0")
         )
         df_top10 = df_filtrado_mes_manut[mask_veiculos_reais]
 
         with g1:
             st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
-            # Traz apenas quem tem KM MAIOR que Zero
             top10_km = df_top10[df_top10['Quilometragem'] > 0].nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
             
             if not top10_km.empty:
@@ -355,7 +395,6 @@ if not df.empty:
             
         with g2:
             st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
-            # Traz apenas quem tem Custo MAIOR que Zero
             top10_custo = df_top10[df_top10['Custo de manutenção'] > 0].nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
             
             if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
@@ -539,8 +578,14 @@ if not df.empty:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
         st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
         
-        # MÁSCARA PARA IGNORAR RASTREADORES NA CONTAGEM DO MAPA
-        df_map_veiculos = df_filtrado_mes_manut[mask_veiculos_reais]
+        # Como df_filtrado_mes_manut vem do df_base, ele já NÃO POSSUI as placas digitais. Mas tiramos as despesas.
+        mask_mapa_veiculos = (
+            (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN") &
+            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "0")
+        )
+        df_map_veiculos = df_filtrado_mes_manut[mask_mapa_veiculos]
         df_mapa = df_map_veiculos.groupby('Base')['Placa'].nunique().reset_index()
         df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
         
@@ -571,7 +616,7 @@ if not df.empty:
                 textposition='middle center', 
                 textfont=dict(size=14, color='white', family='Arial Black'), 
                 hoverinfo='text',
-                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos: " + df_com_coord['Veículos Ativos'].astype(str)
+                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos Ativos: " + df_com_coord['Veículos Ativos'].astype(str)
             ))
 
             fig_mapa.update_layout(
@@ -592,10 +637,11 @@ if not df.empty:
     with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
-        base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_temp_inst[col_cc].dropna().unique()))
+        # A seleção também vem do df_base (seguro contra as placas digitais)
+        base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
         
         if base_raiox:
-            df_rx_base = df_temp_inst[df_temp_inst[col_cc] == base_raiox]
+            df_rx_base = df_base[df_base[col_cc] == base_raiox]
             df_rx_mes = df_rx_base[df_rx_base['Mes_Nome'] == mes_sel]
             df_rx_acum = df_rx_base[df_rx_base['Mes_Num'] <= mes_num_atual]
             
@@ -672,9 +718,50 @@ if not df.empty:
                     st.plotly_chart(fig_rx_pie, use_container_width=True)
 
     with tab7:
+        st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
+        st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
+        
+        # Filtro de Frota -> Aqui usamos o df_base_completa (Que possui as placas digitais)
+        mask_frota_aba = (
+            (~df_base_completa["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+            (df_base_completa["Placa"].astype(str).str.strip() != "") &
+            (df_base_completa["Placa"].astype(str).str.upper() != "NAN") &
+            (df_base_completa["Placa"].astype(str).str.strip() != "0")
+        )
+        df_frota = df_base_completa[mask_frota_aba]
+        
+        if not df_frota.empty:
+            df_frota_unica = df_frota.sort_values("Mes_Num", ascending=False).drop_duplicates(subset=["Placa"])
+            
+            colunas_mostrar = ['Placa', 'Instituição', col_cc, 'Modelo', 'Motorista']
+            if 'Base' in df_frota_unica.columns and 'Base' not in colunas_mostrar:
+                colunas_mostrar.insert(3, 'Base')
+                
+            df_mostrar = df_frota_unica[colunas_mostrar].sort_values(['Instituição', col_cc, 'Placa'])
+            insts_frota = sorted(df_mostrar['Instituição'].unique())
+            
+            if len(insts_frota) > 1:
+                t_insts = st.tabs([f"Frota {i}" for i in insts_frota] + ["Visão Geral"])
+                for i, t in enumerate(t_insts):
+                    with t:
+                        if i < len(insts_frota):
+                            df_i = df_mostrar[df_mostrar['Instituição'] == insts_frota[i]]
+                            st.dataframe(df_i, use_container_width=True, hide_index=True)
+                            st.info(f"Total de registros na frota ({insts_frota[i]}): **{len(df_i)}**")
+                        else:
+                            st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
+                            st.info(f"Total geral de registros: **{len(df_mostrar)}**")
+            else:
+                st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
+                st.info(f"Total de registros na frota: **{len(df_mostrar)}**")
+        else:
+            st.warning("Nenhum veículo encontrado para exibir nesta aba.")
+
+    with tab8:
         st.markdown("### 📑 Detalhamento dos Dados")
         
-        df_download = df_base.drop(columns=['Mes_Num'])
+        # O download extrai de df_base_completa para que nada se perca no Relatório Excel.
+        df_download = df_base_completa.drop(columns=['Mes_Num'])
         
         csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
         st.download_button(
@@ -686,5 +773,6 @@ if not df.empty:
         
         st.markdown("<br>", unsafe_allow_html=True)
         st.dataframe(df_download, use_container_width=True)
+
 else:
     st.warning("Verifique o link do arquivo da planilha online ou certifique-se de que os dados foram publicados.")
