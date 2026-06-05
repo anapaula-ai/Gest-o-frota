@@ -198,8 +198,9 @@ def load_data():
             df['Motorista'] = '-'
         
         if 'Placa' in df.columns: 
+            # REMOVIDO os filtros que cortavam hifens e espaços para respeitar a sua formatação (ex: REBOQUE - ABCD)
             df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
-            df['Placa'] = df['Placa'].str.replace('-', '', regex=False).str.replace(' ', '', regex=False).replace('NAN', '')
+            df['Placa'] = df['Placa'].replace(['NAN', 'NONE'], '')
         
         return df
     except Exception as e:
@@ -712,7 +713,6 @@ if not df.empty:
         st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
         st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
         
-        # FILTRO EXCLUSIVO: Traz APENAS as placas criadas para cadastro que contêm essas palavras
         pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
         mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
         
@@ -759,7 +759,15 @@ if not df.empty:
         )
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.dataframe(df_download, use_container_width=True)
+        
+        # GARANTIA DE FORMATAÇÃO DE CASAS DECIMAIS NA TABELA
+        colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
+        config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
+        
+        if 'Quilometragem' in df_download.columns:
+            config_cols['Quilometragem'] = st.column_config.NumberColumn('Quilometragem', format="%.0f")
+            
+        st.dataframe(df_download, use_container_width=True, hide_index=True, column_config=config_cols)
 
 else:
     st.warning("Verifique o link do arquivo da planilha online ou certifique-se de que os dados foram publicados.")
