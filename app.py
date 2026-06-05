@@ -103,7 +103,6 @@ def fmt_br(valor, is_moeda=False):
     return f"{valor:,.0f}".replace(",", ".")
 
 def get_ativos(df):
-    # As digitais já estarão fora, mas mantemos as despesas bloqueadas na contagem de ativos
     excluir_pattern = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA"
     return df[
         (~df["Placa"].astype(str).str.contains(excluir_pattern, case=False, na=True)) &
@@ -263,9 +262,6 @@ if not df.empty:
     opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
     cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
     
-    # --------------------------------------------------------------------------------
-    # SEPARAÇÃO DE DADOS: Ocultando totalmente as Placas Digitais dos Gráficos
-    # --------------------------------------------------------------------------------
     # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 7, Aba 8 e Busca.
     df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
     
@@ -273,7 +269,6 @@ if not df.empty:
     pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
     mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
     df_base = df_base_completa[mask_reais]
-    # --------------------------------------------------------------------------------
 
     busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
     
@@ -318,7 +313,6 @@ if not df.empty:
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
-            # A busca usa o df_base_completa para permitir buscar os digitais também
             df_veiculo = df_base_completa[df_base_completa["Placa"] == busca_placa].sort_values("Mes_Num")
             
             if not df_veiculo.empty:
@@ -370,7 +364,6 @@ if not df.empty:
         
         g1, g2 = st.columns(2)
         
-        # MÁSCARA PARA IGNORAR DESPESAS - (As placas digitais JÁ FORAM filtradas no df_base)
         mask_veiculos_reais = (
             (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
             (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
@@ -578,7 +571,6 @@ if not df.empty:
         st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
         st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
         
-        # Como df_filtrado_mes_manut vem do df_base, ele já NÃO POSSUI as placas digitais. Mas tiramos as despesas.
         mask_mapa_veiculos = (
             (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
             (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
@@ -637,7 +629,6 @@ if not df.empty:
     with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
-        # A seleção também vem do df_base (seguro contra as placas digitais)
         base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
         
         if base_raiox:
@@ -721,13 +712,10 @@ if not df.empty:
         st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
         st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
         
-        # Filtro de Frota -> Aqui usamos o df_base_completa (Que possui as placas digitais)
-        mask_frota_aba = (
-            (~df_base_completa["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
-            (df_base_completa["Placa"].astype(str).str.strip() != "") &
-            (df_base_completa["Placa"].astype(str).str.upper() != "NAN") &
-            (df_base_completa["Placa"].astype(str).str.strip() != "0")
-        )
+        # FILTRO EXCLUSIVO: Traz APENAS as placas criadas para cadastro que contêm essas palavras
+        pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+        mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
+        
         df_frota = df_base_completa[mask_frota_aba]
         
         if not df_frota.empty:
@@ -760,7 +748,6 @@ if not df.empty:
     with tab8:
         st.markdown("### 📑 Detalhamento dos Dados")
         
-        # O download extrai de df_base_completa para que nada se perca no Relatório Excel.
         df_download = df_base_completa.drop(columns=['Mes_Num'])
         
         csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
