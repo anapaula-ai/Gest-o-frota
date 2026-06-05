@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import unicodedata
 
 # 1. Configuração da Página
 st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
@@ -198,7 +196,6 @@ def load_data():
             df['Motorista'] = '-'
         
         if 'Placa' in df.columns: 
-            # REMOVIDO os filtros que cortavam hifens e espaços para respeitar a sua formatação (ex: REBOQUE - ABCD)
             df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
             df['Placa'] = df['Placa'].replace(['NAN', 'NONE'], '')
         
@@ -214,36 +211,6 @@ ORCAMENTOS_MANUT_2026 = {"AMES": 987380.00, "IAV": 305434.00}
 ORCAMENTOS_COMB_2026 = {"AMES": 1000081.06, "IAV": 264450.00}
 ORCAMENTOS_SEGURO_2026 = {"AMES": 186682.00, "IAV": 115461.00}
 ORCAMENTOS_RASTREADOR_2026 = {"AMES": 0.00, "IAV": 10194.00} 
-
-COORDENADAS_BASES = {
-    "ACAUÃ": {"lat": -8.2195, "lon": -41.0825}, "AFRÂNIO": {"lat": -8.5147, "lon": -41.0117},
-    "AMÉRICA DOURADA": {"lat": -11.4553, "lon": -41.4361}, "BETÂNIA DO PIAUÍ": {"lat": -8.1469, "lon": -40.7967},
-    "BOM JESUS DA LAPA": {"lat": -13.2536, "lon": -43.4181}, "BONINAL": {"lat": -12.6078, "lon": -41.8294},
-    "BOQUIRA": {"lat": -12.8236, "lon": -42.7303}, "BROTAS DE MACAÚBAS": {"lat": -12.0011, "lon": -42.6289},
-    "CAFARNAUM": {"lat": -11.6917, "lon": -41.4708}, "CARIDADE": {"lat": -7.7347, "lon": -40.9856},
-    "CASA NOVA": {"lat": -9.1656, "lon": -40.9725}, "CATURAMA": {"lat": -13.2981, "lon": -42.2742},
-    "CENTRAL": {"lat": -11.1350, "lon": -42.1128}, "CONCEIÇÃO DO CANINDÉ": {"lat": -7.8761, "lon": -41.5936},
-    "CURRAL NOVO DO PIAUÍ": {"lat": -7.7989, "lon": -40.8008}, "EMAS": {"lat": -7.0264, "lon": -37.7558},
-    "IBITIARA": {"lat": -12.6394, "lon": -42.2156}, "IBOTIRAMA": {"lat": -12.1856, "lon": -43.2208},
-    "IMACULADA": {"lat": -7.3969, "lon": -37.8519}, "IPUPIARA": {"lat": -11.9367, "lon": -42.6042},
-    "JACOBINA": {"lat": -11.1814, "lon": -40.5186}, "JUAZEIRO": {"lat": -9.4128, "lon": -40.5050},
-    "JUSSARA": {"lat": -11.0264, "lon": -41.9708}, "LAGOA GRANDE": {"lat": -8.9953, "lon": -40.2708},
-    "LAPÃO": {"lat": -11.3831, "lon": -41.8317}, "MACAÚBAS": {"lat": -13.0181, "lon": -42.6989},
-    "MATUREIA": {"lat": -7.2661, "lon": -37.3517}, "MIGUEL CALMOM": {"lat": -11.4283, "lon": -40.5950},
-    "MIRANGABA": {"lat": -10.9328, "lon": -40.2794}, "MORPARÁ": {"lat": -11.5542, "lon": -43.2731},
-    "MORRO DO CHAPÉU": {"lat": -11.5528, "lon": -41.1569}, "OLHO D'ÁGUA": {"lat": -7.2281, "lon": -37.7347},
-    "OLIVEIRA DOS BREJINHOS": {"lat": -12.3169, "lon": -42.8967}, "OUROLÂNDIA": {"lat": -10.8406, "lon": -40.8047},
-    "PARATINGA": {"lat": -12.6908, "lon": -43.1844}, "PATOS": {"lat": -7.0194, "lon": -37.2800},
-    "PAULISTANA": {"lat": -8.1367, "lon": -41.1444}, "PETROLINA": {"lat": -9.3956, "lon": -40.5019},
-    "PIANCÓ": {"lat": -7.2033, "lon": -37.9281}, "PIATÃ": {"lat": -13.1517, "lon": -41.7719},
-    "QUEIMADA NOVA": {"lat": -8.5678, "lon": -41.4278}, "REMANSO": {"lat": -9.6200, "lon": -42.0800},
-    "SANTA MARIA DA BOA VISTA": {"lat": -8.8078, "lon": -39.8256}, "SANTO ANTÔNIO DE LISBOA": {"lat": -7.0628, "lon": -41.2292},
-    "SÃO GABRIEL": {"lat": -11.2253, "lon": -41.9056}, "SÃO JOSÉ DE PRINCESA": {"lat": -7.7328, "lon": -38.0833},
-    "SERRA GRANDE": {"lat": -7.2750, "lon": -38.3667}, "TANQUE NOVO": {"lat": -13.6264, "lon": -42.5414},
-    "TEIXEIRA": {"lat": -7.3933, "lon": -37.2536}, "UMBURANAS": {"lat": -10.7417, "lon": -41.3414},
-    "VÁRZEA NOVA": {"lat": -11.2464, "lon": -40.9706}, "XIQUE-XIQUE": {"lat": -10.8239, "lon": -42.7300},
-    "BS CASINHAS": {"lat": -10.0758, "lon": -38.4797}, "BS RIACHO DO SOBRADO": {"lat": -9.2732, "lon": -40.7254}
-}
 
 if not df.empty:
     st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
@@ -263,15 +230,15 @@ if not df.empty:
     opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
     cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
     
-    # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 7, Aba 8 e Busca.
+    # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 6 (Relação), Aba 7 (Detalhamento) e Busca.
     df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
     
-    # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos, Mapas e Top 10 (Abas 1 a 6).
+    # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos e Top 10 (Abas 1 a 5).
     pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
     mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
     df_base = df_base_completa[mask_reais]
 
-    busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica", "").upper().strip()
+    busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica (ex: RDI3I72)", "").upper().strip()
     
     lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
     mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
@@ -284,9 +251,9 @@ if not df.empty:
     df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
     df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
-        "🛡️ Seguro/Rastreadores", "🗺️ Mapa da Frota", "📍 Raio-X da Base", 
+        "🛡️ Seguro/Rastreadores", "📍 Raio-X da Base", 
         "📋 Relação da Frota", "📑 Detalhamento"
     ])
 
@@ -314,15 +281,31 @@ if not df.empty:
         if busca_placa:
             st.markdown("---")
             st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
-            df_veiculo = df_base_completa[df_base_completa["Placa"] == busca_placa].sort_values("Mes_Num")
+            
+            # 1. Puxa os dados estatísticos reais usando a placa original de 7 dígitos
+            df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
             
             if not df_veiculo.empty:
                 v_gasto_total = df_veiculo['Custo de manutenção'].sum()
                 v_km_total = df_veiculo['Quilometragem'].sum()
                 v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
                 v_base = df_veiculo['Base'].iloc[-1]
-                v_modelo = df_veiculo['Modelo'].iloc[-1] if 'Modelo' in df_veiculo.columns else '-'
-                v_motorista = df_veiculo['Motorista'].iloc[-1] if 'Motorista' in df_veiculo.columns else '-'
+                
+                # 2. INTELIGÊNCIA: Busca o Modelo e o Motorista atrelados à Placa Digital correspondente
+                # Vai procurar qualquer placa digital (ex: REBOQUE - RDI3I72) que contenha o termo pesquisado (RDI3I72)
+                mask_digital = df_base_completa["Placa"].astype(str).str.contains(busca_placa, case=False, regex=False) & \
+                               df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, regex=True)
+                df_digital = df_base_completa[mask_digital]
+                
+                if not df_digital.empty:
+                    modelos_validos = df_digital[df_digital['Modelo'] != '-']['Modelo'].tolist()
+                    motoristas_validos = df_digital[df_digital['Motorista'] != '-']['Motorista'].tolist()
+                    v_modelo = modelos_validos[-1] if modelos_validos else '-'
+                    v_motorista = motoristas_validos[-1] if motoristas_validos else '-'
+                else:
+                    # Fallback (caso a placa digital não tenha sido preenchida ainda)
+                    v_modelo = df_veiculo['Modelo'].iloc[-1] if 'Modelo' in df_veiculo.columns else '-'
+                    v_motorista = df_veiculo['Motorista'].iloc[-1] if 'Motorista' in df_veiculo.columns else '-'
                 
                 st.markdown(f"""
                 <div class="raiox-container">
@@ -358,7 +341,7 @@ if not df.empty:
                 fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
                 st.plotly_chart(fig_raiox, use_container_width=True)
             else:
-                st.warning("Veículo não encontrado nesta seleção.")
+                st.warning("Nenhum dado financeiro ou de KM encontrado para esta Placa no período.")
             st.markdown("---")
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -569,65 +552,6 @@ if not df.empty:
             st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
     with tab5:
-        st.markdown(f"### 🗺️ Mapa de Distribuição da Frota | {mes_sel}/{ano_sel}")
-        st.markdown("Visão geográfica indicando as bases operacionais. Passe o mouse para ver o nome da base e a quantidade de veículos.")
-        
-        mask_mapa_veiculos = (
-            (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
-            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
-            (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN") &
-            (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "0")
-        )
-        df_map_veiculos = df_filtrado_mes_manut[mask_mapa_veiculos]
-        df_mapa = df_map_veiculos.groupby('Base')['Placa'].nunique().reset_index()
-        df_mapa.rename(columns={'Placa': 'Veículos Ativos'}, inplace=True)
-        
-        def buscar_coordenada(nome_base, eixo):
-            if pd.isna(nome_base): return None
-            nome_limpo = ''.join(c for c in unicodedata.normalize('NFD', str(nome_base)) if unicodedata.category(c) != 'Mn').upper()
-            for chave, coords in COORDENADAS_BASES.items():
-                chave_limpa = ''.join(c for c in unicodedata.normalize('NFD', chave) if unicodedata.category(c) != 'Mn').upper()
-                if chave_limpa in nome_limpo: return coords.get(eixo)
-            return None
-
-        df_mapa['lat'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lat'))
-        df_mapa['lon'] = df_mapa['Base'].apply(lambda x: buscar_coordenada(x, 'lon'))
-        
-        df_com_coord = df_mapa.dropna(subset=['lat', 'lon']).copy()
-        df_sem_coord = df_mapa[df_mapa['lat'].isna()]
-        
-        if not df_com_coord.empty:
-            df_com_coord['lat'] = df_com_coord['lat'].astype(float)
-            df_com_coord['lon'] = df_com_coord['lon'].astype(float)
-            
-            fig_mapa = go.Figure(go.Scattermapbox(
-                lat=df_com_coord['lat'],
-                lon=df_com_coord['lon'],
-                mode='markers+text',
-                marker=dict(size=26, color='#D32F2F', opacity=1.0),
-                text=df_com_coord['Veículos Ativos'].astype(str),
-                textposition='middle center', 
-                textfont=dict(size=14, color='white', family='Arial Black'), 
-                hoverinfo='text',
-                hovertext="<b>" + df_com_coord['Base'] + "</b><br>Total de Veículos Ativos: " + df_com_coord['Veículos Ativos'].astype(str)
-            ))
-
-            fig_mapa.update_layout(
-                mapbox_style="open-street-map", 
-                mapbox=dict(center=dict(lat=-10.5, lon=-40.5), zoom=5.2),
-                margin={"r":0,"t":10,"l":0,"b":0},
-                height=550,
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig_mapa, use_container_width=True)
-        else:
-            st.info("📍 **Nenhuma base com coordenada encontrada para exibir no mapa neste mês.**")
-            
-        if not df_sem_coord.empty:
-            st.warning(f"⚠️ Atenção: Os seguintes centros de custo não possuem coordenadas geográficas atreladas e não estão no mapa: **{', '.join(df_sem_coord['Base'].tolist())}**")
-
-    with tab6:
         st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
         
         base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
@@ -709,7 +633,7 @@ if not df.empty:
                     fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
                     st.plotly_chart(fig_rx_pie, use_container_width=True)
 
-    with tab7:
+    with tab6:
         st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
         st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
         
@@ -745,7 +669,7 @@ if not df.empty:
         else:
             st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
-    with tab8:
+    with tab7:
         st.markdown("### 📑 Detalhamento dos Dados")
         
         df_download = df_base_completa.drop(columns=['Mes_Num'])
