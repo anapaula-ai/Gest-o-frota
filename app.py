@@ -11,7 +11,7 @@ st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
 # Crie a sua senha aqui embaixo:
-SENHA_ACESSO = "FROTAS2026"
+SENHA_ACESSO = "Log2026@"
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
