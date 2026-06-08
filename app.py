@@ -268,8 +268,8 @@ else:
         df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
         
         # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos e Top 10 (Abas 1 a 5).
-        # VOLTOU AO ORIGINAL: "ALUGAD" não está aqui, então o resto do app funciona exatamente como antes.
-        pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+        # RETORNADO "ALUGAD" PARA O FILTRO: Garante que eles não sujem os gráficos e a busca
+        pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
         
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
         df_base = df_base_completa[mask_reais]
@@ -338,32 +338,11 @@ else:
                     v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
                     v_base = df_veiculo['Base'].iloc[-1]
                     
-                    mask_digital = df_base_completa["Placa"].astype(str).str.contains(busca_placa, case=False, regex=False) & \
-                                   df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, regex=True)
-                    df_digital = df_base_completa[mask_digital]
-                    
-                    if not df_digital.empty:
-                        modelos_validos = df_digital[df_digital['Modelo'] != '-']['Modelo'].tolist()
-                        motoristas_validos = df_digital[df_digital['Motorista'] != '-']['Motorista'].tolist()
-                        v_modelo = modelos_validos[-1] if modelos_validos else '-'
-                        v_motorista = motoristas_validos[-1] if motoristas_validos else '-'
-                    else:
-                        v_modelo = df_veiculo['Modelo'].iloc[-1] if 'Modelo' in df_veiculo.columns else '-'
-                        v_motorista = df_veiculo['Motorista'].iloc[-1] if 'Motorista' in df_veiculo.columns else '-'
-                    
                     st.markdown(f"""
                     <div class="raiox-container">
                         <div class="raiox-item">
                             <div class="raiox-label">📍 Base atual</div>
                             <div class="raiox-value" style="font-size: 16px;">{v_base}</div>
-                        </div>
-                        <div class="raiox-item">
-                            <div class="raiox-label">🚘 Modelo</div>
-                            <div class="raiox-value" style="font-size: 15px;">{v_modelo}</div>
-                        </div>
-                        <div class="raiox-item">
-                            <div class="raiox-label">🧑‍✈️ Motorista</div>
-                            <div class="raiox-value" style="font-size: 15px;">{v_motorista}</div>
                         </div>
                         <div class="raiox-item">
                             <div class="raiox-label">💰 Gasto Total Ano</div>
@@ -681,10 +660,7 @@ else:
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
             
-            # REGRA EXCLUSIVA PARA ABA 6 - AQUI TEM "ALUGAD" PARA APARECEREM NA TABELA
-            pattern_digitais_aba6 = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-            
-            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais_aba6, case=False, na=False)
+            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
             
             df_frota = df_base_completa[mask_frota_aba]
             
