@@ -44,8 +44,35 @@ st.markdown("""
     .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
-    .stTabs [data-baseweb="tab"] { color: #1A237E !important; font-weight: 600; }
-    .stTabs [aria-selected="true"] { border-bottom: 3px solid #F57C00 !important; background-color: rgba(255,255,255,0.3) !important; }
+    /* ==========================================
+       NOVO ESTILO DAS ABAS (TABS COMO BOTÕES)
+       ========================================== */
+    .stTabs [data-baseweb="tablist"] {
+        gap: 8px; /* Espaço entre os botões */
+    }
+    .stTabs [data-baseweb="tab"] { 
+        background-color: #FFFFFF !important; 
+        border: 1px solid #CFD8DC !important; 
+        border-radius: 8px !important; 
+        padding: 8px 16px !important; 
+        color: #1A237E !important; 
+        font-weight: 700 !important; 
+        transition: all 0.3s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #F0F4F8 !important;
+        border-color: #90CAF9 !important;
+    }
+    .stTabs [aria-selected="true"] { 
+        background-color: #1A237E !important; 
+        color: #FFFFFF !important; 
+        border-color: #1A237E !important; 
+    }
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none !important; /* Esconde a linha sublinhada padrão do Streamlit */
+    }
+    /* ========================================== */
+
     .trend-up { color: #D32F2F !important; font-size: 13px; font-weight: bold; }
     .trend-down { color: #388E3C !important; font-size: 13px; font-weight: bold; }
     .progress-bg { background-color: #E0E0E0; border-radius: 10px; width: 100%; height: 8px; margin-top: 10px; }
