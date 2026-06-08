@@ -55,9 +55,12 @@ st.markdown("""
         border: 1px solid #CFD8DC !important; 
         border-radius: 8px !important; 
         padding: 8px 16px !important; 
+        transition: all 0.3s ease;
+    }
+    .stTabs [data-baseweb="tab"] p, 
+    .stTabs [data-baseweb="tab"] span {
         color: #1A237E !important; 
         font-weight: 700 !important; 
-        transition: all 0.3s ease;
     }
     .stTabs [data-baseweb="tab"]:hover {
         background-color: #F0F4F8 !important;
@@ -65,8 +68,11 @@ st.markdown("""
     }
     .stTabs [aria-selected="true"] { 
         background-color: #1A237E !important; 
-        color: #FFFFFF !important; 
         border-color: #1A237E !important; 
+    }
+    .stTabs [aria-selected="true"] p, 
+    .stTabs [aria-selected="true"] span { 
+        color: #FFFFFF !important; /* Força o texto a ficar BRANCO na aba selecionada */
     }
     .stTabs [data-baseweb="tab-highlight"] {
         display: none !important; /* Esconde a linha sublinhada padrão do Streamlit */
