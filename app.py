@@ -274,7 +274,19 @@ else:
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
         df_base = df_base_completa[mask_reais]
 
-        busca_placa = st.sidebar.text_input("🔍 Buscar Placa específica (ex: RDI3I72)", "").upper().strip()
+        # ==============================================================
+        # NOVO CAMPO DE BUSCA (COM SUGESTÃO AO DIGITAR)
+        # ==============================================================
+        placas_disponiveis = get_ativos(df_base)
+        opcoes_placas = [""] + sorted(placas_disponiveis)
+        
+        busca_placa = st.sidebar.selectbox(
+            "🔍 Buscar Placa específica", 
+            options=opcoes_placas, 
+            index=0,
+            help="Clique e comece a digitar a placa para pesquisar"
+        ).upper().strip()
+        # ==============================================================
         
         lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
