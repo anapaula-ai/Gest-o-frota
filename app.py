@@ -45,7 +45,7 @@ st.markdown("""
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
-       NOVO ESTILO DAS ABAS (TABS COMO BOTÕES)
+       ESTILO DAS ABAS (TABS COMO BOTÕES)
        ========================================== */
     .stTabs [data-baseweb="tablist"] {
         gap: 8px; /* Espaço entre os botões */
@@ -268,7 +268,9 @@ else:
         df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
         
         # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos e Top 10 (Abas 1 a 5).
+        # VOLTOU AO ORIGINAL: "ALUGAD" não está aqui, então o resto do app funciona exatamente como antes.
         pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+        
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
         df_base = df_base_completa[mask_reais]
 
@@ -667,8 +669,10 @@ else:
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
             
-            pattern_digitais = "VEÍCUL|VEICUL|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
+            # REGRA EXCLUSIVA PARA ABA 6 - AQUI TEM "ALUGAD" PARA APARECEREM NA TABELA
+            pattern_digitais_aba6 = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+            
+            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais_aba6, case=False, na=False)
             
             df_frota = df_base_completa[mask_frota_aba]
             
