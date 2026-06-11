@@ -577,7 +577,56 @@ else:
         with tab5:
             st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
             
-            base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
+            # ==========================================
+            # PREPARAÇÃO DE DADOS PARA O BOTÃO DE DOWNLOAD GERAL DE BASES
+            # ==========================================
+            df_acum_geral = df_base[df_base['Mes_Num'] <= mes_num_atual]
+            
+            # 1. Custo Manutenção por base
+            df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
+            
+            # 2. Custo Combustível por base
+            df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
+            
+            # 3. Contagem de veículos por base
+            mask_validas = (
+                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "") &
+                (df_manut_acum_geral["Placa"].astype(str).str.upper() != "NAN") &
+                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "0")
+            )
+            veic_por_base = df_manut_acum_geral[mask_validas].groupby(col_cc)['Placa'].nunique().reset_index().rename(columns={'Placa': 'Qtd Veículos'})
+            
+            # 4. Juntando as tabelas e formatando
+            df_resumo_bases = pd.merge(veic_por_base, manut_por_base, on=col_cc, how='outer')
+            df_resumo_bases = pd.merge(df_resumo_bases, comb_por_base, on=col_cc, how='outer').fillna(0)
+            df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo de manutenção'] + df_resumo_bases['Custo Combustível']
+            
+            df_resumo_bases.rename(columns={
+                col_cc: 'Base / Centro de Custo',
+                'Custo de manutenção': f'Manutenção Acumulada (Até {mes_sel})',
+                'Custo Combustível': f'Combustível Acumulado (Até {mes_sel})',
+                'Custo Total Acumulado': f'Custo Total Acumulado (Até {mes_sel})'
+            }, inplace=True)
+            
+            # ==========================================
+            # LAYOUT: CAMPO DE SELEÇÃO + BOTÃO DE DOWNLOAD
+            # ==========================================
+            col_sel, col_btn = st.columns([2, 1])
+            with col_sel:
+                base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
+            
+            with col_btn:
+                st.markdown("<br>", unsafe_allow_html=True)
+                csv_resumo = df_resumo_bases.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                st.download_button(
+                    label="📥 Baixar Resumo de Todas as Bases",
+                    data=csv_resumo,
+                    file_name=f"Resumo_Custos_por_Base_{mes_sel}_{ano_sel}.csv",
+                    mime="text/csv",
+                    key="btn_download_resumo_bases"
+                )
             
             if base_raiox:
                 df_rx_base = df_base[df_base[col_cc] == base_raiox]
@@ -599,8 +648,22 @@ else:
                 cpk_mes = total_mes / km_mes if km_mes > 0 else 0
                 cpk_acum = total_acum / km_acum if km_acum > 0 else 0
                 
+                # CALCULA A QUANTIDADE DE VEÍCULOS DESTA BASE
+                df_rx_manut_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+                qtd_veiculos_base = df_rx_manut_acum.loc[
+                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "") &
+                    (df_rx_manut_acum["Placa"].astype(str).str.upper() != "NAN") &
+                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "0"),
+                    'Placa'
+                ].nunique()
+                
                 st.markdown(f"""
                 <div class="raiox-container">
+                    <div class="raiox-item">
+                        <div class="raiox-label">🚘 Veículos</div>
+                        <div class="raiox-value">{qtd_veiculos_base}</div>
+                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Ativos na Base</div>
+                    </div>
                     <div class="raiox-item">
                         <div class="raiox-label">🛣️ KM Rodado (Mês)</div>
                         <div class="raiox-value">{fmt_br(km_mes)}</div>
