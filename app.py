@@ -11,7 +11,7 @@ st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
 # Crie a sua senha aqui embaixo:
-SENHA_ACESSO = "FROTAS2026"
+SENHA_ACESSO = "Log2026@"
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -602,6 +602,13 @@ else:
             df_resumo_bases = pd.merge(veic_por_base, manut_por_base, on=col_cc, how='outer')
             df_resumo_bases = pd.merge(df_resumo_bases, comb_por_base, on=col_cc, how='outer').fillna(0)
             df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo de manutenção'] + df_resumo_bases['Custo Combustível']
+            
+            # ==========================================
+            # CORREÇÃO: Arredondando os valores APENAS para esta planilha de download
+            # ==========================================
+            df_resumo_bases['Custo de manutenção'] = df_resumo_bases['Custo de manutenção'].round(2)
+            df_resumo_bases['Custo Combustível'] = df_resumo_bases['Custo Combustível'].round(2)
+            df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo Total Acumulado'].round(2)
             
             df_resumo_bases.rename(columns={
                 col_cc: 'Base / Centro de Custo',
