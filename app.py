@@ -11,7 +11,7 @@ st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
 # Crie a sua senha aqui embaixo:
-SENHA_ACESSO = "Log2026@"
+SENHA_ACESSO = "FROTAS2026"
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
@@ -672,6 +672,21 @@ else:
                     colunas_mostrar.insert(3, 'Base')
                     
                 df_mostrar = df_frota_unica[colunas_mostrar].sort_values(['Instituição', col_cc, 'Placa'])
+                
+                # ==========================================
+                # NOVO: BOTÃO DE DOWNLOAD DA RELAÇÃO DA FROTA
+                # ==========================================
+                csv_relacao = df_mostrar.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                st.download_button(
+                    label="📥 Baixar Relação da Frota (Excel/CSV)",
+                    data=csv_relacao,
+                    file_name=f"Relacao_Frota_{inst_sel}_{ano_sel}.csv",
+                    mime="text/csv",
+                    key="btn_download_relacao"
+                )
+                st.markdown("<br>", unsafe_allow_html=True)
+                # ==========================================
+
                 insts_frota = sorted(df_mostrar['Instituição'].unique())
                 
                 if len(insts_frota) > 1:
