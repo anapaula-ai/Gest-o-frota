@@ -264,20 +264,21 @@ else:
         opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
         cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
         
-        # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 6 (Relação), Aba 7 (Detalhamento) e Busca.
+        # 1. df_base_completa: Possui absolutamente TUDO (incluindo Motos, Alugados, Kombi, etc)
+        # Usado agora para os TOTAIS FINANCEIROS baterem com a sua planilha.
         df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
         
-        # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos e Top 10 (Abas 1 a 5).
-        # RETORNADO "ALUGAD" PARA O FILTRO: Garante que eles não sujem os gráficos e a busca
+        # 2. Máscara de exclusão: Usado APENAS para limpar a Busca e os Gráficos Top 10
         pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-        
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
-        df_base = df_base_completa[mask_reais]
+        
+        # Base limpa exclusiva para visualizações individuais e busca
+        df_veiculos_reais = df_base_completa[mask_reais]
 
         # ==============================================================
-        # NOVO CAMPO DE BUSCA (COM SUGESTÃO AO DIGITAR)
+        # NOVO CAMPO DE BUSCA (COM SUGESTÃO AO DIGITAR) - Usa base limpa
         # ==============================================================
-        placas_disponiveis = get_ativos(df_base)
+        placas_disponiveis = get_ativos(df_veiculos_reais)
         opcoes_placas = [""] + sorted(placas_disponiveis)
         
         busca_placa = st.sidebar.selectbox(
@@ -291,8 +292,9 @@ else:
         lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
-        df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-        df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+        # PARA TOTAIS FINANCEIROS USAMOS A BASE COMPLETA (SEM FILTRAR MOTOS/ALUGADOS)
+        df_apenas_comb = df_base_completa[df_base_completa["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+        df_apenas_manut = df_base_completa[~df_base_completa["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
         df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
         mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
@@ -310,7 +312,8 @@ else:
             c1, c2, c3 = st.columns(3)
             
             with c1:
-                ativos_ano = len(get_ativos(df_base)) 
+                # Contagem de veículos baseada na frota real (sem contar motos agrupadas como 1 veículo)
+                ativos_ano = len(get_ativos(df_veiculos_reais)) 
                 draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_ano), is_lower_better=False)
             
             with c2:
@@ -321,7 +324,7 @@ else:
             with c3:
                 custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
                 custo_a = df_anterior_manut['Custo de manutenção'].sum()
-                ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
+                ativos_mes = len(get_ativos(df_veiculos_reais[df_veiculos_reais["Mes_Nome"] == mes_sel])) 
                 custo_medio = custo_m / ativos_mes if ativos_mes > 0 else 0
                 trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
                 draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo ativo", trend=trend_c)
@@ -330,7 +333,7 @@ else:
                 st.markdown("---")
                 st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
                 
-                df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
+                df_veiculo = df_veiculos_reais[df_veiculos_reais["Placa"] == busca_placa].sort_values("Mes_Num")
                 
                 if not df_veiculo.empty:
                     v_gasto_total = df_veiculo['Custo de manutenção'].sum()
@@ -371,13 +374,15 @@ else:
             
             g1, g2 = st.columns(2)
             
-            mask_veiculos_reais = (
+            # MÁSCARA PARA GRÁFICO DE TOP 10 (Escondendo os agrupamentos)
+            mask_veiculos_reais_top = (
                 (~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA", case=False, na=True)) &
+                (~df_filtrado_mes_manut["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)) &
                 (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "") &
                 (df_filtrado_mes_manut["Placa"].astype(str).str.upper() != "NAN") &
                 (df_filtrado_mes_manut["Placa"].astype(str).str.strip() != "0")
             )
-            df_top10 = df_filtrado_mes_manut[mask_veiculos_reais]
+            df_top10 = df_filtrado_mes_manut[mask_veiculos_reais_top]
 
             with g1:
                 st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
@@ -423,6 +428,7 @@ else:
                     draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
                 else:
                     sub_manut = "Orçamento Anual: <b>A definir</b>"
+                    # AQUI VAI BATER O R$ 1.145.375,11
                     draw_card("CUSTO DE MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut)
                 
             with ca2:
@@ -518,7 +524,7 @@ else:
 
         with tab4:
             st.markdown(f"### 🛡️ Seguro/Rastreadores | {ano_sel}")
-            df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
+            df_fixos_acum = df_base_completa[df_base_completa["Mes_Num"] <= mes_num_atual]
             
             gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
             gasto_rastreador = df_fixos_acum["Custo de Rastreador"].sum()
@@ -577,10 +583,7 @@ else:
         with tab5:
             st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
             
-            # ==========================================
-            # PREPARAÇÃO DE DADOS PARA O BOTÃO DE DOWNLOAD GERAL DE BASES
-            # ==========================================
-            df_acum_geral = df_base[df_base['Mes_Num'] <= mes_num_atual]
+            df_acum_geral = df_base_completa[df_base_completa['Mes_Num'] <= mes_num_atual]
             
             # 1. Custo Manutenção por base
             df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
@@ -590,22 +593,20 @@ else:
             df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
-            # 3. Contagem de veículos por base
+            # 3. Contagem de veículos por base (escondendo genéricos para contar carros reais)
             mask_validas = (
                 (df_manut_acum_geral["Placa"].astype(str).str.strip() != "") &
                 (df_manut_acum_geral["Placa"].astype(str).str.upper() != "NAN") &
-                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "0")
+                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "0") &
+                (~df_manut_acum_geral["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True))
             )
-            veic_por_base = df_manut_acum_geral[mask_validas].groupby(col_cc)['Placa'].nunique().reset_index().rename(columns={'Placa': 'Qtd Veículos'})
+            veic_por_base = df_manut_acum_geral[mask_validas].groupby(col_cc)['Placa'].nunique().reset_index().rename(columns={'Placa': 'Qtd Veículos Reais'})
             
             # 4. Juntando as tabelas e formatando
             df_resumo_bases = pd.merge(veic_por_base, manut_por_base, on=col_cc, how='outer')
             df_resumo_bases = pd.merge(df_resumo_bases, comb_por_base, on=col_cc, how='outer').fillna(0)
             df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo de manutenção'] + df_resumo_bases['Custo Combustível']
             
-            # ==========================================
-            # CORREÇÃO: Arredondando os valores APENAS para esta planilha de download
-            # ==========================================
             df_resumo_bases['Custo de manutenção'] = df_resumo_bases['Custo de manutenção'].round(2)
             df_resumo_bases['Custo Combustível'] = df_resumo_bases['Custo Combustível'].round(2)
             df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo Total Acumulado'].round(2)
@@ -617,12 +618,9 @@ else:
                 'Custo Total Acumulado': f'Custo Total Acumulado (Até {mes_sel})'
             }, inplace=True)
             
-            # ==========================================
-            # LAYOUT: CAMPO DE SELEÇÃO + BOTÃO DE DOWNLOAD
-            # ==========================================
             col_sel, col_btn = st.columns([2, 1])
             with col_sel:
-                base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
+                base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base_completa[col_cc].dropna().unique()))
             
             with col_btn:
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -636,7 +634,7 @@ else:
                 )
             
             if base_raiox:
-                df_rx_base = df_base[df_base[col_cc] == base_raiox]
+                df_rx_base = df_base_completa[df_base_completa[col_cc] == base_raiox]
                 df_rx_mes = df_rx_base[df_rx_base['Mes_Nome'] == mes_sel]
                 df_rx_acum = df_rx_base[df_rx_base['Mes_Num'] <= mes_num_atual]
                 
@@ -655,19 +653,19 @@ else:
                 cpk_mes = total_mes / km_mes if km_mes > 0 else 0
                 cpk_acum = total_acum / km_acum if km_acum > 0 else 0
                 
-                # CALCULA A QUANTIDADE DE VEÍCULOS DESTA BASE
                 df_rx_manut_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
                 qtd_veiculos_base = df_rx_manut_acum.loc[
                     (df_rx_manut_acum["Placa"].astype(str).str.strip() != "") &
                     (df_rx_manut_acum["Placa"].astype(str).str.upper() != "NAN") &
-                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "0"),
+                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "0") &
+                    (~df_rx_manut_acum["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)),
                     'Placa'
                 ].nunique()
                 
                 st.markdown(f"""
                 <div class="raiox-container">
                     <div class="raiox-item">
-                        <div class="raiox-label">🚘 Veículos</div>
+                        <div class="raiox-label">🚘 Veículos Reais</div>
                         <div class="raiox-value">{qtd_veiculos_base}</div>
                         <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Ativos na Base</div>
                     </div>
@@ -743,9 +741,6 @@ else:
                     
                 df_mostrar = df_frota_unica[colunas_mostrar].sort_values(['Instituição', col_cc, 'Placa'])
                 
-                # ==========================================
-                # NOVO: BOTÃO DE DOWNLOAD DA RELAÇÃO DA FROTA
-                # ==========================================
                 csv_relacao = df_mostrar.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
                     label="📥 Baixar Relação da Frota (Excel/CSV)",
@@ -755,7 +750,6 @@ else:
                     key="btn_download_relacao"
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
-                # ==========================================
 
                 insts_frota = sorted(df_mostrar['Instituição'].unique())
                 
@@ -791,7 +785,6 @@ else:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # GARANTIA DE FORMATAÇÃO DE CASAS DECIMAIS NA TABELA
             colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
             config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
             
