@@ -707,9 +707,9 @@ else:
 
         with tab6:
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
-            st.markdown("Lista atualizada da frota genérica vinculada às bases, organizada por blocos (Categoria).")
+            st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
-            # Puxamos novamente as PLACAS DIGITAIS, como no seu código original
+            # Puxamos as PLACAS DIGITAIS
             pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
             
@@ -732,62 +732,67 @@ else:
                     
                 df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
                 
-                # Define a ordem de importância dos blocos na tela e planilha
                 ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
                 df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
                 
-                colunas_mostrar = ['Categoria', 'Placa', 'Instituição', col_cc, 'Modelo', 'Motorista']
-                if 'Base' in df_frota_unica.columns and 'Base' not in colunas_mostrar:
-                    colunas_mostrar.insert(4, 'Base')
-                    
-                # Ordena o DataFrame final respeitando os filtros e agrupando os blocos
-                df_mostrar = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])[colunas_mostrar]
+                # Ordenação Inicial
+                df_frota_unica = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])
                 
                 # ==========================================
-                # BOTÃO DE DOWNLOAD DA RELAÇÃO DA FROTA
+                # Construção da Tabela com Linhas Divisórias (Cabeçalhos)
                 # ==========================================
-                csv_relacao = df_mostrar.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                linhas_segmentadas = []
+                
+                for inst in df_frota_unica['Instituição'].unique():
+                    df_i = df_frota_unica[df_frota_unica['Instituição'] == inst]
+                    
+                    for cat in df_i['Categoria'].unique():
+                        # Adiciona a linha de Cabeçalho da Categoria
+                        linhas_segmentadas.append({
+                            'Placa': f"🔸 {str(cat).upper()}",
+                            'Instituição': inst,
+                            col_cc: "",
+                            'Modelo': "",
+                            'Motorista': ""
+                        })
+                        
+                        # Adiciona os veículos referentes àquela categoria
+                        df_cat = df_i[df_i['Categoria'] == cat]
+                        for _, row in df_cat.iterrows():
+                            linhas_segmentadas.append({
+                                'Placa': row['Placa'],
+                                'Instituição': row['Instituição'],
+                                col_cc: row.get(col_cc, ""),
+                                'Modelo': row.get('Modelo', ""),
+                                'Motorista': row.get('Motorista', "")
+                            })
+                            
+                df_apresentacao = pd.DataFrame(linhas_segmentadas)
+                
+                # Função de estilo para colorir as linhas de separação
+                def highlight_category(row):
+                    placa_val = str(row['Placa'])
+                    if placa_val.startswith('🔸'):
+                        # Linha de cabeçalho: Fundo Azul Escuro com letras brancas e negrito
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                
+                df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
+                
+                # Botão de Download da tabela única e segmentada
+                csv_relacao = df_apresentacao.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
-                    label="📥 Baixar Relação da Frota Organizada (Excel/CSV)",
+                    label="📥 Baixar Relação da Frota Segmentada (Excel/CSV)",
                     data=csv_relacao,
-                    file_name=f"Relacao_Frota_Categorizada_{inst_sel}_{ano_sel}.csv",
+                    file_name=f"Relacao_Frota_Segmentada_{inst_sel}_{ano_sel}.csv",
                     mime="text/csv",
                     key="btn_download_relacao"
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
-                # ==========================================
-
-                insts_frota = sorted(df_mostrar['Instituição'].unique())
                 
-                if len(insts_frota) > 1:
-                    t_insts = st.tabs([f"Frota {i}" for i in insts_frota] + ["Visão Geral"])
-                    for i, t in enumerate(t_insts):
-                        with t:
-                            if i < len(insts_frota):
-                                inst_nome = insts_frota[i]
-                                df_i = df_mostrar[df_mostrar['Instituição'] == inst_nome]
-                                
-                                # Mostra blocos visuais separados por categoria
-                                for cat in df_i['Categoria'].unique():
-                                    st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
-                                    df_cat = df_i[df_i['Categoria'] == cat].drop(columns=['Categoria', 'Instituição'])
-                                    st.dataframe(df_cat, use_container_width=True, hide_index=True)
-                                
-                                st.info(f"Total de registros na frota ({inst_nome}): **{len(df_i)}**")
-                            else:
-                                for cat in df_mostrar['Categoria'].unique():
-                                    st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
-                                    df_cat = df_mostrar[df_mostrar['Categoria'] == cat].drop(columns=['Categoria'])
-                                    st.dataframe(df_cat, use_container_width=True, hide_index=True)
-                                st.info(f"Total geral de registros: **{len(df_mostrar)}**")
-                else:
-                    for cat in df_mostrar['Categoria'].unique():
-                        st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
-                        df_cat = df_mostrar[df_mostrar['Categoria'] == cat].drop(columns=['Categoria'])
-                        if 'Instituição' in df_cat.columns:
-                            df_cat = df_cat.drop(columns=['Instituição'])
-                        st.dataframe(df_cat, use_container_width=True, hide_index=True)
-                    st.info(f"Total de registros na frota: **{len(df_mostrar)}**")
+                # Mostra a tabela única na tela
+                st.dataframe(df_styled, use_container_width=True, hide_index=True)
+                st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
