@@ -299,10 +299,11 @@ else:
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        # Inserida a Aba 8 "🛣️ Mapa de KM"
+        tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab7 = st.tabs([
             "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", "📍 Raio-X da Base", 
-            "📋 Relação da Frota", "📑 Detalhamento"
+            "📋 Relação da Frota", "🛣️ Mapa de KM", "📑 Detalhamento"
         ])
 
         with tab1:
@@ -577,20 +578,14 @@ else:
         with tab5:
             st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
             
-            # ==========================================
-            # PREPARAÇÃO DE DADOS PARA O BOTÃO DE DOWNLOAD GERAL DE BASES
-            # ==========================================
             df_acum_geral = df_base[df_base['Mes_Num'] <= mes_num_atual]
             
-            # 1. Custo Manutenção por base
             df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
             
-            # 2. Custo Combustível por base
             df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
-            # 3. Contagem de veículos por base
             mask_validas = (
                 (df_manut_acum_geral["Placa"].astype(str).str.strip() != "") &
                 (df_manut_acum_geral["Placa"].astype(str).str.upper() != "NAN") &
@@ -598,14 +593,10 @@ else:
             )
             veic_por_base = df_manut_acum_geral[mask_validas].groupby(col_cc)['Placa'].nunique().reset_index().rename(columns={'Placa': 'Qtd Veículos'})
             
-            # 4. Juntando as tabelas e formatando
             df_resumo_bases = pd.merge(veic_por_base, manut_por_base, on=col_cc, how='outer')
             df_resumo_bases = pd.merge(df_resumo_bases, comb_por_base, on=col_cc, how='outer').fillna(0)
             df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo de manutenção'] + df_resumo_bases['Custo Combustível']
             
-            # ==========================================
-            # CORREÇÃO: Arredondando os valores APENAS para esta planilha de download
-            # ==========================================
             df_resumo_bases['Custo de manutenção'] = df_resumo_bases['Custo de manutenção'].round(2)
             df_resumo_bases['Custo Combustível'] = df_resumo_bases['Custo Combustível'].round(2)
             df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo Total Acumulado'].round(2)
@@ -617,9 +608,6 @@ else:
                 'Custo Total Acumulado': f'Custo Total Acumulado (Até {mes_sel})'
             }, inplace=True)
             
-            # ==========================================
-            # LAYOUT: CAMPO DE SELEÇÃO + BOTÃO DE DOWNLOAD
-            # ==========================================
             col_sel, col_btn = st.columns([2, 1])
             with col_sel:
                 base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
@@ -655,7 +643,6 @@ else:
                 cpk_mes = total_mes / km_mes if km_mes > 0 else 0
                 cpk_acum = total_acum / km_acum if km_acum > 0 else 0
                 
-                # CALCULA A QUANTIDADE DE VEÍCULOS DESTA BASE
                 df_rx_manut_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
                 qtd_veiculos_base = df_rx_manut_acum.loc[
                     (df_rx_manut_acum["Placa"].astype(str).str.strip() != "") &
@@ -743,9 +730,6 @@ else:
                     
                 df_mostrar = df_frota_unica[colunas_mostrar].sort_values(['Instituição', col_cc, 'Placa'])
                 
-                # ==========================================
-                # NOVO: BOTÃO DE DOWNLOAD DA RELAÇÃO DA FROTA
-                # ==========================================
                 csv_relacao = df_mostrar.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
                     label="📥 Baixar Relação da Frota (Excel/CSV)",
@@ -755,7 +739,6 @@ else:
                     key="btn_download_relacao"
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
-                # ==========================================
 
                 insts_frota = sorted(df_mostrar['Instituição'].unique())
                 
@@ -776,6 +759,117 @@ else:
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
+        with tab8:
+            st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
+            st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
+            
+            # Utiliza df_base_completa e remove placas que não são veículos
+            mask_km = (
+                (~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)) &
+                (df_base_completa["Placa"].astype(str).str.strip() != "") &
+                (df_base_completa["Placa"].astype(str).str.upper() != "NAN") &
+                (df_base_completa["Placa"].astype(str).str.strip() != "0")
+            )
+            df_km_matrix = df_base_completa[mask_km]
+            
+            if not df_km_matrix.empty:
+                # Cria a tabela dinâmica (Pivot Table)
+                pt_km = pd.pivot_table(
+                    df_km_matrix,
+                    values='Quilometragem',
+                    index=['Instituição', col_cc, 'Placa'],
+                    columns='Mes_Num',
+                    aggfunc='sum',
+                    fill_value=0
+                ).reset_index()
+                
+                # Mapeia números dos meses para nomes curtos
+                meses_map = {1: 'JAN', 2: 'FEV', 3: 'MAR', 4: 'ABR', 5: 'MAI', 6: 'JUN', 
+                             7: 'JUL', 8: 'AGO', 9: 'SET', 10: 'OUT', 11: 'NOV', 12: 'DEZ'}
+                
+                meses_presentes = sorted([c for c in pt_km.columns if isinstance(c, int)])
+                nomes_meses_presentes = [meses_map.get(m, str(m)) for m in meses_presentes]
+                
+                # Renomeia colunas para os nomes dos meses
+                renames = {m: meses_map.get(m, str(m)) for m in meses_presentes}
+                pt_km.rename(columns=renames, inplace=True)
+                
+                # Adiciona coluna de TOTAL
+                pt_km['TOTAL'] = pt_km[nomes_meses_presentes].sum(axis=1)
+                pt_km = pt_km.sort_values(['Instituição', col_cc, 'Placa'])
+                
+                # ==========================================
+                # Construção da Tabela com Subtotais
+                # ==========================================
+                linhas_subtotal = []
+                for inst in pt_km['Instituição'].unique():
+                    df_inst = pt_km[pt_km['Instituição'] == inst]
+                    for base in df_inst[col_cc].unique():
+                        df_b = df_inst[df_inst[col_cc] == base]
+                        
+                        # Linhas normais da Base
+                        for _, row in df_b.iterrows():
+                            linhas_subtotal.append(row.to_dict())
+                        
+                        # Linha de Subtotal da Base
+                        subtotal_dict = {'Instituição': inst, col_cc: base, 'Placa': 'Subtotal'}
+                        for mes in nomes_meses_presentes:
+                            subtotal_dict[mes] = df_b[mes].sum()
+                        subtotal_dict['TOTAL'] = df_b['TOTAL'].sum()
+                        linhas_subtotal.append(subtotal_dict)
+                    
+                    # Linha de Total da Instituição
+                    total_inst_dict = {'Instituição': inst, col_cc: '', 'Placa': f'TOTAL {inst}'}
+                    for mes in nomes_meses_presentes:
+                        total_inst_dict[mes] = df_inst[mes].sum()
+                    total_inst_dict['TOTAL'] = df_inst['TOTAL'].sum()
+                    linhas_subtotal.append(total_inst_dict)
+                
+                # Linha de Total Geral (Final da Planilha)
+                total_geral_dict = {'Instituição': '', col_cc: '', 'Placa': 'TOTAL GERAL'}
+                for mes in nomes_meses_presentes:
+                    total_geral_dict[mes] = pt_km[mes].sum()
+                total_geral_dict['TOTAL'] = pt_km['TOTAL'].sum()
+                linhas_subtotal.append(total_geral_dict)
+                
+                df_km_subtotals = pd.DataFrame(linhas_subtotal)
+                
+                # Função para estilizar visualmente a tabela na tela do App
+                def highlight_subtotals(row):
+                    placa = str(row['Placa']).upper()
+                    if 'SUBTOTAL' in placa:
+                        return ['background-color: #E3F2FD; font-weight: bold; color: #1A237E'] * len(row)
+                    elif 'TOTAL' in placa:
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                
+                # Função de formatação para retirar casas decimais e adicionar ponto de milhar
+                def format_br_int(val):
+                    try: return f"{int(val):,.0f}".replace(",", ".")
+                    except: return "0"
+                
+                # Aplica as formatações e colorações
+                format_dict = {c: format_br_int for c in nomes_meses_presentes + ['TOTAL']}
+                df_styled = df_km_subtotals.style.apply(highlight_subtotals, axis=1).format(format_dict)
+                
+                # Exibe botão de Download e Tabela
+                col_btn_km1, col_btn_km2 = st.columns([2, 1])
+                with col_btn_km2:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    csv_km = df_km_subtotals.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                    st.download_button(
+                        label="📥 Baixar Mapa de KM em Excel/CSV",
+                        data=csv_km,
+                        file_name=f"Mapa_Quilometragem_Completo_{inst_sel}_{ano_sel}.csv",
+                        mime="text/csv",
+                        key="btn_download_km"
+                    )
+                
+                st.dataframe(df_styled, use_container_width=True, height=600, hide_index=True)
+                
+            else:
+                st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
+
         with tab7:
             st.markdown("### 📑 Detalhamento dos Dados")
             
@@ -791,7 +885,6 @@ else:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # GARANTIA DE FORMATAÇÃO DE CASAS DECIMAIS NA TABELA
             colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
             config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
             
