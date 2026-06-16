@@ -264,19 +264,13 @@ else:
         opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
         cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
         
-        # 1. df_base_completa: Possui TUDO. Será usado apenas para Aba 6 (Relação), Aba 7 (Detalhamento) e Busca.
         df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
         
-        # 2. df_base: Removemos as placas digitais. Alimenta todos os Gráficos e Top 10 (Abas 1 a 5).
-        # RETORNADO "ALUGAD" PARA O FILTRO: Garante que eles não sujem os gráficos e a busca
         pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
         
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
         df_base = df_base_completa[mask_reais]
 
-        # ==============================================================
-        # NOVO CAMPO DE BUSCA (COM SUGESTÃO AO DIGITAR)
-        # ==============================================================
         placas_disponiveis = get_ativos(df_base)
         opcoes_placas = [""] + sorted(placas_disponiveis)
         
@@ -286,7 +280,6 @@ else:
             index=0,
             help="Clique e comece a digitar a placa para pesquisar"
         ).upper().strip()
-        # ==============================================================
         
         lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
@@ -299,7 +292,6 @@ else:
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        # Inserida a Aba 8 "🛣️ Mapa de KM"
         tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab7 = st.tabs([
             "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", "📍 Raio-X da Base", 
@@ -715,30 +707,55 @@ else:
 
         with tab6:
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
-            st.markdown("Lista atualizada de todos os veículos, modelos e motoristas vinculados às bases.")
+            st.markdown("Lista atualizada da frota genérica vinculada às bases, organizada por blocos (Categoria).")
             
+            # Puxamos novamente as PLACAS DIGITAIS, como no seu código original
+            pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
             
-            df_frota = df_base_completa[mask_frota_aba]
+            df_frota = df_base_completa[mask_frota_aba].copy()
             
             if not df_frota.empty:
                 df_frota_unica = df_frota.sort_values("Mes_Num", ascending=False).drop_duplicates(subset=["Placa"])
                 
-                colunas_mostrar = ['Placa', 'Instituição', col_cc, 'Modelo', 'Motorista']
-                if 'Base' in df_frota_unica.columns and 'Base' not in colunas_mostrar:
-                    colunas_mostrar.insert(3, 'Base')
+                # Regra de Classificação baseada no NOME da placa digital
+                def classificar_frota(placa):
+                    texto = str(placa).upper()
+                    if 'ALUGAD' in texto: return 'Alugados'
+                    elif 'MOTO' in texto: return 'Moto'
+                    elif 'TRICICLO' in texto: return 'Triciclo'
+                    elif 'REBOQUE' in texto: return 'Reboque'
+                    elif 'SPRINTER' in texto: return 'Sprinter'
+                    elif 'ÔNIBUS' in texto or 'ONIBUS' in texto or 'MICRO' in texto: return 'Ônibus/Micro'
+                    elif 'KOMBI' in texto: return 'Kombi'
+                    else: return 'Veículos Próprios'
                     
-                df_mostrar = df_frota_unica[colunas_mostrar].sort_values(['Instituição', col_cc, 'Placa'])
+                df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
                 
+                # Define a ordem de importância dos blocos na tela e planilha
+                ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
+                df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
+                
+                colunas_mostrar = ['Categoria', 'Placa', 'Instituição', col_cc, 'Modelo', 'Motorista']
+                if 'Base' in df_frota_unica.columns and 'Base' not in colunas_mostrar:
+                    colunas_mostrar.insert(4, 'Base')
+                    
+                # Ordena o DataFrame final respeitando os filtros e agrupando os blocos
+                df_mostrar = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])[colunas_mostrar]
+                
+                # ==========================================
+                # BOTÃO DE DOWNLOAD DA RELAÇÃO DA FROTA
+                # ==========================================
                 csv_relacao = df_mostrar.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
-                    label="📥 Baixar Relação da Frota (Excel/CSV)",
+                    label="📥 Baixar Relação da Frota Organizada (Excel/CSV)",
                     data=csv_relacao,
-                    file_name=f"Relacao_Frota_{inst_sel}_{ano_sel}.csv",
+                    file_name=f"Relacao_Frota_Categorizada_{inst_sel}_{ano_sel}.csv",
                     mime="text/csv",
                     key="btn_download_relacao"
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
+                # ==========================================
 
                 insts_frota = sorted(df_mostrar['Instituição'].unique())
                 
@@ -747,14 +764,29 @@ else:
                     for i, t in enumerate(t_insts):
                         with t:
                             if i < len(insts_frota):
-                                df_i = df_mostrar[df_mostrar['Instituição'] == insts_frota[i]]
-                                st.dataframe(df_i, use_container_width=True, hide_index=True)
-                                st.info(f"Total de registros na frota ({insts_frota[i]}): **{len(df_i)}**")
+                                inst_nome = insts_frota[i]
+                                df_i = df_mostrar[df_mostrar['Instituição'] == inst_nome]
+                                
+                                # Mostra blocos visuais separados por categoria
+                                for cat in df_i['Categoria'].unique():
+                                    st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
+                                    df_cat = df_i[df_i['Categoria'] == cat].drop(columns=['Categoria', 'Instituição'])
+                                    st.dataframe(df_cat, use_container_width=True, hide_index=True)
+                                
+                                st.info(f"Total de registros na frota ({inst_nome}): **{len(df_i)}**")
                             else:
-                                st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
+                                for cat in df_mostrar['Categoria'].unique():
+                                    st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
+                                    df_cat = df_mostrar[df_mostrar['Categoria'] == cat].drop(columns=['Categoria'])
+                                    st.dataframe(df_cat, use_container_width=True, hide_index=True)
                                 st.info(f"Total geral de registros: **{len(df_mostrar)}**")
                 else:
-                    st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
+                    for cat in df_mostrar['Categoria'].unique():
+                        st.markdown(f"<h5 style='color:#F57C00 !important; margin-top: 15px;'>🔸 {cat}</h5>", unsafe_allow_html=True)
+                        df_cat = df_mostrar[df_mostrar['Categoria'] == cat].drop(columns=['Categoria'])
+                        if 'Instituição' in df_cat.columns:
+                            df_cat = df_cat.drop(columns=['Instituição'])
+                        st.dataframe(df_cat, use_container_width=True, hide_index=True)
                     st.info(f"Total de registros na frota: **{len(df_mostrar)}**")
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
