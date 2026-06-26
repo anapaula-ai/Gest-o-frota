@@ -310,11 +310,19 @@ else:
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab7, tab9 = st.tabs([
-            "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
-            "🛡️ Seguro/Rastreadores", "📍 Raio-X da Base", 
-            "📋 Relação da Frota", "🛣️ Mapa de KM", "📑 Detalhamento",
-            "📅 Veículos & IPVA"
+        # =======================================================
+        # ABAS REORGANIZADAS (Detalhamento por último)
+        # =======================================================
+        tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab7 = st.tabs([
+            "📌 Visão Mensal", 
+            "📈 Resumo Acumulado", 
+            "⛽ Combustível", 
+            "🛡️ Seguro/Rastreadores", 
+            "📍 Raio-X da Base", 
+            "🛣️ Mapa de KM", 
+            "📋 Relação da Frota", 
+            "📅 Veículos & IPVA",
+            "📑 Detalhamento"
         ])
 
         with tab1:
@@ -724,97 +732,6 @@ else:
                         fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
                         st.plotly_chart(fig_rx_pie, use_container_width=True)
 
-        with tab6:
-            st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
-            st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
-            
-            # Puxamos as PLACAS DIGITAIS
-            pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
-            
-            df_frota = df_base_completa[mask_frota_aba].copy()
-            
-            if not df_frota.empty:
-                df_frota_unica = df_frota.sort_values("Mes_Num", ascending=False).drop_duplicates(subset=["Placa"])
-                
-                # Regra de Classificação baseada no NOME da placa digital
-                def classificar_frota(placa):
-                    texto = str(placa).upper()
-                    if 'ALUGAD' in texto: return 'Alugados'
-                    elif 'MOTO' in texto: return 'Moto'
-                    elif 'TRICICLO' in texto: return 'Triciclo'
-                    elif 'REBOQUE' in texto: return 'Reboque'
-                    elif 'SPRINTER' in texto: return 'Sprinter'
-                    elif 'ÔNIBUS' in texto or 'ONIBUS' in texto or 'MICRO' in texto: return 'Ônibus/Micro'
-                    elif 'KOMBI' in texto: return 'Kombi'
-                    else: return 'Veículos Próprios'
-                    
-                df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
-                
-                ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
-                df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
-                
-                # Ordenação Inicial
-                df_frota_unica = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])
-                
-                # ==========================================
-                # Construção da Tabela com Linhas Divisórias (Cabeçalhos)
-                # ==========================================
-                linhas_segmentadas = []
-                
-                for inst in df_frota_unica['Instituição'].unique():
-                    df_i = df_frota_unica[df_frota_unica['Instituição'] == inst]
-                    
-                    for cat in df_i['Categoria'].unique():
-                        # Adiciona a linha de Cabeçalho da Categoria
-                        linhas_segmentadas.append({
-                            'Placa': f"🔸 {str(cat).upper()}",
-                            'Instituição': inst,
-                            col_cc: "",
-                            'Modelo': "",
-                            'Motorista': ""
-                        })
-                        
-                        # Adiciona os veículos referentes àquela categoria
-                        df_cat = df_i[df_i['Categoria'] == cat]
-                        for _, row in df_cat.iterrows():
-                            linhas_segmentadas.append({
-                                'Placa': row['Placa'],
-                                'Instituição': row['Instituição'],
-                                col_cc: row.get(col_cc, ""),
-                                'Modelo': row.get('Modelo', ""),
-                                'Motorista': row.get('Motorista', "")
-                            })
-                            
-                df_apresentacao = pd.DataFrame(linhas_segmentadas)
-                
-                # Função de estilo para colorir as linhas de separação
-                def highlight_category(row):
-                    placa_val = str(row['Placa'])
-                    if placa_val.startswith('🔸'):
-                        # Linha de cabeçalho: Fundo Azul Escuro com letras brancas e negrito
-                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
-                    return [''] * len(row)
-                
-                df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
-                
-                # Botão de Download da tabela única e segmentada
-                csv_relacao = df_apresentacao.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
-                st.download_button(
-                    label="📥 Baixar Relação da Frota Segmentada (Excel/CSV)",
-                    data=csv_relacao,
-                    file_name=f"Relacao_Frota_Segmentada_{inst_sel}_{ano_sel}.csv",
-                    mime="text/csv",
-                    key="btn_download_relacao"
-                )
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                # Mostra a tabela única na tela
-                st.dataframe(df_styled, use_container_width=True, hide_index=True)
-                st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
-            else:
-                st.warning("Nenhum veículo encontrado para exibir nesta aba.")
-
         with tab8:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
@@ -926,28 +843,96 @@ else:
             else:
                 st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
 
-        with tab7:
-            st.markdown("### 📑 Detalhamento dos Dados")
+        with tab6:
+            st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
+            st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
-            df_download = df_base_completa.drop(columns=['Mes_Num'])
+            # Puxamos as PLACAS DIGITAIS
+            pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+            mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
             
-            csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
-            st.download_button(
-                label="📥 Baixar Relatório Completo (Excel/CSV)",
-                data=csv_data,
-                file_name=f"Relatorio_Frotas_{inst_sel}_{mes_sel}_{ano_sel}.csv",
-                mime="text/csv"
-            )
+            df_frota = df_base_completa[mask_frota_aba].copy()
             
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
-            config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
-            
-            if 'Quilometragem' in df_download.columns:
-                config_cols['Quilometragem'] = st.column_config.NumberColumn('Quilometragem', format="%.0f")
+            if not df_frota.empty:
+                df_frota_unica = df_frota.sort_values("Mes_Num", ascending=False).drop_duplicates(subset=["Placa"])
                 
-            st.dataframe(df_download, use_container_width=True, hide_index=True, column_config=config_cols)
+                # Regra de Classificação baseada no NOME da placa digital
+                def classificar_frota(placa):
+                    texto = str(placa).upper()
+                    if 'ALUGAD' in texto: return 'Alugados'
+                    elif 'MOTO' in texto: return 'Moto'
+                    elif 'TRICICLO' in texto: return 'Triciclo'
+                    elif 'REBOQUE' in texto: return 'Reboque'
+                    elif 'SPRINTER' in texto: return 'Sprinter'
+                    elif 'ÔNIBUS' in texto or 'ONIBUS' in texto or 'MICRO' in texto: return 'Ônibus/Micro'
+                    elif 'KOMBI' in texto: return 'Kombi'
+                    else: return 'Veículos Próprios'
+                    
+                df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
+                
+                ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
+                df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
+                
+                # Ordenação Inicial
+                df_frota_unica = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])
+                
+                # ==========================================
+                # Construção da Tabela com Linhas Divisórias (Cabeçalhos)
+                # ==========================================
+                linhas_segmentadas = []
+                
+                for inst in df_frota_unica['Instituição'].unique():
+                    df_i = df_frota_unica[df_frota_unica['Instituição'] == inst]
+                    
+                    for cat in df_i['Categoria'].unique():
+                        # Adiciona a linha de Cabeçalho da Categoria
+                        linhas_segmentadas.append({
+                            'Placa': f"🔸 {str(cat).upper()}",
+                            'Instituição': inst,
+                            col_cc: "",
+                            'Modelo': "",
+                            'Motorista': ""
+                        })
+                        
+                        # Adiciona os veículos referentes àquela categoria
+                        df_cat = df_i[df_i['Categoria'] == cat]
+                        for _, row in df_cat.iterrows():
+                            linhas_segmentadas.append({
+                                'Placa': row['Placa'],
+                                'Instituição': row['Instituição'],
+                                col_cc: row.get(col_cc, ""),
+                                'Modelo': row.get('Modelo', ""),
+                                'Motorista': row.get('Motorista', "")
+                            })
+                            
+                df_apresentacao = pd.DataFrame(linhas_segmentadas)
+                
+                # Função de estilo para colorir as linhas de separação
+                def highlight_category(row):
+                    placa_val = str(row['Placa'])
+                    if placa_val.startswith('🔸'):
+                        # Linha de cabeçalho: Fundo Azul Escuro com letras brancas e negrito
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                
+                df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
+                
+                # Botão de Download da tabela única e segmentada
+                csv_relacao = df_apresentacao.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                st.download_button(
+                    label="📥 Baixar Relação da Frota Segmentada (Excel/CSV)",
+                    data=csv_relacao,
+                    file_name=f"Relacao_Frota_Segmentada_{inst_sel}_{ano_sel}.csv",
+                    mime="text/csv",
+                    key="btn_download_relacao"
+                )
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Mostra a tabela única na tela
+                st.dataframe(df_styled, use_container_width=True, hide_index=True)
+                st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
+            else:
+                st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
         with tab9:
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
@@ -1011,6 +996,29 @@ else:
                 st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
+
+        with tab7:
+            st.markdown("### 📑 Detalhamento dos Dados")
+            
+            df_download = df_base_completa.drop(columns=['Mes_Num'])
+            
+            csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+            st.download_button(
+                label="📥 Baixar Relatório Completo (Excel/CSV)",
+                data=csv_data,
+                file_name=f"Relatorio_Frotas_{inst_sel}_{mes_sel}_{ano_sel}.csv",
+                mime="text/csv"
+            )
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
+            config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
+            
+            if 'Quilometragem' in df_download.columns:
+                config_cols['Quilometragem'] = st.column_config.NumberColumn('Quilometragem', format="%.0f")
+                
+            st.dataframe(df_download, use_container_width=True, hide_index=True, column_config=config_cols)
 
     else:
         st.warning("Verifique o link do arquivo da planilha online ou certifique-se de que os dados foram publicados.")
