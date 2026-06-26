@@ -189,6 +189,24 @@ else:
         return serie.apply(clean_val)
 
     @st.cache_data(ttl=600)
+    def load_ipva_data():
+        try:
+            # Seu link do Google Sheets para a aba de IPVA
+            url_ipva = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=398571100&single=true&output=csv"
+            
+            df_ipva = pd.read_csv(url_ipva, decimal=',', sep=',')
+            
+            # Limpa valores para garantir que sejam tratados como número (se a coluna existir)
+            if 'Ipva estimado' in df_ipva.columns:
+                df_ipva['Ipva estimado'] = to_float(df_ipva['Ipva estimado'])
+                
+            return df_ipva
+            
+        except Exception as e:
+            st.error(f"Erro ao carregar dados de IPVA: {e}")
+            return pd.DataFrame()
+
+    @st.cache_data(ttl=600)
     def load_data():
         try:
             url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
@@ -292,10 +310,11 @@ else:
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab7 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab7, tab9 = st.tabs([
             "📌 Visão Mensal", "📈 Resumo Acumulado", "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", "📍 Raio-X da Base", 
-            "📋 Relação da Frota", "🛣️ Mapa de KM", "📑 Detalhamento"
+            "📋 Relação da Frota", "🛣️ Mapa de KM", "📑 Detalhamento",
+            "📅 Veículos & IPVA"
         ])
 
         with tab1:
@@ -929,6 +948,69 @@ else:
                 config_cols['Quilometragem'] = st.column_config.NumberColumn('Quilometragem', format="%.0f")
                 
             st.dataframe(df_download, use_container_width=True, hide_index=True, column_config=config_cols)
+
+        with tab9:
+            st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
+            st.markdown("Base de consulta atualizada automaticamente via Google Sheets.")
+            
+            df_ipva = load_ipva_data()
+            
+            if "Aviso" in df_ipva.columns:
+                st.warning(df_ipva["Aviso"].iloc[0])
+            elif not df_ipva.empty:
+                
+                # Filtros Rápidos na tela do IPVA
+                col_filtros1, col_filtros2 = st.columns(2)
+                with col_filtros1:
+                    if 'Instituição' in df_ipva.columns:
+                        inst_ipva = st.selectbox("Filtrar por Instituição:", ["TODAS"] + sorted(df_ipva['Instituição'].dropna().unique()), key='ipva_inst')
+                    else:
+                        inst_ipva = "TODAS"
+                        
+                with col_filtros2:
+                    if 'Ano base' in df_ipva.columns:
+                        ano_ipva = st.selectbox("Filtrar por Ano Base (IPVA):", ["TODOS"] + sorted(df_ipva['Ano base'].dropna().unique(), reverse=True), key='ipva_ano')
+                    else:
+                        ano_ipva = "TODOS"
+                
+                # Aplica os filtros
+                df_ipva_filtrado = df_ipva.copy()
+                if inst_ipva != "TODAS":
+                    df_ipva_filtrado = df_ipva_filtrado[df_ipva_filtrado['Instituição'] == inst_ipva]
+                if ano_ipva != "TODOS":
+                    df_ipva_filtrado = df_ipva_filtrado[df_ipva_filtrado['Ano base'] == ano_ipva]
+                
+                # Configura a visualização das colunas
+                config_cols_ipva = {}
+                if 'Ipva estimado' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ipva estimado'] = st.column_config.NumberColumn("Ipva estimado", format="R$ %.2f")
+                if 'Ano base' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ano base'] = st.column_config.NumberColumn("Ano base", format="%d")
+                if 'Ano do veículo' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ano do veículo'] = st.column_config.NumberColumn("Ano do veículo", format="%d")
+                
+                # Exibe totais na tela
+                total_ipva = df_ipva_filtrado['Ipva estimado'].sum() if 'Ipva estimado' in df_ipva_filtrado.columns else 0
+                st.markdown(f"**Total de veículos listados:** {len(df_ipva_filtrado)} | **Valor Total Estimado:** {fmt_br(total_ipva, True)}")
+                
+                # Botão de download
+                col_btn, col_esp = st.columns([1, 2])
+                with col_btn:
+                    csv_ipva = df_ipva_filtrado.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                    st.download_button(
+                        label="📥 Baixar Tabela Filtrada de IPVA",
+                        data=csv_ipva,
+                        file_name=f"Base_IPVA_Frota_{inst_ipva}_{ano_ipva}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Mostra a tabela bonita
+                st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
+            else:
+                st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
     else:
         st.warning("Verifique o link do arquivo da planilha online ou certifique-se de que os dados foram publicados.")
