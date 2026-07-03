@@ -224,7 +224,7 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO DO FORMATO DE DATA: Removido o dayfirst=True para parar de transformar tudo em Janeiro! ---
+            # --- CORREÇÃO DO FORMATO DE DATA: Removido o dayfirst=True ---
             df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
@@ -719,26 +719,24 @@ else:
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 # ---------------------------------------------------------
-                # INÍCIO DO NOVO CÓDIGO DA TABELA DE PLACAS
+                # INÍCIO DA NOVA TABELA PARA O GESTOR DA BASE
                 # ---------------------------------------------------------
-                st.markdown(f"#### 🚘 Detalhamento por Veículo | {base_raiox}")
+                st.markdown(f"#### 🚘 Detalhamento para o Gestor | {base_raiox}")
                 
-                # --- CORREÇÃO DO FILTRO (Agora bloqueia TODAS as placas digitais) ---
                 padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
                 df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
                 df_veic_mes = df_rx_mes[~df_rx_mes["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
-                # ----------------------------------------------------------------------
-
+                
                 resumo_mes = df_veic_mes.groupby("Placa").agg({
                     "Quilometragem": "sum",
                     "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Manutenção ({mes_sel})"})
+                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Custo R$ ({mes_sel})"})
                 
                 resumo_acum = df_veic_acum.groupby("Placa").agg({
                     "Quilometragem": "sum",
                     "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Manutenção (Acumulada)"})
+                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Custo R$ (Acumulado)"})
                 
                 df_placas = pd.merge(resumo_mes, resumo_acum, on="Placa", how="right").fillna(0).reset_index()
                 
@@ -748,31 +746,54 @@ else:
                     (df_placas["Placa"].astype(str).str.strip() != "0")
                 ]
                 
-                df_placas = df_placas.sort_values("Manutenção (Acumulada)", ascending=False)
+                df_placas = df_placas.sort_values("Custo R$ (Acumulado)", ascending=False)
                 
+                # ADICIONA A LINHA DE COMBUSTÍVEL NO FINAL DA TABELA
+                comb_mes_val = df_rx_mes[df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
+                comb_acum_val = df_rx_acum[df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
+                
+                if comb_mes_val > 0 or comb_acum_val > 0:
+                    linha_combustivel = pd.DataFrame([{
+                        "Placa": "⛽ COMBUSTÍVEL DA BASE",
+                        f"KM ({mes_sel})": 0,
+                        f"Custo R$ ({mes_sel})": comb_mes_val,
+                        "KM (Acumulado)": 0,
+                        "Custo R$ (Acumulado)": comb_acum_val
+                    }])
+                    df_placas = pd.concat([df_placas, linha_combustivel], ignore_index=True)
+                
+                # Botão de Download que vai conter a linha do combustível
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
                     csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                     st.download_button(
-                        label=f"📥 Baixar Relação de Veículos - {base_raiox}",
+                        label=f"📥 Baixar Relatório do Gestor (Placas + Combustível)",
                         data=csv_placas,
-                        file_name=f"Veiculos_Base_{base_raiox.replace(' ', '_')}_{mes_sel}_{ano_sel}.csv",
+                        file_name=f"Relatorio_Gestor_{base_raiox.replace(' ', '_')}_{mes_sel}_{ano_sel}.csv",
                         mime="text/csv",
                         use_container_width=True
                     )
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
+                # Pinta a linha do combustível de laranja na tela para dar destaque visual
+                def highlight_fuel(row):
+                    if "⛽" in str(row['Placa']):
+                        return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
+                    return [''] * len(row)
+                
+                df_styled_placas = df_placas.style.apply(highlight_fuel, axis=1)
+                
                 st.dataframe(
-                    df_placas, 
+                    df_styled_placas, 
                     use_container_width=True, 
                     hide_index=True,
                     column_config={
-                        "Placa": st.column_config.TextColumn("Placa", width="small"),
+                        "Placa": st.column_config.TextColumn("Placa", width="medium"),
                         f"KM ({mes_sel})": st.column_config.NumberColumn(f"KM ({mes_sel})", format="%.0f"),
-                        f"Manutenção ({mes_sel})": st.column_config.NumberColumn(f"Manutenção ({mes_sel})", format="R$ %.2f"),
+                        f"Custo R$ ({mes_sel})": st.column_config.NumberColumn(f"Custo R$ ({mes_sel})", format="R$ %.2f"),
                         "KM (Acumulado)": st.column_config.NumberColumn("KM (Acumulado)", format="%.0f"),
-                        "Manutenção (Acumulada)": st.column_config.NumberColumn("Manutenção (Acumulada)", format="R$ %.2f"),
+                        "Custo R$ (Acumulado)": st.column_config.NumberColumn("Custo R$ (Acumulado)", format="R$ %.2f"),
                     }
                 )
                 # ---------------------------------------------------------
