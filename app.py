@@ -731,12 +731,12 @@ else:
                 resumo_mes = df_veic_mes.groupby("Placa").agg({
                     "Quilometragem": "sum",
                     "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Custo R$ ({mes_sel})"})
+                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Custo Manutenção ({mes_sel})"})
                 
                 resumo_acum = df_veic_acum.groupby("Placa").agg({
                     "Quilometragem": "sum",
                     "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Custo R$ (Acumulado)"})
+                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Custo Manutenção (Acumulado)"})
                 
                 df_placas = pd.merge(resumo_mes, resumo_acum, on="Placa", how="right").fillna(0).reset_index()
                 
@@ -746,7 +746,7 @@ else:
                     (df_placas["Placa"].astype(str).str.strip() != "0")
                 ]
                 
-                df_placas = df_placas.sort_values("Custo R$ (Acumulado)", ascending=False)
+                df_placas = df_placas.sort_values("Custo Manutenção (Acumulado)", ascending=False)
                 
                 # ADICIONA A LINHA DE COMBUSTÍVEL NO FINAL DA TABELA
                 comb_mes_val = df_rx_mes[df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
@@ -756,9 +756,9 @@ else:
                     linha_combustivel = pd.DataFrame([{
                         "Placa": "⛽ COMBUSTÍVEL DA BASE",
                         f"KM ({mes_sel})": 0,
-                        f"Custo R$ ({mes_sel})": comb_mes_val,
+                        f"Custo Manutenção ({mes_sel})": comb_mes_val,
                         "KM (Acumulado)": 0,
-                        "Custo R$ (Acumulado)": comb_acum_val
+                        "Custo Manutenção (Acumulado)": comb_acum_val
                     }])
                     df_placas = pd.concat([df_placas, linha_combustivel], ignore_index=True)
                 
@@ -791,9 +791,9 @@ else:
                     column_config={
                         "Placa": st.column_config.TextColumn("Placa", width="medium"),
                         f"KM ({mes_sel})": st.column_config.NumberColumn(f"KM ({mes_sel})", format="%.0f"),
-                        f"Custo R$ ({mes_sel})": st.column_config.NumberColumn(f"Custo R$ ({mes_sel})", format="R$ %.2f"),
+                        f"Custo Manutenção ({mes_sel})": st.column_config.NumberColumn(f"Custo Manutenção ({mes_sel})", format="R$ %.2f"),
                         "KM (Acumulado)": st.column_config.NumberColumn("KM (Acumulado)", format="%.0f"),
-                        "Custo R$ (Acumulado)": st.column_config.NumberColumn("Custo R$ (Acumulado)", format="R$ %.2f"),
+                        "Custo Manutenção (Acumulado)": st.column_config.NumberColumn("Custo Manutenção (Acumulado)", format="R$ %.2f"),
                     }
                 )
                 # ---------------------------------------------------------
