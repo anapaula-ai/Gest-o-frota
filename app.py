@@ -6,7 +6,7 @@ import time  # Adicionado para forçar atualização do cache do Google
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
 # ==========================================
-st.set_page_config(page_title="Gestão Estratégica de Frotas", layout="wide")
+st.set_page_config(page_title="Logística", layout="wide")
 
 # ==========================================
 # 2. TELA DE LOGIN E SEGURANÇA
@@ -133,7 +133,7 @@ if not st.session_state["autenticado"]:
     with col2:
         st.markdown("""
         <div style="background-color: white; padding: 40px; border-radius: 15px; box-shadow: 0px 4px 15px rgba(0,0,0,0.1); text-align: center;">
-            <h2 style="color: #1A237E; margin-bottom: 5px;">🏢 Gestão de Frotas</h2>
+            <h2 style="color: #1A237E; margin-bottom: 5px;">🏢 LOGÍSTICA</h2>
             <p style="color: #546E7A; margin-bottom: 30px;">Acesso Restrito</p>
         """, unsafe_allow_html=True)
         
@@ -151,7 +151,7 @@ if not st.session_state["autenticado"]:
 # Se estiver logado, mostra o App inteiro
 else:
     # Botão de Logout na barra lateral
-    st.sidebar.markdown("### 🏢 GESTÃO DE FROTAS")
+    st.sidebar.markdown("### 🏢 LOGÍSTICA")
     if st.sidebar.button("🔒 Sair / Bloquear App"):
         st.session_state["autenticado"] = False
         st.rerun()
