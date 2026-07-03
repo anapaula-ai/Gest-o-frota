@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import time  # Adicionado para forçar atualização do cache do Google
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -126,6 +127,13 @@ else:
     if st.sidebar.button("🔒 Sair / Bloquear App"):
         st.session_state["autenticado"] = False
         st.rerun()
+        
+    # --- NOVO BOTÃO DE FORÇAR ATUALIZAÇÃO ---
+    if st.sidebar.button("🔄 Forçar Atualização"):
+        st.cache_data.clear() # Limpa o cache das planilhas
+        st.rerun()            # Recarrega a página
+    # ----------------------------------------
+    
     st.sidebar.markdown("---")
 
     ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
@@ -188,15 +196,14 @@ else:
                 return 0.0
         return serie.apply(clean_val)
 
-    @st.cache_data(ttl=600)
+    @st.cache_data(ttl=60) # Tempo de cache reduzido
     def load_ipva_data():
         try:
-            # Seu link do Google Sheets para a aba de IPVA
-            url_ipva = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=398571100&single=true&output=csv"
+            url_ipva_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=398571100&single=true&output=csv"
+            url_ipva = f"{url_ipva_base}&t={int(time.time())}" # Anti-cache
             
             df_ipva = pd.read_csv(url_ipva, decimal=',', sep=',')
             
-            # Limpa valores para garantir que sejam tratados como número (se a coluna existir)
             if 'Ipva estimado' in df_ipva.columns:
                 df_ipva['Ipva estimado'] = to_float(df_ipva['Ipva estimado'])
                 
@@ -206,17 +213,20 @@ else:
             st.error(f"Erro ao carregar dados de IPVA: {e}")
             return pd.DataFrame()
 
-    @st.cache_data(ttl=600)
+    @st.cache_data(ttl=60) # Tempo de cache reduzido
     def load_data():
         try:
-            url_planilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
+            url_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
+            url_planilha = f"{url_base}&t={int(time.time())}" # Anti-cache do Google
             
             if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
                 df = pd.read_csv(url_planilha, decimal=',', thousands='.')
             else:
                 df = pd.read_excel(url_planilha)
             
-            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
+            # --- CORREÇÃO DO FORMATO DE DATA (dayfirst=True) ---
+            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], dayfirst=True, errors='coerce')
+            
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
@@ -311,7 +321,7 @@ else:
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
         # =======================================================
-        # ABAS REORGANIZADAS (Detalhamento por último)
+        # ABAS REORGANIZADAS
         # =======================================================
         tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab7 = st.tabs([
             "📌 Visão Mensal", 
@@ -336,7 +346,8 @@ else:
             with c2:
                 km_m = df_filtrado_mes_manut['Quilometragem'].sum()
                 km_a = df_anterior_manut['Quilometragem'].sum()
-                draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=((km_m-km_a)/km_a*100) if km_a>0 else 0, is_lower_better=False)
+                trend_km = ((km_m-km_a)/km_a*100) if km_a>0 else 0
+                draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=trend_km, is_lower_better=False)
             
             with c3:
                 custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
@@ -707,30 +718,62 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                col_rx1, col_rx2 = st.columns(2)
+                # ---------------------------------------------------------
+                # INÍCIO DO NOVO CÓDIGO DA TABELA DE PLACAS
+                # ---------------------------------------------------------
+                st.markdown(f"#### 🚘 Detalhamento por Veículo | {base_raiox}")
                 
-                with col_rx1:
-                    evol_rx = df_rx_acum.groupby(['Mes_Num', 'Mes_Nome'])[['Custo de manutenção', 'Custo Combustível']].sum().reset_index()
-                    evol_rx['Custo Total'] = evol_rx['Custo de manutenção'] + evol_rx['Custo Combustível']
-                    evol_rx = evol_rx.sort_values('Mes_Num')
-                    
-                    if not evol_rx.empty and evol_rx['Custo Total'].sum() > 0:
-                        fig_rx_line = px.line(evol_rx, x='Mes_Nome', y='Custo Total', markers=True, title=f"Evolução do Custo Total | {base_raiox}")
-                        fig_rx_line.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
-                        fig_rx_line.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
-                        st.plotly_chart(fig_rx_line, use_container_width=True)
+                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+                df_veic_mes = df_rx_mes[~df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
                 
-                with col_rx2:
-                    df_breakdown = pd.DataFrame({
-                        'Categoria': ['Manutenção', 'Combustível'],
-                        'Valor': [manut_acum, comb_acum]
-                    })
-                    df_breakdown = df_breakdown[df_breakdown['Valor'] > 0]
-                    
-                    if not df_breakdown.empty:
-                        fig_rx_pie = px.pie(df_breakdown, names='Categoria', values='Valor', title=f"Composição de Custos Acumulados | {base_raiox}", hole=0.4, color_discrete_sequence=['#F57C00', '#0288D1'])
-                        fig_rx_pie.update_layout(height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=40, b=10))
-                        st.plotly_chart(fig_rx_pie, use_container_width=True)
+                resumo_mes = df_veic_mes.groupby("Placa").agg({
+                    "Quilometragem": "sum",
+                    "Custo de manutenção": "sum"
+                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Manutenção ({mes_sel})"})
+                
+                resumo_acum = df_veic_acum.groupby("Placa").agg({
+                    "Quilometragem": "sum",
+                    "Custo de manutenção": "sum"
+                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Manutenção (Acumulada)"})
+                
+                df_placas = pd.merge(resumo_mes, resumo_acum, on="Placa", how="right").fillna(0).reset_index()
+                
+                df_placas = df_placas[
+                    (df_placas["Placa"].astype(str).str.strip() != "") &
+                    (df_placas["Placa"].astype(str).str.upper() != "NAN") &
+                    (df_placas["Placa"].astype(str).str.strip() != "0")
+                ]
+                
+                df_placas = df_placas.sort_values("Manutenção (Acumulada)", ascending=False)
+                
+                col_btn_placas, col_espaco = st.columns([1, 2])
+                with col_btn_placas:
+                    csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+                    st.download_button(
+                        label=f"📥 Baixar Relação de Veículos - {base_raiox}",
+                        data=csv_placas,
+                        file_name=f"Veiculos_Base_{base_raiox.replace(' ', '_')}_{mes_sel}_{ano_sel}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                st.dataframe(
+                    df_placas, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config={
+                        "Placa": st.column_config.TextColumn("Placa", width="small"),
+                        f"KM ({mes_sel})": st.column_config.NumberColumn(f"KM ({mes_sel})", format="%.0f"),
+                        f"Manutenção ({mes_sel})": st.column_config.NumberColumn(f"Manutenção ({mes_sel})", format="R$ %.2f"),
+                        "KM (Acumulado)": st.column_config.NumberColumn("KM (Acumulado)", format="%.0f"),
+                        "Manutenção (Acumulada)": st.column_config.NumberColumn("Manutenção (Acumulada)", format="R$ %.2f"),
+                    }
+                )
+                # ---------------------------------------------------------
+                # FIM DO NOVO CÓDIGO DA TABELA DE PLACAS
+                # ---------------------------------------------------------
 
         with tab8:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
