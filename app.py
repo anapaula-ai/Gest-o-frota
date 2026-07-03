@@ -46,37 +46,65 @@ st.markdown("""
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
-       ESTILO DAS ABAS (TABS COMO BOTÕES)
+       ESTILO DAS ABAS (TABS COMO BOTÕES EM MÚLTIPLAS LINHAS)
        ========================================== */
-    .stTabs [data-baseweb="tablist"] {
-        gap: 8px; /* Espaço entre os botões */
+    /* Libera o container mestre para não esconder as abas que caem de linha */
+    div[data-testid="stTabs"] > div {
+        overflow: visible !important;
     }
-    .stTabs [data-baseweb="tab"] { 
+
+    /* Força a quebra de linha e aplica o espaçamento da grade */
+    div[data-testid="stTabs"] div[role="tablist"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        overflow: visible !important; 
+        padding-bottom: 15px !important;
+    }
+
+    /* Estilo de cada botão individualmente */
+    div[data-testid="stTabs"] button[role="tab"] { 
         background-color: #FFFFFF !important; 
         border: 1px solid #CFD8DC !important; 
         border-radius: 8px !important; 
-        padding: 8px 16px !important; 
+        padding: 10px 15px !important; 
         transition: all 0.3s ease;
+        flex: 1 1 auto !important; /* Faz o botão esticar para preencher a linha inteira */
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        margin: 0 !important;
     }
-    .stTabs [data-baseweb="tab"] p, 
-    .stTabs [data-baseweb="tab"] span {
+
+    div[data-testid="stTabs"] button[role="tab"] p, 
+    div[data-testid="stTabs"] button[role="tab"] span {
         color: #1A237E !important; 
         font-weight: 700 !important; 
+        font-size: 14px !important;
+        margin: 0 !important;
     }
-    .stTabs [data-baseweb="tab"]:hover {
+
+    div[data-testid="stTabs"] button[role="tab"]:hover {
         background-color: #F0F4F8 !important;
         border-color: #90CAF9 !important;
+        transform: translateY(-2px);
     }
-    .stTabs [aria-selected="true"] { 
+
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] { 
         background-color: #1A237E !important; 
         border-color: #1A237E !important; 
+        box-shadow: 0px 4px 10px rgba(26, 35, 126, 0.2) !important;
     }
-    .stTabs [aria-selected="true"] p, 
-    .stTabs [aria-selected="true"] span { 
-        color: #FFFFFF !important; /* Força o texto a ficar BRANCO na aba selecionada */
+
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p, 
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] span { 
+        color: #FFFFFF !important; 
     }
-    .stTabs [data-baseweb="tab-highlight"] {
-        display: none !important; /* Esconde a linha sublinhada padrão do Streamlit */
+
+    /* Esconde o traço azul inferior original do Streamlit */
+    div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
+        display: none !important; 
     }
     /* ========================================== */
 
