@@ -224,8 +224,8 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO DO FORMATO DE DATA (dayfirst=True) ---
-            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], dayfirst=True, errors='coerce')
+            # --- CORREÇÃO DO FORMATO DE DATA: Removido o dayfirst=True para parar de transformar tudo em Janeiro! ---
+            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
@@ -723,9 +723,13 @@ else:
                 # ---------------------------------------------------------
                 st.markdown(f"#### 🚘 Detalhamento por Veículo | {base_raiox}")
                 
-                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-                df_veic_mes = df_rx_mes[~df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+                # --- CORREÇÃO DO FILTRO (Agora bloqueia TODAS as placas digitais) ---
+                padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
+                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
+                df_veic_mes = df_rx_mes[~df_rx_mes["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
+                # ----------------------------------------------------------------------
+
                 resumo_mes = df_veic_mes.groupby("Placa").agg({
                     "Quilometragem": "sum",
                     "Custo de manutenção": "sum"
