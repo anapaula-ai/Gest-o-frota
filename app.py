@@ -46,14 +46,10 @@ st.markdown("""
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
-       ESTILO DAS ABAS (TABS COMO BOTÕES EM FILEIRAS)
+       ESTILO DAS ABAS (TABS COMO BOTÕES)
        ========================================== */
     .stTabs [data-baseweb="tablist"] {
         gap: 8px; /* Espaço entre os botões */
-        display: flex !important;
-        flex-wrap: wrap !important; /* FORÇA A QUEBRA EM MÚLTIPLAS FILEIRAS */
-        justify-content: flex-start !important;
-        margin-bottom: 10px;
     }
     .stTabs [data-baseweb="tab"] { 
         background-color: #FFFFFF !important; 
@@ -61,8 +57,6 @@ st.markdown("""
         border-radius: 8px !important; 
         padding: 8px 16px !important; 
         transition: all 0.3s ease;
-        flex-grow: 0 !important; /* Impede que os botões estiquem estranhamente */
-        margin-bottom: 5px; /* Espaço entre a fileira de cima e a de baixo */
     }
     .stTabs [data-baseweb="tab"] p, 
     .stTabs [data-baseweb="tab"] span {
