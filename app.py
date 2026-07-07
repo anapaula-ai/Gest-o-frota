@@ -255,7 +255,8 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO APLICADA: Restaurando para a sua leitura original ---
+            # --- CORREÇÃO APLICADA: Data no formato correto da planilha ---
+            # Removido o dayfirst=True para que '2026-06-01' seja lido como Junho (Mês 06)
             df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
@@ -340,14 +341,24 @@ else:
             help="Clique e comece a digitar a placa para pesquisar"
         ).upper().strip()
         
-        lista_meses = df_ano.sort_values("Mes_Num")["Mes_Nome"].unique()
+        # Filtro de Meses com Trava de Segurança
+        lista_meses = df_ano.dropna(subset=['Mes_Nome']).sort_values("Mes_Num")["Mes_Nome"].unique()
+        if len(lista_meses) == 0:
+            lista_meses = ["Nenhum Mês"]
+            
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
 
         df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
         df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
         df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
-        mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
+        
+        # Correção caso o mês não seja encontrado no DataFrame filtrado
+        try:
+            mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
+        except:
+            mes_num_atual = 1
+            
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
