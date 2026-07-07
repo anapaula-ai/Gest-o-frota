@@ -48,76 +48,65 @@ st.markdown("""
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
        ========================================== */
-    /* Container mestre */
-    div[data-testid="stTabs"] {
-        overflow: visible !important;
-    }
-
-    div[data-testid="stTabs"] > div {
-        overflow: visible !important;
-    }
-
-    /* Esconde a linha original inferior das abas */
-    div[data-baseweb="tab-highlight"], 
-    div[data-baseweb="tab-border"] {
+    /* Remove a linha vermelha/azul nativa do Streamlit embaixo das abas */
+    div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+    div[data-testid="stTabs"] [data-baseweb="tab-border"] {
         display: none !important;
     }
 
-    /* Container flexível que organiza os botões (Força a quebra de linha) */
-    div[data-baseweb="tab-list"] {
+    /* Container das abas (Força a quebra de linha e centraliza) */
+    div[data-testid="stTabs"] [role="tablist"] {
         display: flex !important;
         flex-wrap: wrap !important;
-        gap: 10px !important;
-        width: 100% !important;
-        justify-content: stretch !important;
-        border-bottom: none !important;
+        justify-content: center !important;
+        gap: 12px !important;
         padding-bottom: 15px !important;
     }
 
-    /* Formato de cada Aba (transformada em Botão) */
-    button[data-baseweb="tab"] {
-        flex: 1 1 18% !important; /* Estica de forma igual. Ocupa aprox. 20% da tela (5 botões por linha) */
-        min-width: 140px !important; /* Para não ficar muito fino no celular */
+    /* Cada Aba = Botão Estilizado */
+    div[data-testid="stTabs"] [role="tab"] {
+        flex: 1 1 calc(20% - 12px) !important; /* Aproximadamente 5 botões por linha */
+        min-width: 140px !important;
         background-color: #FFFFFF !important; 
         border: 1px solid #CFD8DC !important; 
         border-radius: 8px !important; 
-        padding: 10px !important; 
+        padding: 10px 8px !important; 
         margin: 0 !important;
+        min-height: 48px !important;
         height: auto !important;
-        min-height: 50px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         transition: all 0.3s ease !important;
     }
 
-    /* Ajuste do Texto dentro dos Botões */
-    button[data-baseweb="tab"] p {
+    /* Texto dentro da Aba */
+    div[data-testid="stTabs"] [role="tab"] p {
         color: #1A237E !important; 
         font-weight: 700 !important; 
         font-size: 14px !important;
         margin: 0 !important;
-        white-space: normal !important; /* Permite quebrar o texto se for longo */
+        white-space: normal !important; /* Permite quebrar linha se o nome for longo */
         text-align: center !important;
         line-height: 1.2 !important;
     }
 
-    /* Efeito de passar o mouse */
-    button[data-baseweb="tab"]:hover {
+    /* Efeito Hover (passar o mouse) */
+    div[data-testid="stTabs"] [role="tab"]:hover {
         background-color: #F0F4F8 !important;
         border-color: #90CAF9 !important;
-        transform: translateY(-2px) !important;
+        transform: translateY(-2px);
     }
 
-    /* Quando o botão está Selecionado (Aba Ativa) */
-    button[data-baseweb="tab"][aria-selected="true"] { 
+    /* Aba Ativa (Selecionada) */
+    div[data-testid="stTabs"] [role="tab"][aria-selected="true"] { 
         background-color: #1A237E !important; 
         border-color: #1A237E !important; 
         box-shadow: 0px 4px 10px rgba(26, 35, 126, 0.2) !important;
     }
 
-    /* Cor do texto quando a Aba está Ativa */
-    button[data-baseweb="tab"][aria-selected="true"] p { 
+    /* Deixa o texto da aba ativa em branco */
+    div[data-testid="stTabs"] [role="tab"][aria-selected="true"] p { 
         color: #FFFFFF !important; 
     }
     /* ========================================== */
@@ -266,8 +255,9 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO DO FORMATO DE DATA: Removido o dayfirst=True ---
-            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
+            # --- CORREÇÃO DO FORMATO DE DATA: dayfirst=True RETORNOU ---
+            # Isso evita que o Pandas leia 10/06 como Outubro ao invés de Junho
+            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce', dayfirst=True)
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
