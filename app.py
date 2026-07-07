@@ -255,9 +255,8 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO DO FORMATO DE DATA: dayfirst=True RETORNOU ---
-            # Isso evita que o Pandas leia 10/06 como Outubro ao invés de Junho
-            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce', dayfirst=True)
+            # --- CORREÇÃO APLICADA: Restaurando para a sua leitura original ---
+            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
