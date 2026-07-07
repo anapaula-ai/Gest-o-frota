@@ -255,9 +255,26 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # --- CORREÇÃO APLICADA: Data no formato correto da planilha ---
-            # Removido o dayfirst=True para que '2026-06-01' seja lido como Junho (Mês 06)
-            df['Mês Referência'] = pd.to_datetime(df['Mês Referência'], errors='coerce')
+            # =================================================================
+            # CORREÇÃO DEFINITIVA DO FORMATO DE DATA (MISTURADO NO SHEETS)
+            # =================================================================
+            # 1. Pega os valores e remove espaços e horas se existirem
+            datas_str = df['Mês Referência'].astype(str).str.strip().str.split(' ').str[0]
+            
+            # 2. Tenta ler primeiro quem está no padrão Internacional/Google (2026-06-01)
+            d1 = pd.to_datetime(datas_str, format='%Y-%m-%d', errors='coerce')
+            
+            # 3. Quem falhou no passo 2, tenta ler no formato Brasileiro (01/06/2026)
+            mask = d1.isna()
+            d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%d/%m/%Y', errors='coerce')
+            
+            # 4. Se sobrou alguma coisa diferente, o pandas tenta adivinhar
+            mask = d1.isna()
+            d1.loc[mask] = pd.to_datetime(datas_str[mask], errors='coerce', dayfirst=True)
+            
+            # 5. Aplica a data limpa no dataframe
+            df['Mês Referência'] = d1
+            # =================================================================
             
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
@@ -341,7 +358,7 @@ else:
             help="Clique e comece a digitar a placa para pesquisar"
         ).upper().strip()
         
-        # Filtro de Meses com Trava de Segurança
+        # Filtro de Meses Seguro (Ignora dados vazios)
         lista_meses = df_ano.dropna(subset=['Mes_Nome']).sort_values("Mes_Num")["Mes_Nome"].unique()
         if len(lista_meses) == 0:
             lista_meses = ["Nenhum Mês"]
@@ -353,7 +370,6 @@ else:
 
         df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
         
-        # Correção caso o mês não seja encontrado no DataFrame filtrado
         try:
             mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
         except:
