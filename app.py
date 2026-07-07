@@ -46,30 +46,40 @@ st.markdown("""
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
-       ESTILO DAS ABAS (TABS COMO BOTÕES EM MÚLTIPLAS LINHAS)
+       ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
        ========================================== */
     /* Libera o container mestre para não esconder as abas que caem de linha */
+    div[data-testid="stTabs"] {
+        overflow: visible !important;
+    }
+    
     div[data-testid="stTabs"] > div {
         overflow: visible !important;
     }
 
-    /* Força a quebra de linha e aplica o espaçamento da grade */
+    /* Força a quebra de linha, centraliza os botões e aplica o espaçamento simétrico */
     div[data-testid="stTabs"] div[role="tablist"] {
         display: flex !important;
         flex-wrap: wrap !important;
-        gap: 10px !important;
+        justify-content: center !important; /* Centraliza a linha de baixo */
+        gap: 12px !important;
         overflow: visible !important; 
         padding-bottom: 15px !important;
     }
 
-    /* Estilo de cada botão individualmente */
+    /* Estilo de cada botão individualmente - Alinhamento proporcional */
     div[data-testid="stTabs"] button[role="tab"] { 
         background-color: #FFFFFF !important; 
         border: 1px solid #CFD8DC !important; 
         border-radius: 8px !important; 
-        padding: 10px 15px !important; 
+        padding: 12px 10px !important; 
         transition: all 0.3s ease;
-        flex: 1 1 auto !important; /* Faz o botão esticar para preencher a linha inteira */
+        
+        /* O Segredo da proporção: 5 botões por linha em média, adaptável */
+        flex: 1 1 calc(20% - 12px) !important; 
+        min-width: 160px !important; /* No celular, eles quebram para baixo organizados */
+        min-height: 48px !important;
+        
         text-align: center !important;
         display: flex !important;
         justify-content: center !important;
@@ -83,6 +93,8 @@ st.markdown("""
         font-weight: 700 !important; 
         font-size: 14px !important;
         margin: 0 !important;
+        white-space: normal !important; /* Se o texto for grande, quebra dentro do botão */
+        line-height: 1.2 !important;
     }
 
     div[data-testid="stTabs"] button[role="tab"]:hover {
