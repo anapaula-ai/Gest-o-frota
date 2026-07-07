@@ -48,75 +48,77 @@ st.markdown("""
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
        ========================================== */
-    /* Libera o container mestre para não esconder as abas que caem de linha */
+    /* Container mestre */
     div[data-testid="stTabs"] {
         overflow: visible !important;
     }
-    
+
     div[data-testid="stTabs"] > div {
         overflow: visible !important;
     }
 
-    /* Força a quebra de linha, centraliza os botões e aplica o espaçamento simétrico */
-    div[data-testid="stTabs"] div[role="tablist"] {
+    /* Esconde a linha original inferior das abas */
+    div[data-baseweb="tab-highlight"], 
+    div[data-baseweb="tab-border"] {
+        display: none !important;
+    }
+
+    /* Container flexível que organiza os botões (Força a quebra de linha) */
+    div[data-baseweb="tab-list"] {
         display: flex !important;
         flex-wrap: wrap !important;
-        justify-content: center !important; /* Centraliza a linha de baixo */
-        gap: 12px !important;
-        overflow: visible !important; 
+        gap: 10px !important;
+        width: 100% !important;
+        justify-content: stretch !important;
+        border-bottom: none !important;
         padding-bottom: 15px !important;
     }
 
-    /* Estilo de cada botão individualmente - Alinhamento proporcional */
-    div[data-testid="stTabs"] button[role="tab"] { 
+    /* Formato de cada Aba (transformada em Botão) */
+    button[data-baseweb="tab"] {
+        flex: 1 1 18% !important; /* Estica de forma igual. Ocupa aprox. 20% da tela (5 botões por linha) */
+        min-width: 140px !important; /* Para não ficar muito fino no celular */
         background-color: #FFFFFF !important; 
         border: 1px solid #CFD8DC !important; 
         border-radius: 8px !important; 
-        padding: 12px 10px !important; 
-        transition: all 0.3s ease;
-        
-        /* O Segredo da proporção: 5 botões por linha em média, adaptável */
-        flex: 1 1 calc(20% - 12px) !important; 
-        min-width: 160px !important; /* No celular, eles quebram para baixo organizados */
-        min-height: 48px !important;
-        
-        text-align: center !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        padding: 10px !important; 
         margin: 0 !important;
+        height: auto !important;
+        min-height: 50px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.3s ease !important;
     }
 
-    div[data-testid="stTabs"] button[role="tab"] p, 
-    div[data-testid="stTabs"] button[role="tab"] span {
+    /* Ajuste do Texto dentro dos Botões */
+    button[data-baseweb="tab"] p {
         color: #1A237E !important; 
         font-weight: 700 !important; 
         font-size: 14px !important;
         margin: 0 !important;
-        white-space: normal !important; /* Se o texto for grande, quebra dentro do botão */
+        white-space: normal !important; /* Permite quebrar o texto se for longo */
+        text-align: center !important;
         line-height: 1.2 !important;
     }
 
-    div[data-testid="stTabs"] button[role="tab"]:hover {
+    /* Efeito de passar o mouse */
+    button[data-baseweb="tab"]:hover {
         background-color: #F0F4F8 !important;
         border-color: #90CAF9 !important;
-        transform: translateY(-2px);
+        transform: translateY(-2px) !important;
     }
 
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] { 
+    /* Quando o botão está Selecionado (Aba Ativa) */
+    button[data-baseweb="tab"][aria-selected="true"] { 
         background-color: #1A237E !important; 
         border-color: #1A237E !important; 
         box-shadow: 0px 4px 10px rgba(26, 35, 126, 0.2) !important;
     }
 
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p, 
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] span { 
+    /* Cor do texto quando a Aba está Ativa */
+    button[data-baseweb="tab"][aria-selected="true"] p { 
         color: #FFFFFF !important; 
-    }
-
-    /* Esconde o traço azul inferior original do Streamlit */
-    div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
-        display: none !important; 
     }
     /* ========================================== */
 
