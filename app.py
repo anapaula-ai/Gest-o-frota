@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import time  # Adicionado para forçar atualização do cache do Google
+import time
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -11,7 +11,6 @@ st.set_page_config(page_title="Logística", layout="wide")
 # ==========================================
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
-# Crie a sua senha aqui embaixo:
 SENHA_ACESSO = "Log2026@"
 
 if "autenticado" not in st.session_state:
@@ -694,7 +693,7 @@ else:
             df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
             
-            df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            df_comb_acum_geral = df_acum_geral[df_comb_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
             mask_validas = (
