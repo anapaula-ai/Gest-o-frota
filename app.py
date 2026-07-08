@@ -48,13 +48,11 @@ st.markdown("""
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
        ========================================== */
-    /* Remove a linha vermelha/azul nativa do Streamlit embaixo das abas */
     div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
     div[data-testid="stTabs"] [data-baseweb="tab-border"] {
         display: none !important;
     }
 
-    /* Container das abas (Força a quebra de linha e centraliza) */
     div[data-testid="stTabs"] [role="tablist"] {
         display: flex !important;
         flex-wrap: wrap !important;
@@ -63,9 +61,8 @@ st.markdown("""
         padding-bottom: 15px !important;
     }
 
-    /* Cada Aba = Botão Estilizado */
     div[data-testid="stTabs"] [role="tab"] {
-        flex: 1 1 calc(20% - 12px) !important; /* Aproximadamente 5 botões por linha */
+        flex: 1 1 calc(20% - 12px) !important;
         min-width: 140px !important;
         background-color: #FFFFFF !important; 
         border: 1px solid #CFD8DC !important; 
@@ -80,32 +77,28 @@ st.markdown("""
         transition: all 0.3s ease !important;
     }
 
-    /* Texto dentro da Aba */
     div[data-testid="stTabs"] [role="tab"] p {
         color: #1A237E !important; 
         font-weight: 700 !important; 
         font-size: 14px !important;
         margin: 0 !important;
-        white-space: normal !important; /* Permite quebrar linha se o nome for longo */
+        white-space: normal !important;
         text-align: center !important;
         line-height: 1.2 !important;
     }
 
-    /* Efeito Hover (passar o mouse) */
     div[data-testid="stTabs"] [role="tab"]:hover {
         background-color: #F0F4F8 !important;
         border-color: #90CAF9 !important;
         transform: translateY(-2px);
     }
 
-    /* Aba Ativa (Selecionada) */
     div[data-testid="stTabs"] [role="tab"][aria-selected="true"] { 
         background-color: #1A237E !important; 
         border-color: #1A237E !important; 
         box-shadow: 0px 4px 10px rgba(26, 35, 126, 0.2) !important;
     }
 
-    /* Deixa o texto da aba ativa em branco */
     div[data-testid="stTabs"] [role="tab"][aria-selected="true"] p { 
         color: #FFFFFF !important; 
     }
@@ -129,7 +122,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Se não estiver logado, mostra a tela de bloqueio
 if not st.session_state["autenticado"]:
     st.markdown("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.5, 1])
@@ -151,19 +143,15 @@ if not st.session_state["autenticado"]:
                 
         st.markdown("</div>", unsafe_allow_html=True)
 
-# Se estiver logado, mostra o App inteiro
 else:
-    # Botão de Logout na barra lateral
     st.sidebar.markdown("### 🏢 LOGÍSTICA")
     if st.sidebar.button("🔒 Sair / Bloquear App"):
         st.session_state["autenticado"] = False
         st.rerun()
         
-    # --- NOVO BOTÃO DE FORÇAR ATUALIZAÇÃO ---
     if st.sidebar.button("🔄 Forçar Atualização"):
-        st.cache_data.clear() # Limpa o cache das planilhas
-        st.rerun()            # Recarrega a página
-    # ----------------------------------------
+        st.cache_data.clear() 
+        st.rerun()            
     
     st.sidebar.markdown("---")
 
@@ -227,11 +215,11 @@ else:
                 return 0.0
         return serie.apply(clean_val)
 
-    @st.cache_data(ttl=60) # Tempo de cache reduzido
+    @st.cache_data(ttl=60) 
     def load_ipva_data():
         try:
             url_ipva_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=398571100&single=true&output=csv"
-            url_ipva = f"{url_ipva_base}&t={int(time.time())}" # Anti-cache
+            url_ipva = f"{url_ipva_base}&t={int(time.time())}"
             
             df_ipva = pd.read_csv(url_ipva, decimal=',', sep=',')
             
@@ -244,11 +232,11 @@ else:
             st.error(f"Erro ao carregar dados de IPVA: {e}")
             return pd.DataFrame()
 
-    @st.cache_data(ttl=60) # Tempo de cache reduzido
+    @st.cache_data(ttl=60) 
     def load_data():
         try:
             url_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
-            url_planilha = f"{url_base}&t={int(time.time())}" # Anti-cache do Google
+            url_planilha = f"{url_base}&t={int(time.time())}" 
             
             if ".csv" in url_planilha.lower() or "output=csv" in url_planilha.lower():
                 df = pd.read_csv(url_planilha, decimal=',', thousands='.')
@@ -256,30 +244,38 @@ else:
                 df = pd.read_excel(url_planilha)
             
             # =================================================================
-            # CORREÇÃO DEFINITIVA DO FORMATO DE DATA (DIA/MÊS/ANO)
+            # CORREÇÃO DEFINITIVA EXTREMA E COLETA DE DIAGNÓSTICO
             # =================================================================
-            # 1. Limpa os textos (remove espaços e horas extras se existirem)
-            datas_str = df['Mês Referência'].astype(str).str.strip().str.split(' ').str[0]
+            # 1. Guardamos a data original exatamente como veio para diagnóstico
+            if 'Mês Referência' in df.columns:
+                df['Data_Crua'] = df['Mês Referência'].astype(str)
+            else:
+                df['Data_Crua'] = 'Coluna não encontrada'
+
+            # 2. Limpeza profunda (remove espaços invisiveis do copiar colar)
+            datas_str = df['Data_Crua'].str.strip().str.replace(r'[\xa0\u202f\t\n\r]+', '', regex=True)
+            datas_str = datas_str.str.split(' ').str[0].str.split('T').str[0]
             
-            # 2. Tenta ler primeiro no formato Dia/Mês/Ano com barras (ex: 01/03/2026)
-            d1 = pd.to_datetime(datas_str, format='%d/%m/%Y', errors='coerce')
+            # 3. Lista de formatos para tentar (todas as combinações)
+            formatos = [
+                '%Y-%m-%d', # Padrão: 2026-03-01
+                '%d/%m/%Y', # Brasil com barra: 01/03/2026
+                '%Y/%m/%d', # Ano/Mês/Dia: 2026/03/01
+                '%d-%m-%Y', # Brasil com traço: 01-03-2026
+                '%m/%d/%Y', # Formato Americano que o Google pode exportar: 03/01/2026
+            ]
             
-            # 3. Se falhar, tenta Dia-Mês-Ano com traços (ex: 01-03-2026)
-            mask = d1.isna()
-            if mask.any():
-                d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%d-%m-%Y', errors='coerce')
+            d1 = pd.Series(pd.NaT, index=datas_str.index)
             
-            # 4. Se ainda assim houver dados antigos, tenta o padrão Ano-Mês-Dia (ex: 2026-03-01)
-            mask = d1.isna()
-            if mask.any():
-                d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%Y-%m-%d', errors='coerce')
+            for fmt in formatos:
+                mask = d1.isna()
+                if mask.any():
+                    d1.loc[mask] = pd.to_datetime(datas_str[mask], format=fmt, errors='coerce')
             
-            # 5. Para qualquer outra coisa que sobrar, adivinha garantindo que o DIA vem primeiro
             mask = d1.isna()
             if mask.any():
                 d1.loc[mask] = pd.to_datetime(datas_str[mask], errors='coerce', dayfirst=True)
             
-            # 6. Aplica a data limpa no dataframe
             df['Mês Referência'] = d1
             # =================================================================
             
@@ -332,6 +328,16 @@ else:
     ORCAMENTOS_RASTREADOR_2026 = {"AMES": 0.00, "IAV": 10194.00} 
 
     if not df.empty:
+        # =====================================================
+        # FERRAMENTA DE DIAGNÓSTICO (APARECE NO TOPO DO APP)
+        # =====================================================
+        with st.expander("🛠️ MODO DIAGNÓSTICO DE DATAS (Clique aqui se os meses estiverem faltando)"):
+            st.write("Veja abaixo exatamente qual texto o Google Sheets está mandando de forma invisível. Se precisar, tire um print desta tabela!")
+            if 'Data_Crua' in df.columns:
+                df_debug = df[['Data_Crua', 'Mês Referência', 'Mes_Nome', 'Mes_Num']].drop_duplicates().sort_values('Data_Crua')
+                st.dataframe(df_debug, use_container_width=True)
+        # =====================================================
+
         ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
         df_ano = df[df["Ano"] == ano_sel]
         opcoes_inst =["TODAS"] + sorted(df_ano["Instituição"].unique())
@@ -861,9 +867,6 @@ else:
                         "Custo Manutenção (Acumulado)": st.column_config.NumberColumn("Custo Manutenção (Acumulado)", format="R$ %.2f"),
                     }
                 )
-                # ---------------------------------------------------------
-                # FIM DO NOVO CÓDIGO DA TABELA DE PLACAS
-                # ---------------------------------------------------------
 
         with tab8:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
@@ -1133,7 +1136,7 @@ else:
         with tab7:
             st.markdown("### 📑 Detalhamento dos Dados")
             
-            df_download = df_base_completa.drop(columns=['Mes_Num'])
+            df_download = df_base_completa.drop(columns=['Mes_Num', 'Data_Crua'], errors='ignore')
             
             csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
             st.download_button(
