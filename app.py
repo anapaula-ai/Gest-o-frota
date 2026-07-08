@@ -244,7 +244,7 @@ else:
                 df = pd.read_excel(url_planilha)
             
             # =================================================================
-            # CORREÇÃO DEFINITIVA EXTREMA E COLETA DE DIAGNÓSTICO
+            # CORREÇÃO DEFINITIVA EXTREMA E COLETA DE DIAGNÓSTICO (SEGURA)
             # =================================================================
             # 1. Guardamos a data original exatamente como veio para diagnóstico
             if 'Mês Referência' in df.columns:
@@ -252,8 +252,11 @@ else:
             else:
                 df['Data_Crua'] = 'Coluna não encontrada'
 
-            # 2. Limpeza profunda (remove espaços invisiveis do copiar colar)
-            datas_str = df['Data_Crua'].str.strip().str.replace(r'[\xa0\u202f\t\n\r]+', '', regex=True)
+            # 2. Limpeza profunda mas segura (sem usar regex)
+            datas_str = df['Data_Crua'].astype(str).str.strip()
+            datas_str = datas_str.str.replace(chr(160), '')  # Espaço invisível 1
+            datas_str = datas_str.str.replace(chr(8239), '') # Espaço invisível 2
+            
             datas_str = datas_str.str.split(' ').str[0].str.split('T').str[0]
             
             # 3. Lista de formatos para tentar (todas as combinações)
@@ -332,7 +335,7 @@ else:
         # FERRAMENTA DE DIAGNÓSTICO (APARECE NO TOPO DO APP)
         # =====================================================
         with st.expander("🛠️ MODO DIAGNÓSTICO DE DATAS (Clique aqui se os meses estiverem faltando)"):
-            st.write("Veja abaixo exatamente qual texto o Google Sheets está mandando de forma invisível. Se precisar, tire um print desta tabela!")
+            st.write("Veja abaixo exatamente qual texto o Google Sheets está mandando. Se precisar, tire um print desta tabela!")
             if 'Data_Crua' in df.columns:
                 df_debug = df[['Data_Crua', 'Mês Referência', 'Mes_Nome', 'Mes_Num']].drop_duplicates().sort_values('Data_Crua')
                 st.dataframe(df_debug, use_container_width=True)
