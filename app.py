@@ -297,7 +297,14 @@ else:
             else:
                 df['Custo Combustível'] = to_float(df.iloc[:, 3])
 
-            df['Ano'] = pd.to_numeric(df['Ano'], errors='coerce').fillna(2026).astype(int) if 'Ano' in df.columns else 2026
+            # =================================================================
+            # EXTRAÇÃO INTELIGENTE DO ANO (Ignora erro humano na coluna 'Ano')
+            # =================================================================
+            if 'Mês Referência' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Mês Referência']):
+                df['Ano'] = df['Mês Referência'].dt.year.fillna(2026).astype(int)
+            else:
+                df['Ano'] = 2026
+            # =================================================================
             
             if 'Centro de Custo' in df.columns: df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
             if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
