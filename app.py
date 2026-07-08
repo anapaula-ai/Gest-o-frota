@@ -251,10 +251,10 @@ else:
             else:
                 datas_cruas = pd.Series('2026-01-01', index=df.index)
 
-            # 1. Limpeza rápida dos textos
+            # 1. Limpeza de texto
             datas_str = datas_cruas.str.strip().str.split(' ').str[0].str.split('T').str[0]
             
-            # 2. Tenta os formatos (como está no formato 2026-03-01, o primeiro formato vai ler tudo perfeitamente)
+            # 2. Varredura de formatos
             formatos = ['%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m/%d/%Y']
             d1 = pd.Series(pd.NaT, index=datas_str.index)
             
@@ -275,11 +275,8 @@ else:
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
             df['Mes_Num'] = df['Mês Referência'].dt.month
             
-            # 4. EXTRAÇÃO DO ANO AUTOMÁTICA DIRETO DA DATA (Ignora qualquer erro humano na planilha)
-            if 'Mês Referência' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Mês Referência']):
-                df['Ano'] = df['Mês Referência'].dt.year.fillna(2026).astype(int)
-            else:
-                df['Ano'] = 2026
+            # 4. EXTRAÇÃO DO ANO DINÂMICA (Garante os anos corretos de forma automática)
+            df['Ano'] = pd.to_datetime(df['Mês Referência'], errors='coerce').dt.year.fillna(2026).astype(int)
             # =================================================================
             
             df['Quilometragem'] = to_float(df['Quilometragem'])
@@ -562,7 +559,7 @@ else:
                 gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
                 gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
                 trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
-                sub_comb_m = f"Gasto exclusive em {mes_sel}"
+                sub_comb_m = f"Gasto exclusivo em {mes_sel}"
                 draw_card("CUSTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), sub_comb_m, trend=trend_comb)
                 
             with k2:
@@ -671,6 +668,7 @@ else:
             manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
             
             df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
             mask_validas = (
