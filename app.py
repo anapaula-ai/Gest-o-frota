@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import time
+import time  # Adicionado para forçar atualização do cache do Google
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -11,6 +11,7 @@ st.set_page_config(page_title="Logística", layout="wide")
 # ==========================================
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
+# Crie a sua senha aqui embaixo:
 SENHA_ACESSO = "Log2026@"
 
 if "autenticado" not in st.session_state:
@@ -243,30 +244,18 @@ else:
                 df = pd.read_excel(url_planilha)
             
             # =================================================================
-            # CORREÇÃO DEFINITIVA EXTREMA E COLETA DE DIAGNÓSTICO (SEGURA)
+            # LEITURA DE DATAS E EXTRAÇÃO AUTOMÁTICA DE ANO E MÊS
             # =================================================================
-            # 1. Guardamos a data original exatamente como veio para diagnóstico
             if 'Mês Referência' in df.columns:
                 df['Data_Crua'] = df['Mês Referência'].astype(str)
             else:
                 df['Data_Crua'] = 'Coluna não encontrada'
 
-            # 2. Limpeza profunda mas segura (sem usar regex)
-            datas_str = df['Data_Crua'].astype(str).str.strip()
-            datas_str = datas_str.str.replace(chr(160), '')  # Espaço invisível 1
-            datas_str = datas_str.str.replace(chr(8239), '') # Espaço invisível 2
+            # 1. Limpeza rápida
+            datas_str = df['Data_Crua'].astype(str).str.strip().str.split(' ').str[0].str.split('T').str[0]
             
-            datas_str = datas_str.str.split(' ').str[0].str.split('T').str[0]
-            
-            # 3. Lista de formatos para tentar (todas as combinações)
-            formatos = [
-                '%Y-%m-%d', # Padrão: 2026-03-01
-                '%d/%m/%Y', # Brasil com barra: 01/03/2026
-                '%Y/%m/%d', # Ano/Mês/Dia: 2026/03/01
-                '%d-%m-%Y', # Brasil com traço: 01-03-2026
-                '%m/%d/%Y', # Formato Americano que o Google pode exportar: 03/01/2026
-            ]
-            
+            # 2. Tenta os formatos (como você colocou 2026-03-01 no Google Sheets, este vai brilhar)
+            formatos = ['%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m/%d/%Y']
             d1 = pd.Series(pd.NaT, index=datas_str.index)
             
             for fmt in formatos:
@@ -279,12 +268,19 @@ else:
                 d1.loc[mask] = pd.to_datetime(datas_str[mask], errors='coerce', dayfirst=True)
             
             df['Mês Referência'] = d1
-            # =================================================================
             
+            # 3. Nomes e Números dos Meses
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
             df['Mes_Num'] = df['Mês Referência'].dt.month
+            
+            # 4. EXTRAÇÃO DO ANO AUTOMÁTICA DIRETO DA DATA (Ignora o erro humano do Excel)
+            if 'Mês Referência' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Mês Referência']):
+                df['Ano'] = df['Mês Referência'].dt.year.fillna(2026).astype(int)
+            else:
+                df['Ano'] = 2026
+            # =================================================================
             
             df['Quilometragem'] = to_float(df['Quilometragem'])
             df['Custo de manutenção'] = to_float(df['Custo de manutenção'])
@@ -295,15 +291,6 @@ else:
                 df['Custo Combustível'] = to_float(df['Custo de combustível'])
             else:
                 df['Custo Combustível'] = to_float(df.iloc[:, 3])
-
-            # =================================================================
-            # EXTRAÇÃO INTELIGENTE DO ANO (Ignora erro humano na coluna 'Ano')
-            # =================================================================
-            if 'Mês Referência' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Mês Referência']):
-                df['Ano'] = df['Mês Referência'].dt.year.fillna(2026).astype(int)
-            else:
-                df['Ano'] = 2026
-            # =================================================================
             
             if 'Centro de Custo' in df.columns: df['Centro de Custo'] = df['Centro de Custo'].astype(str).str.strip()
             if 'Base' in df.columns: df['Base'] = df['Base'].astype(str).str.strip()
@@ -343,7 +330,7 @@ else:
         with st.expander("🛠️ MODO DIAGNÓSTICO DE DATAS (Clique aqui se os meses estiverem faltando)"):
             st.write("Veja abaixo exatamente qual texto o Google Sheets está mandando. Se precisar, tire um print desta tabela!")
             if 'Data_Crua' in df.columns:
-                df_debug = df[['Data_Crua', 'Mês Referência', 'Mes_Nome', 'Mes_Num']].drop_duplicates().sort_values('Data_Crua')
+                df_debug = df[['Data_Crua', 'Mês Referência', 'Mes_Nome', 'Mes_Num', 'Ano']].drop_duplicates().sort_values('Data_Crua')
                 st.dataframe(df_debug, use_container_width=True)
         # =====================================================
 
@@ -693,7 +680,10 @@ else:
             df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
             
-            df_comb_acum_geral = df_acum_geral[df_comb_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            # --- LINHA CORRIGIDA NESTA VERSÃO ---
+            df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
+            # ------------------------------------
+            
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
             mask_validas = (
