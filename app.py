@@ -256,23 +256,30 @@ else:
                 df = pd.read_excel(url_planilha)
             
             # =================================================================
-            # CORREÇÃO DEFINITIVA DO FORMATO DE DATA (MISTURADO NO SHEETS)
+            # CORREÇÃO DEFINITIVA DO FORMATO DE DATA (DIA/MÊS/ANO)
             # =================================================================
-            # 1. Pega os valores e remove espaços e horas se existirem
+            # 1. Limpa os textos (remove espaços e horas extras se existirem)
             datas_str = df['Mês Referência'].astype(str).str.strip().str.split(' ').str[0]
             
-            # 2. Tenta ler primeiro quem está no padrão Internacional/Google (2026-06-01)
-            d1 = pd.to_datetime(datas_str, format='%Y-%m-%d', errors='coerce')
+            # 2. Tenta ler primeiro no formato Dia/Mês/Ano com barras (ex: 01/03/2026)
+            d1 = pd.to_datetime(datas_str, format='%d/%m/%Y', errors='coerce')
             
-            # 3. Quem falhou no passo 2, tenta ler no formato Brasileiro (01/06/2026)
+            # 3. Se falhar, tenta Dia-Mês-Ano com traços (ex: 01-03-2026)
             mask = d1.isna()
-            d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%d/%m/%Y', errors='coerce')
+            if mask.any():
+                d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%d-%m-%Y', errors='coerce')
             
-            # 4. Se sobrou alguma coisa diferente, o pandas tenta adivinhar
+            # 4. Se ainda assim houver dados antigos, tenta o padrão Ano-Mês-Dia (ex: 2026-03-01)
             mask = d1.isna()
-            d1.loc[mask] = pd.to_datetime(datas_str[mask], errors='coerce', dayfirst=True)
+            if mask.any():
+                d1.loc[mask] = pd.to_datetime(datas_str[mask], format='%Y-%m-%d', errors='coerce')
             
-            # 5. Aplica a data limpa no dataframe
+            # 5. Para qualquer outra coisa que sobrar, adivinha garantindo que o DIA vem primeiro
+            mask = d1.isna()
+            if mask.any():
+                d1.loc[mask] = pd.to_datetime(datas_str[mask], errors='coerce', dayfirst=True)
+            
+            # 6. Aplica a data limpa no dataframe
             df['Mês Referência'] = d1
             # =================================================================
             
