@@ -247,14 +247,14 @@ else:
             # LEITURA DE DATAS E EXTRAÇÃO AUTOMÁTICA DE ANO E MÊS
             # =================================================================
             if 'Mês Referência' in df.columns:
-                df['Data_Crua'] = df['Mês Referência'].astype(str)
+                datas_cruas = df['Mês Referência'].astype(str)
             else:
-                df['Data_Crua'] = 'Coluna não encontrada'
+                datas_cruas = pd.Series('2026-01-01', index=df.index)
 
-            # 1. Limpeza rápida
-            datas_str = df['Data_Crua'].astype(str).str.strip().str.split(' ').str[0].str.split('T').str[0]
+            # 1. Limpeza rápida dos textos
+            datas_str = datas_cruas.str.strip().str.split(' ').str[0].str.split('T').str[0]
             
-            # 2. Tenta os formatos (como você colocou 2026-03-01 no Google Sheets, este vai brilhar)
+            # 2. Tenta os formatos (como está no formato 2026-03-01, o primeiro formato vai ler tudo perfeitamente)
             formatos = ['%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m/%d/%Y']
             d1 = pd.Series(pd.NaT, index=datas_str.index)
             
@@ -275,7 +275,7 @@ else:
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
             df['Mes_Num'] = df['Mês Referência'].dt.month
             
-            # 4. EXTRAÇÃO DO ANO AUTOMÁTICA DIRETO DA DATA (Ignora o erro humano do Excel)
+            # 4. EXTRAÇÃO DO ANO AUTOMÁTICA DIRETO DA DATA (Ignora qualquer erro humano na planilha)
             if 'Mês Referência' in df.columns and pd.api.types.is_datetime64_any_dtype(df['Mês Referência']):
                 df['Ano'] = df['Mês Referência'].dt.year.fillna(2026).astype(int)
             else:
@@ -324,16 +324,6 @@ else:
     ORCAMENTOS_RASTREADOR_2026 = {"AMES": 0.00, "IAV": 10194.00} 
 
     if not df.empty:
-        # =====================================================
-        # FERRAMENTA DE DIAGNÓSTICO (APARECE NO TOPO DO APP)
-        # =====================================================
-        with st.expander("🛠️ MODO DIAGNÓSTICO DE DATAS (Clique aqui se os meses estiverem faltando)"):
-            st.write("Veja abaixo exatamente qual texto o Google Sheets está mandando. Se precisar, tire um print desta tabela!")
-            if 'Data_Crua' in df.columns:
-                df_debug = df[['Data_Crua', 'Mês Referência', 'Mes_Nome', 'Mes_Num', 'Ano']].drop_duplicates().sort_values('Data_Crua')
-                st.dataframe(df_debug, use_container_width=True)
-        # =====================================================
-
         ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
         df_ano = df[df["Ano"] == ano_sel]
         opcoes_inst =["TODAS"] + sorted(df_ano["Instituição"].unique())
@@ -572,7 +562,7 @@ else:
                 gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
                 gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
                 trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
-                sub_comb_m = f"Gasto exclusivo em {mes_sel}"
+                sub_comb_m = f"Gasto exclusive em {mes_sel}"
                 draw_card("CUSTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), sub_comb_m, trend=trend_comb)
                 
             with k2:
@@ -680,10 +670,7 @@ else:
             df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
             manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
             
-            # --- LINHA CORRIGIDA NESTA VERSÃO ---
             df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-            # ------------------------------------
-            
             comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
             
             mask_validas = (
@@ -788,9 +775,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # ---------------------------------------------------------
-                # INÍCIO DA NOVA TABELA PARA O GESTOR DA BASE
-                # ---------------------------------------------------------
                 st.markdown(f"#### 🚘 Detalhamento para o Gestor | {base_raiox}")
                 
                 padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
@@ -818,7 +802,6 @@ else:
                 
                 df_placas = df_placas.sort_values("Custo Manutenção (Acumulado)", ascending=False)
                 
-                # ADICIONA A LINHA DE COMBUSTÍVEL NO FINAL DA TABELA
                 comb_mes_val = df_rx_mes[df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
                 comb_acum_val = df_rx_acum[df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
                 
@@ -832,7 +815,6 @@ else:
                     }])
                     df_placas = pd.concat([df_placas, linha_combustivel], ignore_index=True)
                 
-                # Botão de Download que vai conter a linha do combustível
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
                     csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
@@ -846,7 +828,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Pinta a linha do combustível de laranja na tela para dar destaque visual
                 def highlight_fuel(row):
                     if "⛽" in str(row['Placa']):
                         return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
@@ -871,7 +852,6 @@ else:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
-            # Utiliza df_base_completa e remove placas que não são veículos
             mask_km = (
                 (~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)) &
                 (df_base_completa["Placa"].astype(str).str.strip() != "") &
@@ -881,7 +861,6 @@ else:
             df_km_matrix = df_base_completa[mask_km]
             
             if not df_km_matrix.empty:
-                # Cria a tabela dinâmica (Pivot Table)
                 pt_km = pd.pivot_table(
                     df_km_matrix,
                     values='Quilometragem',
@@ -891,49 +870,39 @@ else:
                     fill_value=0
                 ).reset_index()
                 
-                # Mapeia números dos meses para nomes curtos
                 meses_map = {1: 'JAN', 2: 'FEV', 3: 'MAR', 4: 'ABR', 5: 'MAI', 6: 'JUN', 
                              7: 'JUL', 8: 'AGO', 9: 'SET', 10: 'OUT', 11: 'NOV', 12: 'DEZ'}
                 
                 meses_presentes = sorted([c for c in pt_km.columns if isinstance(c, int)])
                 nomes_meses_presentes = [meses_map.get(m, str(m)) for m in meses_presentes]
                 
-                # Renomeia colunas para os nomes dos meses
                 renames = {m: meses_map.get(m, str(m)) for m in meses_presentes}
                 pt_km.rename(columns=renames, inplace=True)
                 
-                # Adiciona coluna de TOTAL
                 pt_km['TOTAL'] = pt_km[nomes_meses_presentes].sum(axis=1)
                 pt_km = pt_km.sort_values(['Instituição', col_cc, 'Placa'])
                 
-                # ==========================================
-                # Construção da Tabela com Subtotais
-                # ==========================================
                 linhas_subtotal = []
                 for inst in pt_km['Instituição'].unique():
                     df_inst = pt_km[pt_km['Instituição'] == inst]
                     for base in df_inst[col_cc].unique():
                         df_b = df_inst[df_inst[col_cc] == base]
                         
-                        # Linhas normais da Base
                         for _, row in df_b.iterrows():
                             linhas_subtotal.append(row.to_dict())
                         
-                        # Linha de Subtotal da Base
                         subtotal_dict = {'Instituição': inst, col_cc: base, 'Placa': 'Subtotal'}
                         for mes in nomes_meses_presentes:
                             subtotal_dict[mes] = df_b[mes].sum()
                         subtotal_dict['TOTAL'] = df_b['TOTAL'].sum()
                         linhas_subtotal.append(subtotal_dict)
                     
-                    # Linha de Total da Instituição
                     total_inst_dict = {'Instituição': inst, col_cc: '', 'Placa': f'TOTAL {inst}'}
                     for mes in nomes_meses_presentes:
                         total_inst_dict[mes] = df_inst[mes].sum()
                     total_inst_dict['TOTAL'] = df_inst['TOTAL'].sum()
                     linhas_subtotal.append(total_inst_dict)
                 
-                # Linha de Total Geral (Final da Planilha)
                 total_geral_dict = {'Instituição': '', col_cc: '', 'Placa': 'TOTAL GERAL'}
                 for mes in nomes_meses_presentes:
                     total_geral_dict[mes] = pt_km[mes].sum()
@@ -942,7 +911,6 @@ else:
                 
                 df_km_subtotals = pd.DataFrame(linhas_subtotal)
                 
-                # Função para estilizar visualmente a tabela na tela do App
                 def highlight_subtotals(row):
                     placa = str(row['Placa']).upper()
                     if 'SUBTOTAL' in placa:
@@ -951,16 +919,13 @@ else:
                         return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
                     return [''] * len(row)
                 
-                # Função de formatação para retirar casas decimais e adicionar ponto de milhar
                 def format_br_int(val):
                     try: return f"{int(val):,.0f}".replace(",", ".")
                     except: return "0"
                 
-                # Aplica as formatações e colorações
                 format_dict = {c: format_br_int for c in nomes_meses_presentes + ['TOTAL']}
                 df_styled = df_km_subtotals.style.apply(highlight_subtotals, axis=1).format(format_dict)
                 
-                # Exibe botão de Download e Tabela
                 col_btn_km1, col_btn_km2 = st.columns([2, 1])
                 with col_btn_km2:
                     st.markdown("<br>", unsafe_allow_html=True)
@@ -982,7 +947,6 @@ else:
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
-            # Puxamos as PLACAS DIGITAIS
             pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
             
@@ -991,7 +955,6 @@ else:
             if not df_frota.empty:
                 df_frota_unica = df_frota.sort_values("Mes_Num", ascending=False).drop_duplicates(subset=["Placa"])
                 
-                # Regra de Classificação baseada no NOME da placa digital
                 def classificar_frota(placa):
                     texto = str(placa).upper()
                     if 'ALUGAD' in texto: return 'Alugados'
@@ -1008,19 +971,13 @@ else:
                 ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
                 df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
                 
-                # Ordenação Inicial
                 df_frota_unica = df_frota_unica.sort_values(['Instituição', 'Ordem_Cat', col_cc, 'Placa'])
                 
-                # ==========================================
-                # Construção da Tabela com Linhas Divisórias (Cabeçalhos)
-                # ==========================================
                 linhas_segmentadas = []
-                
                 for inst in df_frota_unica['Instituição'].unique():
                     df_i = df_frota_unica[df_frota_unica['Instituição'] == inst]
                     
                     for cat in df_i['Categoria'].unique():
-                        # Adiciona a linha de Cabeçalho da Categoria
                         linhas_segmentadas.append({
                             'Placa': f"🔸 {str(cat).upper()}",
                             'Instituição': inst,
@@ -1029,7 +986,6 @@ else:
                             'Motorista': ""
                         })
                         
-                        # Adiciona os veículos referentes àquela categoria
                         df_cat = df_i[df_i['Categoria'] == cat]
                         for _, row in df_cat.iterrows():
                             linhas_segmentadas.append({
@@ -1042,17 +998,14 @@ else:
                             
                 df_apresentacao = pd.DataFrame(linhas_segmentadas)
                 
-                # Função de estilo para colorir as linhas de separação
                 def highlight_category(row):
                     placa_val = str(row['Placa'])
                     if placa_val.startswith('🔸'):
-                        # Linha de cabeçalho: Fundo Azul Escuro com letras brancas e negrito
                         return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
                     return [''] * len(row)
                 
                 df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
                 
-                # Botão de Download da tabela única e segmentada
                 csv_relacao = df_apresentacao.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
                     label="📥 Baixar Relação da Frota Segmentada (Excel/CSV)",
@@ -1063,7 +1016,6 @@ else:
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Mostra a tabela única na tela
                 st.dataframe(df_styled, use_container_width=True, hide_index=True)
                 st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
@@ -1079,7 +1031,6 @@ else:
                 st.warning(df_ipva["Aviso"].iloc[0])
             elif not df_ipva.empty:
                 
-                # Filtros Rápidos na tela do IPVA
                 col_filtros1, col_filtros2 = st.columns(2)
                 with col_filtros1:
                     if 'Instituição' in df_ipva.columns:
@@ -1093,14 +1044,12 @@ else:
                     else:
                         ano_ipva = "TODOS"
                 
-                # Aplica os filtros
                 df_ipva_filtrado = df_ipva.copy()
                 if inst_ipva != "TODAS":
                     df_ipva_filtrado = df_ipva_filtrado[df_ipva_filtrado['Instituição'] == inst_ipva]
                 if ano_ipva != "TODOS":
                     df_ipva_filtrado = df_ipva_filtrado[df_ipva_filtrado['Ano base'] == ano_ipva]
                 
-                # Configura a visualização das colunas
                 config_cols_ipva = {}
                 if 'Ipva estimado' in df_ipva_filtrado.columns:
                     config_cols_ipva['Ipva estimado'] = st.column_config.NumberColumn("Ipva estimado", format="R$ %.2f")
@@ -1109,11 +1058,9 @@ else:
                 if 'Ano do veículo' in df_ipva_filtrado.columns:
                     config_cols_ipva['Ano do veículo'] = st.column_config.NumberColumn("Ano do veículo", format="%d")
                 
-                # Exibe totais na tela
                 total_ipva = df_ipva_filtrado['Ipva estimado'].sum() if 'Ipva estimado' in df_ipva_filtrado.columns else 0
                 st.markdown(f"**Total de veículos listados:** {len(df_ipva_filtrado)} | **Valor Total Estimado:** {fmt_br(total_ipva, True)}")
                 
-                # Botão de download
                 col_btn, col_esp = st.columns([1, 2])
                 with col_btn:
                     csv_ipva = df_ipva_filtrado.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
@@ -1127,7 +1074,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Mostra a tabela bonita
                 st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
@@ -1135,7 +1081,7 @@ else:
         with tab7:
             st.markdown("### 📑 Detalhamento dos Dados")
             
-            df_download = df_base_completa.drop(columns=['Mes_Num', 'Data_Crua'], errors='ignore')
+            df_download = df_base_completa.drop(columns=['Mes_Num'], errors='ignore')
             
             csv_data = df_download.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
             st.download_button(
