@@ -350,12 +350,20 @@ else:
             help="Clique e comece a digitar a placa para pesquisar"
         ).upper().strip()
         
-        # Filtro de Meses Seguro (Ignora dados vazios)
-        lista_meses = df_ano.dropna(subset=['Mes_Nome']).sort_values("Mes_Num")["Mes_Nome"].unique()
-        if len(lista_meses) == 0:
+        # =====================================================================
+        # Correção do Filtro de Meses (Garantir lista limpa e ordenada)
+        # =====================================================================
+        df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
+        
+        if df_meses_validos.empty:
             lista_meses = ["Nenhum Mês"]
+        else:
+            # Pega meses únicos, ordena pelo número do mês cronologicamente e converte para lista de Python nativa
+            df_meses_unicos = df_meses_validos[['Mes_Num', 'Mes_Nome']].drop_duplicates().sort_values('Mes_Num')
+            lista_meses = df_meses_unicos['Mes_Nome'].tolist()
             
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
+        # =====================================================================
 
         df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
         df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
