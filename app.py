@@ -807,7 +807,7 @@ else:
                         "KM (Acumulado)": 0,
                         "Custo Manutenção (Acumulado)": comb_acum_val
                     }])
-                    df_placas = pd.concat([df_placas, ignore_index=True)
+                    df_placas = pd.concat([df_placas, linha_combustivel], ignore_index=True)
                 
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
