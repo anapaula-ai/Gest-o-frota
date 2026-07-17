@@ -782,54 +782,80 @@ else:
                 padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
                 df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
-                df_veic_mes = df_rx_mes[~df_rx_mes["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
                 
-                resumo_mes = df_veic_mes.groupby("Placa").agg({
-                    "Quilometragem": "sum",
-                    "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": f"KM ({mes_sel})", "Custo de manutenção": f"Custo Manutenção ({mes_sel})"})
+                # NOVO CÓDIGO: Agrupamento dinâmico mês a mês
+                # Pegar meses ordenados cronologicamente até o mês selecionado
+                meses_ordem = df_rx_acum.drop_duplicates(subset=["Mes_Num"]).sort_values("Mes_Num")["Mes_Nome"].tolist()
                 
-                resumo_acum = df_veic_acum.groupby("Placa").agg({
-                    "Quilometragem": "sum",
-                    "Custo de manutenção": "sum"
-                }).rename(columns={"Quilometragem": "KM (Acumulado)", "Custo de manutenção": "Custo Manutenção (Acumulado)"})
+                df_placas = pd.DataFrame()
                 
-                df_placas = pd.merge(resumo_mes, resumo_acum, on="Placa", how="right").fillna(0).reset_index()
+                # Lista de placas únicas válidas
+                placas_validas = df_veic_acum["Placa"].unique()
+                placas_validas = [p for p in placas_validas if str(p).strip() != "" and str(p).upper() != "NAN" and str(p).strip() != "0"]
                 
-                df_placas = df_placas[
-                    (df_placas["Placa"].astype(str).str.strip() != "") &
-                    (df_placas["Placa"].astype(str).str.upper() != "NAN") &
-                    (df_placas["Placa"].astype(str).str.strip() != "0")
-                ]
+                if len(placas_validas) > 0:
+                    df_placas["Placa"] = sorted(placas_validas)
+                    
+                    # Pivotar dados (cruzamento Placa x Meses)
+                    df_km_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Quilometragem", aggfunc="sum", fill_value=0).reset_index()
+                    df_manut_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Custo de manutenção", aggfunc="sum", fill_value=0).reset_index()
+                    
+                    # Alimentar os meses garantindo a ordem cronológica correta
+                    for m in meses_ordem:
+                        if m in df_km_pivot.columns:
+                            col_k = df_km_pivot[["Placa", m]].rename(columns={m: f"KM ({m})"})
+                            df_placas = pd.merge(df_placas, col_k, on="Placa", how="left").fillna(0)
+                        else:
+                            df_placas[f"KM ({m})"] = 0
+                            
+                        if m in df_manut_pivot.columns:
+                            col_m = df_manut_pivot[["Placa", m]].rename(columns={m: f"Custo Manutenção ({m})"})
+                            df_placas = pd.merge(df_placas, col_m, on="Placa", how="left").fillna(0)
+                        else:
+                            df_placas[f"Custo Manutenção ({m})"] = 0
+                            
+                    # Ordenar por Custo Total no período (apenas para exibição)
+                    cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
+                    df_placas["Custo_Total_Temp"] = df_placas[cols_custo].sum(axis=1)
+                    df_placas = df_placas.sort_values("Custo_Total_Temp", ascending=False).drop(columns=["Custo_Total_Temp"])
+                else:
+                    # Se não houver placas, cria a estrutura vazia
+                    cols_vazias = ["Placa"]
+                    for m in meses_ordem:
+                        cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
+                    df_placas = pd.DataFrame(columns=cols_vazias)
                 
-                df_placas = df_placas.sort_values("Custo Manutenção (Acumulado)", ascending=False)
+                # Linha de Combustível consolidada mês a mês
+                linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
+                tem_combustivel = False
                 
-                comb_mes_val = df_rx_mes[df_rx_mes["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
-                comb_acum_val = df_rx_acum[df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
+                for m in meses_ordem:
+                    df_m_comb = df_rx_acum[(df_rx_acum['Mes_Nome'] == m)]
+                    comb_val = df_m_comb[df_m_comb["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
+                    if comb_val > 0: 
+                        tem_combustivel = True
+                        
+                    linha_comb[f"KM ({m})"] = 0
+                    linha_comb[f"Custo Manutenção ({m})"] = comb_val
                 
-                if comb_mes_val > 0 or comb_acum_val > 0:
-                    linha_combustivel = pd.DataFrame([{
-                        "Placa": "⛽ COMBUSTÍVEL DA BASE",
-                        f"KM ({mes_sel})": 0,
-                        f"Custo Manutenção ({mes_sel})": comb_mes_val,
-                        "KM (Acumulado)": 0,
-                        "Custo Manutenção (Acumulado)": comb_acum_val
-                    }])
-                    df_placas = pd.concat([df_placas, linha_combustivel], ignore_index=True)
+                if tem_combustivel:
+                    df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
                 
+                # Botão de download
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
                     csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                     st.download_button(
-                        label=f"📥 Baixar Relatório do Gestor (Placas + Combustível)",
+                        label=f"📥 Baixar Relatório do Gestor",
                         data=csv_placas,
-                        file_name=f"Relatorio_Gestor_{base_raiox.replace(' ', '_')}_{mes_sel}_{ano_sel}.csv",
+                        file_name=f"Relatorio_Gestor_{base_raiox.replace(' ', '_')}_Ate_{mes_sel}_{ano_sel}.csv",
                         mime="text/csv",
                         use_container_width=True
                     )
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
+                # Aplicar cor à linha de combustível
                 def highlight_fuel(row):
                     if "⛽" in str(row['Placa']):
                         return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
@@ -837,17 +863,18 @@ else:
                 
                 df_styled_placas = df_placas.style.apply(highlight_fuel, axis=1)
                 
+                # Configuração dinâmica das colunas conforme a quantidade de meses
+                config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
+                for m in meses_ordem:
+                    config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
+                    config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
+                
+                # Exibição do dataframe dinâmico
                 st.dataframe(
                     df_styled_placas, 
                     use_container_width=True, 
                     hide_index=True,
-                    column_config={
-                        "Placa": st.column_config.TextColumn("Placa", width="medium"),
-                        f"KM ({mes_sel})": st.column_config.NumberColumn(f"KM ({mes_sel})", format="%.0f"),
-                        f"Custo Manutenção ({mes_sel})": st.column_config.NumberColumn(f"Custo Manutenção ({mes_sel})", format="R$ %.2f"),
-                        "KM (Acumulado)": st.column_config.NumberColumn("KM (Acumulado)", format="%.0f"),
-                        "Custo Manutenção (Acumulado)": st.column_config.NumberColumn("Custo Manutenção (Acumulado)", format="R$ %.2f"),
-                    }
+                    column_config=config_cols_dinamicas
                 )
 
         with tab8:
