@@ -779,10 +779,19 @@ else:
                 
                 st.markdown(f"#### 🚘 Detalhamento para o Gestor | {base_raiox}")
                 
-                padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+                # =================================================================
+                # NOVO CÓDIGO (Solução Inteligente para as Placas de Combustível)
+                # O padrão de exclusão foi ajustado: retirei "COMBUS" da lista de exclusões.
+                # Isso fará com que qualquer placa real escrita "COMBUSTÍVEL - NOME DA BASE"
+                # flua naturalmente para a tabela, tendo seu próprio espaço/nome de exibição.
+                # =================================================================
+                padrao_exclusao_rx = "SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
-                # Veículos reais da base (exclui placas digitais ou de combustível)
-                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
+                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)].copy()
+                
+                # Consolidamos os custos numa coluna temporária. Assim, se o lançamento de combustível
+                # for feito na coluna "Custo Combustível" ou na "Custo de Manutenção", o código vai puxar sem erros.
+                df_veic_acum["Custo_Exibicao"] = df_veic_acum["Custo de manutenção"].fillna(0) + df_veic_acum["Custo Combustível"].fillna(0)
                 
                 # Pegar meses ordenados cronologicamente até o mês selecionado
                 meses_ordem = df_rx_acum.drop_duplicates(subset=["Mes_Num"]).sort_values("Mes_Num")["Mes_Nome"].tolist()
@@ -796,11 +805,11 @@ else:
                 if len(placas_validas) > 0:
                     df_placas["Placa"] = sorted(placas_validas)
                     
-                    # Pivotar dados (cruzamento Placa x Meses)
+                    # Tabela Dinâmica do Pandas puxando os dados cruzados automaticamente
                     df_km_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Quilometragem", aggfunc="sum", fill_value=0).reset_index()
-                    df_manut_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Custo de manutenção", aggfunc="sum", fill_value=0).reset_index()
+                    df_manut_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Custo_Exibicao", aggfunc="sum", fill_value=0).reset_index()
                     
-                    # Alimentar os meses garantindo a ordem cronológica correta
+                    # Alimentar os meses garantindo a ordem cronológica exata (Jan, Fev, Mar...)
                     for m in meses_ordem:
                         if m in df_km_pivot.columns:
                             col_k = df_km_pivot[["Placa", m]].rename(columns={m: f"KM ({m})"})
@@ -814,40 +823,25 @@ else:
                         else:
                             df_placas[f"Custo Manutenção ({m})"] = 0
                             
-                    # Ordenar por Custo Total no período (apenas para exibição)
+                    # Ordenar por Custo Total no período (apenas para ficar ordenado do mais caro pro mais barato)
                     cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
                     df_placas["Custo_Total_Temp"] = df_placas[cols_custo].sum(axis=1)
                     df_placas = df_placas.sort_values("Custo_Total_Temp", ascending=False).drop(columns=["Custo_Total_Temp"])
                 else:
-                    # Se não houver placas, cria a estrutura vazia
+                    # Se não houver placas registradas, cria a estrutura vazia
                     cols_vazias = ["Placa"]
                     for m in meses_ordem:
                         cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
                     df_placas = pd.DataFrame(columns=cols_vazias)
                 
-                # =====================================================================
-                # CORREÇÃO: Puxar EXCLUSIVAMENTE placas que começam com COMBUSTÍVEL
-                # =====================================================================
-                linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
-                tem_combustivel = False
-                
-                # Isola estritamente as placas digitais de combustível (Ex: COMBUSTÍVEL - ACAUÃ)
-                # O uso de str.startswith garante que puxaremos apenas as placas exatas.
-                mask_combustivel = df_rx_acum["Placa"].astype(str).str.upper().str.startswith("COMBUSTÍVEL", na=False)
-                df_comb_isolado = df_rx_acum[mask_combustivel]
-                
-                for m in meses_ordem:
-                    # Soma do custo de combustível estritamente para o respectivo mês
-                    comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
+                # Para deixar bonito, vamos adicionar o emoji da bombinha de combustível ao lado do nome do combustível
+                def formatar_placa(nome_placa):
+                    nome_limpo = str(nome_placa).upper()
+                    if "COMBUS" in nome_limpo:
+                        return f"⛽ {nome_placa}"
+                    return nome_placa
                     
-                    if comb_val > 0: 
-                        tem_combustivel = True
-                        
-                    linha_comb[f"KM ({m})"] = 0
-                    linha_comb[f"Custo Manutenção ({m})"] = comb_val
-                
-                if tem_combustivel:
-                    df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
+                df_placas["Placa"] = df_placas["Placa"].apply(formatar_placa)
                 
                 # Botão de download
                 col_btn_placas, col_espaco = st.columns([1, 2])
@@ -863,21 +857,21 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Aplicar cor à linha de combustível
+                # Aplicar cor visual para destacar as linhas das placas de combustível
                 def highlight_fuel(row):
-                    if "⛽" in str(row['Placa']):
+                    if "⛽" in str(row['Placa']) or "COMBUS" in str(row['Placa']).upper():
                         return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
                     return [''] * len(row)
                 
                 df_styled_placas = df_placas.style.apply(highlight_fuel, axis=1)
                 
-                # Configuração dinâmica das colunas conforme a quantidade de meses
+                # Configuração dinâmica das colunas conforme a quantidade de meses filtrados
                 config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
                 for m in meses_ordem:
                     config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
                     config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
                 
-                # Exibição do dataframe dinâmico
+                # Exibição do dataframe na tela
                 st.dataframe(
                     df_styled_placas, 
                     use_container_width=True, 
