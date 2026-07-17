@@ -781,9 +781,9 @@ else:
                 
                 padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
+                # Veículos reais da base (exclui placas digitais ou de combustível)
                 df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
                 
-                # NOVO CÓDIGO: Agrupamento dinâmico mês a mês
                 # Pegar meses ordenados cronologicamente até o mês selecionado
                 meses_ordem = df_rx_acum.drop_duplicates(subset=["Mes_Num"]).sort_values("Mes_Num")["Mes_Nome"].tolist()
                 
@@ -825,13 +825,21 @@ else:
                         cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
                     df_placas = pd.DataFrame(columns=cols_vazias)
                 
-                # Linha de Combustível consolidada mês a mês
+                # =====================================================================
+                # CORREÇÃO: Puxar EXCLUSIVAMENTE placas que começam com COMBUSTÍVEL
+                # =====================================================================
                 linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
                 tem_combustivel = False
                 
+                # Isola estritamente as placas digitais de combustível (Ex: COMBUSTÍVEL - ACAUÃ)
+                # O uso de str.startswith garante que puxaremos apenas as placas exatas.
+                mask_combustivel = df_rx_acum["Placa"].astype(str).str.upper().str.startswith("COMBUSTÍVEL", na=False)
+                df_comb_isolado = df_rx_acum[mask_combustivel]
+                
                 for m in meses_ordem:
-                    df_m_comb = df_rx_acum[(df_rx_acum['Mes_Nome'] == m)]
-                    comb_val = df_m_comb[df_m_comb["Placa"].str.startswith("COMBUSTÍVEL", na=False)]['Custo Combustível'].sum()
+                    # Soma do custo de combustível estritamente para o respectivo mês
+                    comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
+                    
                     if comb_val > 0: 
                         tem_combustivel = True
                         
