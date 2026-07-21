@@ -231,7 +231,6 @@ else:
     @st.cache_data(ttl=60) 
     def load_top_km_data():
         try:
-            # Novo link que você forneceu para aba Top Km
             url_top_km_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=2146713884&single=true&output=csv"
             
             if "COLE_O_LINK" in url_top_km_base:
@@ -888,8 +887,11 @@ else:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
+            # ATUALIZADO AQUI: Padrão combinado de exclusão (limpa tudo que não for carro real do KM)
+            padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+            
             mask_km = (
-                (~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)) &
+                (~df_base_completa["Placa"].astype(str).str.contains(padrao_exclusao_km, case=False, na=True)) &
                 (df_base_completa["Placa"].astype(str).str.strip() != "") &
                 (df_base_completa["Placa"].astype(str).str.upper() != "NAN") &
                 (df_base_completa["Placa"].astype(str).str.strip() != "0")
