@@ -229,6 +229,23 @@ else:
             return pd.DataFrame()
 
     @st.cache_data(ttl=60) 
+    def load_top_km_data():
+        try:
+            # Novo link que você forneceu para aba Top Km
+            url_top_km_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=2146713884&single=true&output=csv"
+            
+            if "COLE_O_LINK" in url_top_km_base:
+                return pd.DataFrame() # Retorna vazio até que o link seja inserido
+            
+            url_top_km = f"{url_top_km_base}&t={int(time.time())}"
+            df_top = pd.read_csv(url_top_km, decimal=',', sep=',')
+            return df_top
+            
+        except Exception as e:
+            st.error(f"Erro ao carregar dados do Top KM: {e}")
+            return pd.DataFrame()
+
+    @st.cache_data(ttl=60) 
     def load_data():
         try:
             url_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?output=csv"
@@ -271,7 +288,7 @@ else:
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
             df['Mes_Num'] = df['Mês Referência'].dt.month
             
-            # 4. EXTRAÇÃO DO ANO DINÂMICA (Garante os anos corretos de forma automática)
+            # 4. EXTRAÇÃO DO ANO DINÂMICA
             df['Ano'] = pd.to_datetime(df['Mês Referência'], errors='coerce').dt.year.fillna(2026).astype(int)
             # =================================================================
             
@@ -351,14 +368,13 @@ else:
         ).upper().strip()
         
         # =====================================================================
-        # Correção do Filtro de Meses (Garantir lista limpa e ordenada)
+        # Filtro de Meses 
         # =====================================================================
         df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
         
         if df_meses_validos.empty:
             lista_meses = ["Nenhum Mês"]
         else:
-            # Pega meses únicos, ordena pelo número do mês cronologicamente e converte para lista de Python nativa
             df_meses_unicos = df_meses_validos[['Mes_Num', 'Mes_Nome']].drop_duplicates().sort_values('Mes_Num')
             lista_meses = df_meses_unicos['Mes_Nome'].tolist()
             
@@ -379,9 +395,9 @@ else:
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
         # =======================================================
-        # ABAS REORGANIZADAS
+        # ABAS REORGANIZADAS COM A NOVA ABA "TOP KM"
         # =======================================================
-        tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab7 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
             "📌 Visão Mensal", 
             "📈 Resumo Acumulado", 
             "⛽ Combustível", 
@@ -390,6 +406,7 @@ else:
             "🛣️ Mapa de KM", 
             "📋 Relação da Frota", 
             "📅 Veículos & IPVA",
+            "🏆 Top KM Frota",
             "📑 Detalhamento"
         ])
 
@@ -781,26 +798,20 @@ else:
                 
                 padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
                 
-                # Veículos reais da base (exclui placas digitais ou de combustível)
                 df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
-                
-                # Pegar meses ordenados cronologicamente até o mês selecionado
                 meses_ordem = df_rx_acum.drop_duplicates(subset=["Mes_Num"]).sort_values("Mes_Num")["Mes_Nome"].tolist()
                 
                 df_placas = pd.DataFrame()
                 
-                # Lista de placas únicas válidas
                 placas_validas = df_veic_acum["Placa"].unique()
                 placas_validas = [p for p in placas_validas if str(p).strip() != "" and str(p).upper() != "NAN" and str(p).strip() != "0"]
                 
                 if len(placas_validas) > 0:
                     df_placas["Placa"] = sorted(placas_validas)
                     
-                    # Pivotar dados (cruzamento Placa x Meses)
                     df_km_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Quilometragem", aggfunc="sum", fill_value=0).reset_index()
                     df_manut_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Custo de manutenção", aggfunc="sum", fill_value=0).reset_index()
                     
-                    # Alimentar os meses garantindo a ordem cronológica correta
                     for m in meses_ordem:
                         if m in df_km_pivot.columns:
                             col_k = df_km_pivot[["Placa", m]].rename(columns={m: f"KM ({m})"})
@@ -814,30 +825,22 @@ else:
                         else:
                             df_placas[f"Custo Manutenção ({m})"] = 0
                             
-                    # Ordenar por Custo Total no período (apenas para exibição)
                     cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
                     df_placas["Custo_Total_Temp"] = df_placas[cols_custo].sum(axis=1)
                     df_placas = df_placas.sort_values("Custo_Total_Temp", ascending=False).drop(columns=["Custo_Total_Temp"])
                 else:
-                    # Se não houver placas, cria a estrutura vazia
                     cols_vazias = ["Placa"]
                     for m in meses_ordem:
                         cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
                     df_placas = pd.DataFrame(columns=cols_vazias)
                 
-                # =====================================================================
-                # CORREÇÃO: Puxar EXCLUSIVAMENTE placas que começam com COMBUSTÍVEL
-                # =====================================================================
                 linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
                 tem_combustivel = False
                 
-                # Isola estritamente as placas digitais de combustível (Ex: COMBUSTÍVEL - ACAUÃ)
-                # O uso de str.startswith garante que puxaremos apenas as placas exatas.
                 mask_combustivel = df_rx_acum["Placa"].astype(str).str.upper().str.startswith("COMBUSTÍVEL", na=False)
                 df_comb_isolado = df_rx_acum[mask_combustivel]
                 
                 for m in meses_ordem:
-                    # Soma do custo de combustível estritamente para o respectivo mês
                     comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
                     
                     if comb_val > 0: 
@@ -849,7 +852,6 @@ else:
                 if tem_combustivel:
                     df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
                 
-                # Botão de download
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
                     csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
@@ -863,7 +865,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Aplicar cor à linha de combustível
                 def highlight_fuel(row):
                     if "⛽" in str(row['Placa']):
                         return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
@@ -871,13 +872,11 @@ else:
                 
                 df_styled_placas = df_placas.style.apply(highlight_fuel, axis=1)
                 
-                # Configuração dinâmica das colunas conforme a quantidade de meses
                 config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
                 for m in meses_ordem:
                     config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
                     config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
                 
-                # Exibição do dataframe dinâmico
                 st.dataframe(
                     df_styled_placas, 
                     use_container_width=True, 
@@ -1114,6 +1113,76 @@ else:
                 st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
+
+        with tab10:
+            st.markdown(f"### 🏆 Top 15 Veículos - Maior Quilometragem")
+            st.markdown("Análise dos veículos mais rodados da frota de acordo com a aba **Top Km**.")
+            
+            df_top_km = load_top_km_data()
+            
+            if df_top_km.empty:
+                st.warning("⚠️ Os dados do Top KM ainda não puderam ser carregados. Verifique se há informações preenchidas na aba da planilha.")
+            else:
+                # Tenta localizar colunas automaticamente para evitar quebras
+                col_placa = 'Placa' if 'Placa' in df_top_km.columns else df_top_km.columns[0]
+                
+                col_km = None
+                for col in df_top_km.columns:
+                    if 'KM' in col.upper() or 'QUILOMETRAGEM' in col.upper():
+                        col_km = col
+                        break
+                
+                if not col_km and len(df_top_km.columns) > 1:
+                    col_km = df_top_km.columns[1]
+                
+                if col_placa and col_km:
+                    df_top_km[col_km] = to_float(df_top_km[col_km])
+                    
+                    # Pega os 15 maiores e ordena para o gráfico (menor para o maior no eixo Y do gráfico horizontal)
+                    top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
+                    
+                    c_grafico, c_tabela = st.columns([2, 1.2])
+                    
+                    with c_grafico:
+                        st.markdown('<div class="chart-title">Os 15 Carros Mais Rodados</div>', unsafe_allow_html=True)
+                        fig_top15 = px.bar(
+                            top15, 
+                            x=col_km, 
+                            y=col_placa, 
+                            orientation='h', 
+                            text=col_km, 
+                            color_discrete_sequence=['#D32F2F']
+                        )
+                        fig_top15.update_traces(
+                            texttemplate='<b>%{text:,.0f} KM</b>', 
+                            textposition='outside', 
+                            textfont=ESTILO_TEXTO, 
+                            cliponaxis=False
+                        )
+                        max_km = top15[col_km].max() if not top15.empty else 1
+                        fig_top15.update_layout(
+                            height=550, 
+                            separators=',.', 
+                            paper_bgcolor='rgba(0,0,0,0)', 
+                            plot_bgcolor='rgba(0,0,0,0)', 
+                            margin=dict(r=100, l=10, t=10, b=10), 
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.3]), 
+                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
+                        )
+                        st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
+                    
+                    with c_tabela:
+                        st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
+                        # Ordena para a tabela do maior pro menor
+                        tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
+                        st.dataframe(
+                            tabela_top15, 
+                            use_container_width=True, 
+                            hide_index=True,
+                            column_config={col_km: st.column_config.NumberColumn(col_km, format="%.0f")}
+                        )
+                else:
+                    st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
 
         with tab7:
             st.markdown("### 📑 Detalhamento dos Dados")
