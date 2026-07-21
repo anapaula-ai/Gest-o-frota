@@ -1115,8 +1115,8 @@ else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
         with tab10:
-            st.markdown(f"### 🏆 Top 15 Veículos - Maior Quilometragem")
-            st.markdown("Análise dos veículos mais rodados da frota de acordo com a aba **Top Km**.")
+            st.markdown(f"### 🏆 Top 15 Veículos | Maior Quilometragem")
+            st.markdown("Análise dos veículos mais rodados da frota")
             
             df_top_km = load_top_km_data()
             
@@ -1144,7 +1144,7 @@ else:
                     c_grafico, c_tabela = st.columns([2, 1.2])
                     
                     with c_grafico:
-                        st.markdown('<div class="chart-title">Os 15 Carros Mais Rodados</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
                         fig_top15 = px.bar(
                             top15, 
                             x=col_km, 
