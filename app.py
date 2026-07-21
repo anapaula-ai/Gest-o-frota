@@ -405,7 +405,7 @@ else:
             "🛣️ Mapa de KM", 
             "📋 Relação da Frota", 
             "📅 Veículos & IPVA",
-            "🏆 Top KM Frota",
+            "🚗 Top KM Frota",
             "📑 Detalhamento"
         ])
 
@@ -1117,7 +1117,7 @@ else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
         with tab10:
-            st.markdown(f"### 🏆 Top 15 Veículos | Maior Quilometragem")
+            st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
             st.markdown("Análise dos veículos mais rodados da frota")
             
             df_top_km = load_top_km_data()
