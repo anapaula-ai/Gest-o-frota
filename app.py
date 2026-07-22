@@ -234,10 +234,11 @@ else:
             url_top_km_base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/pub?gid=2146713884&single=true&output=csv"
             
             if "COLE_O_LINK" in url_top_km_base:
-                return pd.DataFrame() # Retorna vazio até que o link seja inserido
+                return pd.DataFrame() 
             
             url_top_km = f"{url_top_km_base}&t={int(time.time())}"
-            df_top = pd.read_csv(url_top_km, decimal=',', sep=',')
+            # Ajuste crucial: thousands='.' adicionado para evitar que o ponto quebre os números
+            df_top = pd.read_csv(url_top_km, decimal=',', sep=',', thousands='.')
             return df_top
             
         except Exception as e:
@@ -255,18 +256,13 @@ else:
             else:
                 df = pd.read_excel(url_planilha)
             
-            # =================================================================
-            # LEITURA DE DATAS E EXTRAÇÃO AUTOMÁTICA DE ANO E MÊS
-            # =================================================================
             if 'Mês Referência' in df.columns:
                 datas_cruas = df['Mês Referência'].astype(str)
             else:
                 datas_cruas = pd.Series('2026-01-01', index=df.index)
 
-            # 1. Limpeza de texto
             datas_str = datas_cruas.str.strip().str.split(' ').str[0].str.split('T').str[0]
             
-            # 2. Varredura de formatos
             formatos = ['%Y-%m-%d', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m/%d/%Y']
             d1 = pd.Series(pd.NaT, index=datas_str.index)
             
@@ -281,15 +277,12 @@ else:
             
             df['Mês Referência'] = d1
             
-            # 3. Nomes e Números dos Meses
             meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 
                         7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
             df['Mes_Nome'] = df['Mês Referência'].dt.month.map(meses_pt)
             df['Mes_Num'] = df['Mês Referência'].dt.month
             
-            # 4. EXTRAÇÃO DO ANO DINÂMICA
             df['Ano'] = pd.to_datetime(df['Mês Referência'], errors='coerce').dt.year.fillna(2026).astype(int)
-            # =================================================================
             
             df['Quilometragem'] = to_float(df['Quilometragem'])
             df['Custo de manutenção'] = to_float(df['Custo de manutenção'])
@@ -366,9 +359,6 @@ else:
             help="Clique e comece a digitar a placa para pesquisar"
         ).upper().strip()
         
-        # =====================================================================
-        # Filtro de Meses 
-        # =====================================================================
         df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
         
         if df_meses_validos.empty:
@@ -378,7 +368,6 @@ else:
             lista_meses = df_meses_unicos['Mes_Nome'].tolist()
             
         mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
-        # =====================================================================
 
         df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
         df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
@@ -393,9 +382,6 @@ else:
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        # =======================================================
-        # ABAS REORGANIZADAS COM A NOVA ABA "TOP KM"
-        # =======================================================
         tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
             "📌 Visão Mensal", 
             "📈 Resumo Acumulado", 
@@ -887,7 +873,6 @@ else:
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
-            # ATUALIZADO AQUI: Padrão combinado de exclusão (limpa tudo que não for carro real do KM)
             padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             
             mask_km = (
@@ -1125,7 +1110,6 @@ else:
             if df_top_km.empty:
                 st.warning("⚠️ Os dados do Top KM ainda não puderam ser carregados. Verifique se há informações preenchidas na aba da planilha.")
             else:
-                # Tenta localizar colunas automaticamente para evitar quebras
                 col_placa = 'Placa' if 'Placa' in df_top_km.columns else df_top_km.columns[0]
                 
                 col_km = None
@@ -1140,7 +1124,13 @@ else:
                 if col_placa and col_km:
                     df_top_km[col_km] = to_float(df_top_km[col_km])
                     
-                    # Pega os 15 maiores e ordena para o gráfico (menor para o maior no eixo Y do gráfico horizontal)
+                    # CORREÇÃO INTELIGENTE:
+                    # Se o sistema interpretou a formatação (ex: 478.963) como decimal, o valor máximo será 478.9
+                    # Essa regra multiplica os valores por 1000 resgatando automaticamente a grandeza original (478.963)
+                    if df_top_km[col_km].max() > 0 and df_top_km[col_km].max() < 3000:
+                        df_top_km[col_km] = df_top_km[col_km] * 1000
+                    
+                    # Pega os 15 maiores
                     top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
                     
                     c_grafico, c_tabela = st.columns([2, 1.2])
@@ -1148,14 +1138,12 @@ else:
                     with c_grafico:
                         st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
                         
-                        # NOVA FUNÇÃO: Formata a KM para o padrão "K"
+                        # NOVA FUNÇÃO: Formata a KM para o padrão "K" e sem a palavra KM
                         def formatar_k(x):
                             if x >= 1000:
-                                # Divide por 1000 e formata. Ex: 478000 -> 478K, 478500 -> 478,5K
-                                return f"{x/1000:.1f}K".replace('.0K', 'K').replace('.', ',')
-                            return f"{x:,.0f}".replace(',', '.') + " KM"
+                                return f"{x/1000:.0f}K"
+                            return f"{x:,.0f}".replace(',', '.')
                         
-                        # Aplica a formatação na coluna
                         top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
                         
                         fig_top15 = px.bar(
@@ -1163,7 +1151,7 @@ else:
                             x=col_km, 
                             y=col_placa, 
                             orientation='h', 
-                            text='KM_Formatado',  # Lê o número já abreviado com "K"
+                            text='KM_Formatado', 
                             color_discrete_sequence=['#D32F2F']
                         )
                         fig_top15.update_traces(
@@ -1178,21 +1166,21 @@ else:
                             height=550, 
                             paper_bgcolor='rgba(0,0,0,0)', 
                             plot_bgcolor='rgba(0,0,0,0)', 
-                            margin=dict(r=80, l=10, t=10, b=10), # Diminuí o r=80 já que o texto em "K" ocupa menos espaço
-                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.2]), 
+                            margin=dict(r=60, l=10, t=10, b=10), # Margem menor pois o texto é apenas "479K"
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
                             yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
                         )
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
                     
                     with c_tabela:
                         st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
-                        # Ordena para a tabela do maior pro menor
                         tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
                         st.dataframe(
                             tabela_top15, 
                             use_container_width=True, 
                             hide_index=True,
-                            column_config={col_km: st.column_config.NumberColumn(col_km, format="%.0f")}
+                            # Mantém a tabela com o número inteiro, assim fica claro que é 478.963 original
+                            column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
                         )
                 else:
                     st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
