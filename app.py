@@ -1147,28 +1147,39 @@ else:
                     
                     with c_grafico:
                         st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
+                        
+                        # NOVA FUNÇÃO: Formata a KM para o padrão "K"
+                        def formatar_k(x):
+                            if x >= 1000:
+                                # Divide por 1000 e formata. Ex: 478000 -> 478K, 478500 -> 478,5K
+                                return f"{x/1000:.1f}K".replace('.0K', 'K').replace('.', ',')
+                            return f"{x:,.0f}".replace(',', '.') + " KM"
+                        
+                        # Aplica a formatação na coluna
+                        top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
+                        
                         fig_top15 = px.bar(
                             top15, 
                             x=col_km, 
                             y=col_placa, 
                             orientation='h', 
-                            text=col_km, 
+                            text='KM_Formatado',  # Lê o número já abreviado com "K"
                             color_discrete_sequence=['#D32F2F']
                         )
                         fig_top15.update_traces(
-                            texttemplate='<b>%{text:,.0f} KM</b>', 
+                            texttemplate='<b>%{text}</b>', 
                             textposition='outside', 
                             textfont=ESTILO_TEXTO, 
                             cliponaxis=False
                         )
                         max_km = top15[col_km].max() if not top15.empty else 1
+                        
                         fig_top15.update_layout(
                             height=550, 
-                            separators=',.', 
                             paper_bgcolor='rgba(0,0,0,0)', 
                             plot_bgcolor='rgba(0,0,0,0)', 
-                            margin=dict(r=100, l=10, t=10, b=10), 
-                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.3]), 
+                            margin=dict(r=80, l=10, t=10, b=10), # Diminuí o r=80 já que o texto em "K" ocupa menos espaço
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.2]), 
                             yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
                         )
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
