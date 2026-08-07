@@ -242,7 +242,6 @@ else:
                 return pd.DataFrame() 
             
             url_top_km = f"{url_top_km_base}&t={int(time.time())}"
-            # Ajuste crucial: thousands='.' adicionado para evitar que o ponto quebre os números
             df_top = pd.read_csv(url_top_km, decimal=',', sep=',', thousands='.')
             return df_top
             
@@ -815,13 +814,20 @@ else:
                         else:
                             df_placas[f"Custo Manutenção ({m})"] = 0
                             
+                    # --- NOVIDADE: CRIANDO AS COLUNAS DE TOTAIS ---
+                    cols_km = [f"KM ({m})" for m in meses_ordem]
                     cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
-                    df_placas["Custo_Total_Temp"] = df_placas[cols_custo].sum(axis=1)
-                    df_placas = df_placas.sort_values("Custo_Total_Temp", ascending=False).drop(columns=["Custo_Total_Temp"])
+                    
+                    df_placas["KM Total Acumulado"] = df_placas[cols_km].sum(axis=1)
+                    df_placas["Custo Total Acumulado"] = df_placas[cols_custo].sum(axis=1)
+                    
+                    # Ordena pelos veículos que mais gastaram no total
+                    df_placas = df_placas.sort_values("Custo Total Acumulado", ascending=False)
                 else:
                     cols_vazias = ["Placa"]
                     for m in meses_ordem:
                         cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
+                    cols_vazias.extend(["KM Total Acumulado", "Custo Total Acumulado"])
                     df_placas = pd.DataFrame(columns=cols_vazias)
                 
                 linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
@@ -830,6 +836,7 @@ else:
                 mask_combustivel = df_rx_acum["Placa"].astype(str).str.upper().str.startswith("COMBUSTÍVEL", na=False)
                 df_comb_isolado = df_rx_acum[mask_combustivel]
                 
+                total_comb = 0
                 for m in meses_ordem:
                     comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
                     
@@ -838,9 +845,22 @@ else:
                         
                     linha_comb[f"KM ({m})"] = 0
                     linha_comb[f"Custo Manutenção ({m})"] = comb_val
+                    total_comb += comb_val
+                
+                linha_comb["KM Total Acumulado"] = 0
+                linha_comb["Custo Total Acumulado"] = total_comb
                 
                 if tem_combustivel:
                     df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
+                
+                # --- NOVIDADE: LINHA DE TOTAL GERAL DA BASE ---
+                if not df_placas.empty:
+                    linha_total = {"Placa": "💰 TOTAL GERAL DA BASE"}
+                    for col in df_placas.columns:
+                        if col != "Placa":
+                            linha_total[col] = df_placas[col].sum()
+                    
+                    df_placas = pd.concat([df_placas, pd.DataFrame([linha_total])], ignore_index=True)
                 
                 col_btn_placas, col_espaco = st.columns([1, 2])
                 with col_btn_placas:
@@ -855,17 +875,25 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                def highlight_fuel(row):
-                    if "⛽" in str(row['Placa']):
+                # --- NOVIDADE: ESTILIZAÇÃO DO TOTAL ---
+                def highlight_special_rows(row):
+                    placa = str(row['Placa'])
+                    if "⛽" in placa:
                         return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
+                    elif "💰" in placa:
+                        return ['background-color: #1A237E; font-weight: bold; color: white'] * len(row)
                     return [''] * len(row)
                 
-                df_styled_placas = df_placas.style.apply(highlight_fuel, axis=1)
+                df_styled_placas = df_placas.style.apply(highlight_special_rows, axis=1)
                 
                 config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
                 for m in meses_ordem:
                     config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
                     config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
+                
+                # Configurando o formato visual das novas colunas
+                config_cols_dinamicas["KM Total Acumulado"] = st.column_config.NumberColumn("KM Total Acumulado", format="%.0f")
+                config_cols_dinamicas["Custo Total Acumulado"] = st.column_config.NumberColumn("Custo Total Acumulado", format="R$ %.2f")
                 
                 st.dataframe(
                     df_styled_placas, 
