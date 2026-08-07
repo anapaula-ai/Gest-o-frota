@@ -11,8 +11,13 @@ st.set_page_config(page_title="Logística", layout="wide")
 # ==========================================
 # 2. TELA DE LOGIN E SEGURANÇA
 # ==========================================
-# Crie a sua senha aqui embaixo:
-SENHA_ACESSO = "Log2026@"
+# A senha agora é puxada de forma segura das configurações (secrets)
+try:
+    SENHA_ACESSO = st.secrets["senha_acesso"]
+except KeyError:
+    st.error("⚠️ Erro de configuração: A senha não foi encontrada nos secrets.")
+    st.info("Lembre-se de criar o arquivo `.streamlit/secrets.toml` localmente ou configurar nos Secrets do painel Streamlit Cloud.")
+    st.stop()
 
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
