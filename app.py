@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go  # Adicionado para o gráfico de rosca
 import time  # Adicionado para forçar atualização do cache do Google
 
 # ==========================================
@@ -376,17 +377,24 @@ else:
         df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
         df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
 
-        df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
-        
         try:
             mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
         except:
             mes_num_atual = 1
-            
+
+        df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
         df_anterior_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] == mes_num_atual - 1]
 
-        tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
+        df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
+        df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
+        df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
+
+        # ==========================================================
+        # CONJUNTO DE ABAS - INCLUINDO A NOVA "VISÃO EXECUTIVA"
+        # ==========================================================
+        tab_ceo, tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
+            "👑 Visão Executiva",
             "📌 Visão Mensal", 
             "📈 Resumo Acumulado", 
             "⛽ Combustível", 
@@ -398,6 +406,113 @@ else:
             "🚗 Top KM Frota",
             "📑 Detalhamento"
         ])
+
+        with tab_ceo:
+            st.markdown(f"### 👑 Resumo Executivo (C-Level) | Acumulado {ano_sel}")
+            st.markdown("Visão macro de custos globais, orçamento e eficiência da frota.")
+            
+            # 1. CÁLCULOS GLOBAIS (Unindo todas as despesas)
+            # Acumulados
+            gasto_manut_acum = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
+            gasto_comb_acum = df_comb_acum["Custo Combustível"].sum()
+            gasto_seguro_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]["Custo de seguro"].sum()
+            gasto_rastreador_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]["Custo de Rastreador"].sum()
+            
+            custo_total_global = gasto_manut_acum + gasto_comb_acum + gasto_seguro_acum + gasto_rastreador_acum
+            km_total_global = df_acumulado_ate_mes_manut['Quilometragem'].sum()
+            
+            # Orçamentos Globais
+            orc_manut = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas)
+            orc_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
+            orc_seg = sum(ORCAMENTOS_SEGURO_2026.get(inst, 0) for inst in inst_ativas)
+            orc_rast = sum(ORCAMENTOS_RASTREADOR_2026.get(inst, 0) for inst in inst_ativas)
+            orcamento_total_global = orc_manut + orc_comb + orc_seg + orc_rast
+            
+            # Eficiência
+            cpk_global = custo_total_global / km_total_global if km_total_global > 0 else 0
+            
+            # 2. CARDS SUPERIORES
+            c_exec1, c_exec2, c_exec3 = st.columns(3)
+            
+            with c_exec1:
+                if ano_sel == 2026:
+                    saldo_global = orcamento_total_global - custo_total_global
+                    perc_global = (custo_total_global / orcamento_total_global * 100) if orcamento_total_global > 0 else 0
+                    sub_global = f"Orçamento Total: <b>{fmt_br(orcamento_total_global, True)}</b>"
+                    prog_txt = f"{perc_global:.1f}% consumido &middot; Saldo: {fmt_br(saldo_global, True)}"
+                    draw_card("💰 CUSTO TOTAL DA FROTA (YTD)", fmt_br(custo_total_global, True), sub_global, progress=perc_global, progress_text=prog_txt)
+                else:
+                    draw_card("💰 CUSTO TOTAL DA FROTA (YTD)", fmt_br(custo_total_global, True), "Orçamento: A definir")
+
+            with c_exec2:
+                draw_card("📊 CUSTO POR KM (CPK GLOBAL)", f"R$ {cpk_global:,.2f}".replace('.', ','), "Considera Combustível + Manutenção + Fixos", is_lower_better=True)
+
+            with c_exec3:
+                veiculos_ativos = len(get_ativos(df_base[df_base["Mes_Num"] <= mes_num_atual]))
+                custo_por_veiculo = custo_total_global / veiculos_ativos if veiculos_ativos > 0 else 0
+                draw_card("🚘 CUSTO MÉDIO POR VEÍCULO", fmt_br(custo_por_veiculo, True), f"Baseado em {veiculos_ativos} veículos ativos no ano")
+
+            st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px'>", unsafe_allow_html=True)
+            
+            # 3. GRÁFICOS EXECUTIVOS
+            col_graf_donut, col_alertas = st.columns([1.2, 1])
+            
+            with col_graf_donut:
+                st.markdown('<div class="chart-title">Composição dos Custos</div>', unsafe_allow_html=True)
+                
+                df_composicao = pd.DataFrame({
+                    "Categoria": ["Manutenção", "Combustível", "Seguro", "Rastreador"],
+                    "Valor": [gasto_manut_acum, gasto_comb_acum, gasto_seguro_acum, gasto_rastreador_acum]
+                })
+                # Filtra zeros
+                df_composicao = df_composicao[df_composicao["Valor"] > 0]
+                
+                if not df_composicao.empty:
+                    fig_donut = go.Figure(data=[go.Pie(
+                        labels=df_composicao["Categoria"], 
+                        values=df_composicao["Valor"], 
+                        hole=.5,
+                        marker=dict(colors=["#F57C00", "#0288D1", "#1A237E", "#81D4FA"]),
+                        textinfo='label+percent'
+                    )])
+                    fig_donut.update_layout(height=350, margin=dict(t=10, b=10, l=10, r=10), showlegend=False)
+                    st.plotly_chart(fig_donut, use_container_width=True, config={'displayModeBar': False})
+
+            with col_alertas:
+                st.markdown('<div class="chart-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
+                
+                alertas = []
+                
+                # Alerta 1: Orçamento estourando
+                if ano_sel == 2026:
+                    if (gasto_manut_acum / orc_manut) > 0.90 if orc_manut > 0 else False:
+                        alertas.append("⚠️ **Orçamento de Manutenção** ultrapassou 90% do previsto para o ano.")
+                    if (gasto_comb_acum / orc_comb) > 0.90 if orc_comb > 0 else False:
+                        alertas.append("⚠️ **Orçamento de Combustível** ultrapassou 90% do previsto para o ano.")
+                
+                # Alerta 2: Base mais cara do mês
+                if not df_filtrado_mes_manut.empty:
+                    base_top_custo = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().idxmax()
+                    valor_top_custo = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().max()
+                    alertas.append(f"🔥 A base **{base_top_custo}** liderou os custos de manutenção no mês atual ({fmt_br(valor_top_custo, True)}).")
+                
+                # Alerta 3: Veículo ofensor
+                mask_reais_alert = ~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR", case=False, na=True)
+                df_veic_alert = df_filtrado_mes_manut[mask_reais_alert]
+                if not df_veic_alert.empty and df_veic_alert['Custo de manutenção'].max() > 5000:
+                    placa_cara = df_veic_alert.loc[df_veic_alert['Custo de manutenção'].idxmax(), 'Placa']
+                    valor_caro = df_veic_alert['Custo de manutenção'].max()
+                    alertas.append(f"🔧 O veículo **{placa_cara}** teve um custo excepcional de manutenção este mês ({fmt_br(valor_caro, True)}).")
+
+                if alertas:
+                    for alerta in alertas:
+                        st.error(alerta)
+                else:
+                    st.success("✅ Nenhum alerta crítico de custo identificado até o momento.")
+                
+                # KPI extra no painel de alertas
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.info(f"**Projeção simples:** Mantendo a média atual, fecharemos o ano com um gasto total estimado de **{fmt_br((custo_total_global / mes_num_atual) * 12, True)}**.")
 
         with tab1:
             st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
@@ -507,18 +622,16 @@ else:
             
             ca1, ca2, ca3 = st.columns(3)
             with ca1:
-                gasto_total_acum_manut = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
-                
                 if ano_sel == 2026:
                     orc_total_manut = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas)
-                    saldo_manut = orc_total_manut - gasto_total_acum_manut
-                    perc_manut = (gasto_total_acum_manut / orc_total_manut * 100) if orc_total_manut > 0 else 0
+                    saldo_manut = orc_total_manut - gasto_manut_acum
+                    perc_manut = (gasto_manut_acum / orc_total_manut * 100) if orc_total_manut > 0 else 0
                     sub_manut = f"Orçamento Anual: <b>{fmt_br(orc_total_manut, True)}</b>"
                     prog_text_manut = f"{perc_manut:.1f}% &middot; Saldo {fmt_br(saldo_manut, True)}"
-                    draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
+                    draw_card("EXECUÇÃO MANUT. (ACUMULADO)", fmt_br(gasto_manut_acum, True), sub_manut, progress=perc_manut, progress_text=prog_text_manut)
                 else:
                     sub_manut = "Orçamento Anual: <b>A definir</b>"
-                    draw_card("CUSTO DE MANUT. (ACUMULADO)", fmt_br(gasto_total_acum_manut, True), sub_manut)
+                    draw_card("CUSTO DE MANUT. (ACUMULADO)", fmt_br(gasto_manut_acum, True), sub_manut)
                 
             with ca2:
                 km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
@@ -560,9 +673,6 @@ else:
 
         with tab3:
             st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
-            df_comb_mes = df_apenas_comb[df_apenas_comb["Mes_Nome"] == mes_sel]
-            df_comb_acum = df_apenas_comb[df_apenas_comb["Mes_Num"] <= mes_num_atual]
-            df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
             k1, k2 = st.columns(2)
             with k1:
@@ -573,17 +683,16 @@ else:
                 draw_card("CUSTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), sub_comb_m, trend=trend_comb)
                 
             with k2:
-                gasto_acum_comb = df_comb_acum["Custo Combustível"].sum()
                 if ano_sel == 2026:
                     orc_total_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
-                    saldo_comb = orc_total_comb - gasto_acum_comb
-                    perc_comb = (gasto_acum_comb / orc_total_comb * 100) if orc_total_comb > 0 else 0
+                    saldo_comb = orc_total_comb - gasto_comb_acum
+                    perc_comb = (gasto_comb_acum / orc_total_comb * 100) if orc_total_comb > 0 else 0
                     sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
                     prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
-                    draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_acum_comb, True), sub_comb, progress=perc_comb, progress_text=prog_text_comb)
+                    draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_comb_acum, True), sub_comb, progress=perc_comb, progress_text=prog_text_comb)
                 else:
                     sub_comb = "Orçamento Anual: <b>A definir</b>"
-                    draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_acum_comb, True), sub_comb)
+                    draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_comb_acum, True), sub_comb)
             
             st.markdown("---")
             
@@ -1157,13 +1266,9 @@ else:
                 if col_placa and col_km:
                     df_top_km[col_km] = to_float(df_top_km[col_km])
                     
-                    # CORREÇÃO INTELIGENTE:
-                    # Se o sistema interpretou a formatação (ex: 478.963) como decimal, o valor máximo será 478.9
-                    # Essa regra multiplica os valores por 1000 resgatando automaticamente a grandeza original (478.963)
                     if df_top_km[col_km].max() > 0 and df_top_km[col_km].max() < 3000:
                         df_top_km[col_km] = df_top_km[col_km] * 1000
                     
-                    # Pega os 15 maiores
                     top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
                     
                     c_grafico, c_tabela = st.columns([2, 1.2])
@@ -1171,7 +1276,6 @@ else:
                     with c_grafico:
                         st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
                         
-                        # NOVA FUNÇÃO: Formata a KM para o padrão "K" e sem a palavra KM
                         def formatar_k(x):
                             if x >= 1000:
                                 return f"{x/1000:.0f}K"
@@ -1199,7 +1303,7 @@ else:
                             height=550, 
                             paper_bgcolor='rgba(0,0,0,0)', 
                             plot_bgcolor='rgba(0,0,0,0)', 
-                            margin=dict(r=60, l=10, t=10, b=10), # Margem menor pois o texto é apenas "479K"
+                            margin=dict(r=60, l=10, t=10, b=10), 
                             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
                             yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
                         )
@@ -1212,7 +1316,6 @@ else:
                             tabela_top15, 
                             use_container_width=True, 
                             hide_index=True,
-                            # Mantém a tabela com o número inteiro, assim fica claro que é 478.963 original
                             column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
                         )
                 else:
