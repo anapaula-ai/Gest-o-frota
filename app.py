@@ -504,27 +504,29 @@ else:
                 else:
                     st.success("✅ Nenhum alerta crítico de custo identificado até o momento.")
                 
-                # KPI extra no painel de alertas: PROJEÇÃO FINANCEIRA INTELIGENTE
+                # KPI extra no painel de alertas: PROJEÇÃO FINANCEIRA INTELIGENTE COM NOVO FORMATO
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 if mes_num_atual > 0:
-                    # Calcula quanto vai gastar até o final do ano baseado na média dos meses passados
                     projecao_anual = (custo_total_global / mes_num_atual) * 12
+                    media_mensal = custo_total_global / mes_num_atual
                     
                     if ano_sel == 2026 and orcamento_total_global > 0:
                         if projecao_anual <= orcamento_total_global:
                             saldo_proj = orcamento_total_global - projecao_anual
                             st.success(
-                                f"🎯 **Projeção de Fechamento:** Mantendo a média atual ({fmt_br(custo_total_global/mes_num_atual, True)}/mês), "
-                                f"fecharemos o ano totalizando **{fmt_br(projecao_anual, True)}**.\n\n"
-                                f"✅ Terminaremos **DENTRO do orçamento** (poupando cerca de {fmt_br(saldo_proj, True)})."
+                                f"🎯 **PROJEÇÃO DE FECHAMENTO**\n\n"
+                                f"• Média atual: **{fmt_br(media_mensal, True)}** / mês\n"
+                                f"• Gasto Final Projetado: **{fmt_br(projecao_anual, True)}**\n\n"
+                                f"✅ **STATUS:** Terminaremos **DENTRO** do orçamento (economia estimada de {fmt_br(saldo_proj, True)})."
                             )
                         else:
                             estouro_proj = projecao_anual - orcamento_total_global
                             st.warning(
-                                f"📈 **Projeção de Fechamento:** Mantendo a média atual ({fmt_br(custo_total_global/mes_num_atual, True)}/mês), "
-                                f"fecharemos o ano totalizando **{fmt_br(projecao_anual, True)}**.\n\n"
-                                f"⚠️ Atenção: Terminaremos **ACIMA do orçamento** (estouro de {fmt_br(estouro_proj, True)})."
+                                f"📈 **PROJEÇÃO DE FECHAMENTO**\n\n"
+                                f"• Média atual: **{fmt_br(media_mensal, True)}** / mês\n"
+                                f"• Gasto Final Projetado: **{fmt_br(projecao_anual, True)}**\n\n"
+                                f"⚠️ **STATUS:** Terminaremos **ACIMA** do orçamento (estouro estimado de {fmt_br(estouro_proj, True)})."
                             )
                     else:
                         st.info(f"**Projeção simples:** Mantendo a média atual, fecharemos o ano com um gasto total estimado de **{fmt_br(projecao_anual, True)}**.")
@@ -1071,14 +1073,17 @@ else:
                         
                         top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
                         
+                        # APLICADO O DEGRADÊ DE VERMELHO ABAIXO
                         fig_top15 = px.bar(
                             top15, 
                             x=col_km, 
                             y=col_placa, 
                             orientation='h', 
                             text='KM_Formatado', 
-                            color_discrete_sequence=['#D32F2F']
+                            color=col_km,  # Mapeia a cor para o valor da Quilometragem
+                            color_continuous_scale='Reds'  # Aplica o degradê do mais claro ao mais escuro
                         )
+                        
                         fig_top15.update_traces(
                             texttemplate='<b>%{text}</b>', 
                             textposition='outside', 
@@ -1093,7 +1098,8 @@ else:
                             plot_bgcolor='rgba(0,0,0,0)', 
                             margin=dict(r=60, l=10, t=10, b=10), 
                             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
-                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
+                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""),
+                            coloraxis_showscale=False  # Oculta a barrinha lateral do degradê para ficar mais limpo
                         )
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
                     
