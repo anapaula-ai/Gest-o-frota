@@ -408,7 +408,7 @@ else:
         ])
 
         with tab_ceo:
-            st.markdown(f"### 👑 Resumo Executivo (C-Level) | Acumulado {ano_sel}")
+            st.markdown(f"### 👑 Resumo Executivo | Acumulado {ano_sel}")
             st.markdown("Visão macro de custos globais, orçamento e eficiência da frota.")
             
             # 1. CÁLCULOS GLOBAIS (Unindo todas as despesas)
