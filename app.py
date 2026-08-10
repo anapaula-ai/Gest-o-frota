@@ -391,7 +391,7 @@ else:
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
         # ==========================================================
-        # CONJUNTO DE ABAS - INCLUINDO A NOVA "VISÃO EXECUTIVA"
+        # CONJUNTO DE ABAS
         # ==========================================================
         tab_ceo, tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
             "👑 Visão Executiva",
@@ -490,11 +490,14 @@ else:
                     if (gasto_comb_acum / orc_comb) > 0.90 if orc_comb > 0 else False:
                         alertas.append("⚠️ **Orçamento de Combustível** ultrapassou 90% do previsto para o ano.")
                 
-                # Alerta 2: Base mais cara do mês
+                # Alerta 2: Base mais cara do mês dividida por Instituição (AMES e IAV)
                 if not df_filtrado_mes_manut.empty:
-                    base_top_custo = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().idxmax()
-                    valor_top_custo = df_filtrado_mes_manut.groupby('Base')['Custo de manutenção'].sum().max()
-                    alertas.append(f"🔥 A base **{base_top_custo}** liderou os custos de manutenção no mês atual ({fmt_br(valor_top_custo, True)}).")
+                    for inst_nome in ["AMES", "IAV"]:
+                        df_inst = df_filtrado_mes_manut[df_filtrado_mes_manut['Instituição'] == inst_nome]
+                        if not df_inst.empty and df_inst['Custo de manutenção'].sum() > 0:
+                            base_top_custo = df_inst.groupby('Base')['Custo de manutenção'].sum().idxmax()
+                            valor_top_custo = df_inst.groupby('Base')['Custo de manutenção'].sum().max()
+                            alertas.append(f"🔥 **{inst_nome}:** A base **{base_top_custo}** liderou os custos no mês atual ({fmt_br(valor_top_custo, True)}).")
                 
                 # Alerta 3: Veículo ofensor
                 mask_reais_alert = ~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR", case=False, na=True)
@@ -502,17 +505,39 @@ else:
                 if not df_veic_alert.empty and df_veic_alert['Custo de manutenção'].max() > 5000:
                     placa_cara = df_veic_alert.loc[df_veic_alert['Custo de manutenção'].idxmax(), 'Placa']
                     valor_caro = df_veic_alert['Custo de manutenção'].max()
-                    alertas.append(f"🔧 O veículo **{placa_cara}** teve um custo excepcional de manutenção este mês ({fmt_br(valor_caro, True)}).")
+                    alertas.append(f"🔧 O veículo **{placa_cara}** teve um custo excepcional este mês ({fmt_br(valor_caro, True)}).")
 
+                # Exibir os alertas na tela
                 if alertas:
                     for alerta in alertas:
                         st.error(alerta)
                 else:
                     st.success("✅ Nenhum alerta crítico de custo identificado até o momento.")
                 
-                # KPI extra no painel de alertas
+                # KPI extra no painel de alertas: PROJEÇÃO FINANCEIRA INTELIGENTE
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.info(f"**Projeção simples:** Mantendo a média atual, fecharemos o ano com um gasto total estimado de **{fmt_br((custo_total_global / mes_num_atual) * 12, True)}**.")
+                
+                if mes_num_atual > 0:
+                    # Calcula quanto vai gastar até o final do ano baseado na média dos meses passados
+                    projecao_anual = (custo_total_global / mes_num_atual) * 12
+                    
+                    if ano_sel == 2026 and orcamento_total_global > 0:
+                        if projecao_anual <= orcamento_total_global:
+                            saldo_proj = orcamento_total_global - projecao_anual
+                            st.success(
+                                f"🎯 **Projeção de Fechamento:** Mantendo a média atual ({fmt_br(custo_total_global/mes_num_atual, True)}/mês), "
+                                f"fecharemos o ano totalizando **{fmt_br(projecao_anual, True)}**.\n\n"
+                                f"✅ Terminaremos **DENTRO do orçamento** (poupando cerca de {fmt_br(saldo_proj, True)})."
+                            )
+                        else:
+                            estouro_proj = projecao_anual - orcamento_total_global
+                            st.warning(
+                                f"📈 **Projeção de Fechamento:** Mantendo a média atual ({fmt_br(custo_total_global/mes_num_atual, True)}/mês), "
+                                f"fecharemos o ano totalizando **{fmt_br(projecao_anual, True)}**.\n\n"
+                                f"⚠️ Atenção: Terminaremos **ACIMA do orçamento** (estouro de {fmt_br(estouro_proj, True)})."
+                            )
+                    else:
+                        st.info(f"**Projeção simples:** Mantendo a média atual, fecharemos o ano com um gasto total estimado de **{fmt_br(projecao_anual, True)}**.")
 
         with tab1:
             st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
