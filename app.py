@@ -391,19 +391,16 @@ else:
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
         # ==========================================================
-        # CONJUNTO DE ABAS
+        # CONJUNTO DE ABAS - OTIMIZADO PARA 8 OPÇÕES
         # ==========================================================
-        tab_ceo, tab1, tab2, tab3, tab4, tab5, tab8, tab6, tab9, tab10, tab7 = st.tabs([
+        tab_ceo, tab_manut, tab_comb, tab_seg, tab_raiox, tab_km, tab_frota, tab_detalhes = st.tabs([
             "👑 Visão Executiva",
-            "📌 Visão Mensal", 
-            "📈 Resumo Acumulado", 
+            "🔧 Manutenção", 
             "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", 
             "📍 Raio-X da Base", 
-            "🛣️ Mapa de KM", 
-            "📋 Relação da Frota", 
-            "📅 Veículos & IPVA",
-            "🚗 Top KM Frota",
+            "🛣️ Gestão de Quilometragem", 
+            "📋 Frota, IPVA & Doc", 
             "📑 Detalhamento"
         ])
 
@@ -475,7 +472,8 @@ else:
                         marker=dict(colors=["#F57C00", "#0288D1", "#1A237E", "#81D4FA"]),
                         textinfo='label+percent'
                     )])
-                    fig_donut.update_layout(height=350, margin=dict(t=10, b=10, l=10, r=10), showlegend=False)
+                    # Ajuste de margem (b=40) e height para não cortar o "Rastreador"
+                    fig_donut.update_layout(height=420, margin=dict(t=10, b=40, l=10, r=10), showlegend=False)
                     st.plotly_chart(fig_donut, use_container_width=True, config={'displayModeBar': False})
 
             with col_alertas:
@@ -498,14 +496,6 @@ else:
                             base_top_custo = df_inst.groupby('Base')['Custo de manutenção'].sum().idxmax()
                             valor_top_custo = df_inst.groupby('Base')['Custo de manutenção'].sum().max()
                             alertas.append(f"🔥 **{inst_nome}:** A base **{base_top_custo}** liderou os custos no mês atual ({fmt_br(valor_top_custo, True)}).")
-                
-                # Alerta 3: Veículo ofensor
-                mask_reais_alert = ~df_filtrado_mes_manut["Placa"].astype(str).str.contains("COMBUS|SEGUR|FINANC|CONSÓRC|RASTR", case=False, na=True)
-                df_veic_alert = df_filtrado_mes_manut[mask_reais_alert]
-                if not df_veic_alert.empty and df_veic_alert['Custo de manutenção'].max() > 5000:
-                    placa_cara = df_veic_alert.loc[df_veic_alert['Custo de manutenção'].idxmax(), 'Placa']
-                    valor_caro = df_veic_alert['Custo de manutenção'].max()
-                    alertas.append(f"🔧 O veículo **{placa_cara}** teve um custo excepcional este mês ({fmt_br(valor_caro, True)}).")
 
                 # Exibir os alertas na tela
                 if alertas:
@@ -539,8 +529,9 @@ else:
                     else:
                         st.info(f"**Projeção simples:** Mantendo a média atual, fecharemos o ano com um gasto total estimado de **{fmt_br(projecao_anual, True)}**.")
 
-        with tab1:
-            st.markdown(f"### 📊 Manutenção e Quilometragem — Desempenho Mensal | {mes_sel}/{ano_sel}")
+        with tab_manut:
+            # ================= VISÃO MENSAL =================
+            st.markdown(f"### 📊 Desempenho Mensal | {mes_sel}/{ano_sel}")
             c1, c2, c3 = st.columns(3)
             
             with c1:
@@ -642,8 +633,11 @@ else:
                 else:
                     st.info("Nenhum custo lançado neste mês.")
 
-        with tab2:
-            st.markdown(f"### 📈 Manutenção e Quilometragem — Desempenho Acumulado | {ano_sel}")
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("---")
+
+            # ================= VISÃO ACUMULADA =================
+            st.markdown(f"### 📈 Desempenho Acumulado | {ano_sel}")
             
             ca1, ca2, ca3 = st.columns(3)
             with ca1:
@@ -696,7 +690,7 @@ else:
                 fig_base_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif")))
                 st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
 
-        with tab3:
+        with tab_comb:
             st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
 
             k1, k2 = st.columns(2)
@@ -745,7 +739,7 @@ else:
                     fig_comb_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
                     st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
 
-        with tab4:
+        with tab_seg:
             st.markdown(f"### 🛡️ Seguro/Rastreadores | {ano_sel}")
             df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
             
@@ -803,7 +797,7 @@ else:
             else:
                 st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
-        with tab5:
+        with tab_raiox:
             st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
             
             df_acum_geral = df_base[df_base['Mes_Num'] <= mes_num_atual]
@@ -1036,7 +1030,89 @@ else:
                     column_config=config_cols_dinamicas
                 )
 
-        with tab8:
+        with tab_km:
+            # ================= TOP 15 KM =================
+            st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
+            st.markdown("Análise dos veículos mais rodados da frota")
+            
+            df_top_km = load_top_km_data()
+            
+            if df_top_km.empty:
+                st.warning("⚠️ Os dados do Top KM ainda não puderam ser carregados. Verifique se há informações preenchidas na aba da planilha.")
+            else:
+                col_placa = 'Placa' if 'Placa' in df_top_km.columns else df_top_km.columns[0]
+                
+                col_km = None
+                for col in df_top_km.columns:
+                    if 'KM' in col.upper() or 'QUILOMETRAGEM' in col.upper():
+                        col_km = col
+                        break
+                
+                if not col_km and len(df_top_km.columns) > 1:
+                    col_km = df_top_km.columns[1]
+                
+                if col_placa and col_km:
+                    df_top_km[col_km] = to_float(df_top_km[col_km])
+                    
+                    if df_top_km[col_km].max() > 0 and df_top_km[col_km].max() < 3000:
+                        df_top_km[col_km] = df_top_km[col_km] * 1000
+                    
+                    top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
+                    
+                    c_grafico, c_tabela = st.columns([2, 1.2])
+                    
+                    with c_grafico:
+                        st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
+                        
+                        def formatar_k(x):
+                            if x >= 1000:
+                                return f"{x/1000:.0f}K"
+                            return f"{x:,.0f}".replace(',', '.')
+                        
+                        top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
+                        
+                        fig_top15 = px.bar(
+                            top15, 
+                            x=col_km, 
+                            y=col_placa, 
+                            orientation='h', 
+                            text='KM_Formatado', 
+                            color_discrete_sequence=['#D32F2F']
+                        )
+                        fig_top15.update_traces(
+                            texttemplate='<b>%{text}</b>', 
+                            textposition='outside', 
+                            textfont=ESTILO_TEXTO, 
+                            cliponaxis=False
+                        )
+                        max_km = top15[col_km].max() if not top15.empty else 1
+                        
+                        fig_top15.update_layout(
+                            height=550, 
+                            paper_bgcolor='rgba(0,0,0,0)', 
+                            plot_bgcolor='rgba(0,0,0,0)', 
+                            margin=dict(r=60, l=10, t=10, b=10), 
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
+                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
+                        )
+                        st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
+                    
+                    with c_tabela:
+                        st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
+                        tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
+                        st.dataframe(
+                            tabela_top15, 
+                            use_container_width=True, 
+                            hide_index=True,
+                            column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
+                        )
+                else:
+                    st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
+
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("---")
+
+            # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
@@ -1133,7 +1209,8 @@ else:
             else:
                 st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
 
-        with tab6:
+        with tab_frota:
+            # ================= RELAÇÃO DA FROTA =================
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
@@ -1211,7 +1288,10 @@ else:
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
-        with tab9:
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("---")
+
+            # ================= VEÍCULOS & IPVA =================
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
             st.markdown("Base de consulta atualizada automaticamente via Google Sheets.")
             
@@ -1268,85 +1348,7 @@ else:
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
-        with tab10:
-            st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
-            st.markdown("Análise dos veículos mais rodados da frota")
-            
-            df_top_km = load_top_km_data()
-            
-            if df_top_km.empty:
-                st.warning("⚠️ Os dados do Top KM ainda não puderam ser carregados. Verifique se há informações preenchidas na aba da planilha.")
-            else:
-                col_placa = 'Placa' if 'Placa' in df_top_km.columns else df_top_km.columns[0]
-                
-                col_km = None
-                for col in df_top_km.columns:
-                    if 'KM' in col.upper() or 'QUILOMETRAGEM' in col.upper():
-                        col_km = col
-                        break
-                
-                if not col_km and len(df_top_km.columns) > 1:
-                    col_km = df_top_km.columns[1]
-                
-                if col_placa and col_km:
-                    df_top_km[col_km] = to_float(df_top_km[col_km])
-                    
-                    if df_top_km[col_km].max() > 0 and df_top_km[col_km].max() < 3000:
-                        df_top_km[col_km] = df_top_km[col_km] * 1000
-                    
-                    top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
-                    
-                    c_grafico, c_tabela = st.columns([2, 1.2])
-                    
-                    with c_grafico:
-                        st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
-                        
-                        def formatar_k(x):
-                            if x >= 1000:
-                                return f"{x/1000:.0f}K"
-                            return f"{x:,.0f}".replace(',', '.')
-                        
-                        top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
-                        
-                        fig_top15 = px.bar(
-                            top15, 
-                            x=col_km, 
-                            y=col_placa, 
-                            orientation='h', 
-                            text='KM_Formatado', 
-                            color_discrete_sequence=['#D32F2F']
-                        )
-                        fig_top15.update_traces(
-                            texttemplate='<b>%{text}</b>', 
-                            textposition='outside', 
-                            textfont=ESTILO_TEXTO, 
-                            cliponaxis=False
-                        )
-                        max_km = top15[col_km].max() if not top15.empty else 1
-                        
-                        fig_top15.update_layout(
-                            height=550, 
-                            paper_bgcolor='rgba(0,0,0,0)', 
-                            plot_bgcolor='rgba(0,0,0,0)', 
-                            margin=dict(r=60, l=10, t=10, b=10), 
-                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
-                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title="")
-                        )
-                        st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
-                    
-                    with c_tabela:
-                        st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
-                        tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
-                        st.dataframe(
-                            tabela_top15, 
-                            use_container_width=True, 
-                            hide_index=True,
-                            column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
-                        )
-                else:
-                    st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
-
-        with tab7:
+        with tab_detalhes:
             st.markdown("### 📑 Detalhamento dos Dados")
             
             df_download = df_base_completa.drop(columns=['Mes_Num'], errors='ignore')
