@@ -394,7 +394,7 @@ else:
         # CONJUNTO DE ABAS - OTIMIZADO PARA 8 OPÇÕES
         # ==========================================================
         tab_ceo, tab_manut, tab_comb, tab_seg, tab_raiox, tab_km, tab_frota, tab_detalhes = st.tabs([
-            "👑 Visão Executiva",
+            "🌐 Visão Executiva",
             "🔧 Manutenção", 
             "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", 
@@ -405,7 +405,7 @@ else:
         ])
 
         with tab_ceo:
-            st.markdown(f"### 👑 Resumo Executivo | Acumulado {ano_sel}")
+            st.markdown(f"### 🌐 Resumo Executivo | Acumulado {ano_sel}")
             st.markdown("Visão macro de custos globais, orçamento e eficiência da frota.")
             
             # 1. CÁLCULOS GLOBAIS (Unindo todas as despesas)
