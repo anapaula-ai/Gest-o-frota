@@ -203,7 +203,6 @@ st.markdown("""
     .exec-inst{color:#607D8B;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
     .odonto-list .exec-row{grid-template-columns:minmax(210px,2.3fr) .55fr .75fr 1fr 1fr 1.05fr .8fr}
 
-
     .rx-list{
         background:#FFFFFF;
         border:1px solid #DCE4EC;
@@ -842,7 +841,7 @@ else:
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
                 st.markdown('<div class="chart-title">🦷 Odontovans | Visão Financeira e Operacional</div>', unsafe_allow_html=True)
-                st.caption("As Odontovans são Centros de Custo do IAV. Na visão consolidada, despesas eventualmente pagas pela AMES permanecem atribuídas à instituição pagadora, preservando a prestação de contas.")
+                
                 tabela_odonto = df_odonto[[
                     "Instituição", "Unidade_Gestao", "Ativos", "Quilometragem",
                     "Custo de manutenção", "Custo Combustível", "Custo_Total", "Custo/KM"
@@ -850,18 +849,32 @@ else:
                     "Unidade_Gestao": "Odontovan",
                     "Quilometragem": "KM"
                 })
+                
                 linhas_od = []
+                mostrar_inst_od = inst_sel == "TODAS"
                 for _, r in tabela_odonto.iterrows():
+                    tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst_od else ""
                     linhas_od.append(
-                        f'<div class="exec-row"><div class="exec-name">{r["Odontovan"]}</div>'
-                        f'<div class="exec-muted">{int(r["Ativos"])} ativos</div>'
-                        f'<div class="exec-muted">{fmt_br(r["KM"])} km</div>'
-                        f'<div class="exec-muted">Manut. {fmt_br(r["Custo de manutenção"], True)}</div>'
-                        f'<div class="exec-muted">Comb. {fmt_br(r["Custo Combustível"], True)}</div>'
-                        f'<div class="exec-money">{fmt_br(r["Custo_Total"], True)}</div>'
-                        f'<div class="exec-badge">{fmt_br(r["Custo/KM"], True)}/km</div></div>'
+                        f'<div class="rx-row">'
+                        f'<div class="rx-name">{r["Odontovan"]}{tag}</div>'
+                        f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
+                        f'<div class="rx-km">{fmt_br(r["KM"])} km</div>'
+                        f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                        f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
+                        f'</div>'
                     )
-                st.markdown('<div class="exec-list odonto-list">' + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
+                
+                cabecalho_od = (
+                    '<div class="rx-header">'
+                    f'<div>Odontovan</div>'
+                    '<div style="text-align:right">Ativos</div>'
+                    '<div style="text-align:right">KM</div>'
+                    '<div style="text-align:right">Custo Total</div>'
+                    '<div style="text-align:right">Custo/KM</div>'
+                    '</div>'
+                )
+                
+                st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
             # ================= VISÃO MENSAL =================
