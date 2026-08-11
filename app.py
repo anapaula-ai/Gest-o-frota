@@ -413,12 +413,18 @@ else:
 
             if inst_sel == "AMES":
                 nome_unidade = "Base Social"
+                titulo_ranking_unidades = "📍 Bases Sociais | Maior Custo Acumulado"
+                titulo_raiox_unidades = "🔎 Raio-X das Bases Sociais"
                 contexto_inst = "AMES · Apoio à atuação missionária"
             elif inst_sel == "IAV":
                 nome_unidade = "Centro de Custo"
+                titulo_ranking_unidades = "🏢 Centros de Custo | Maior Custo Acumulado"
+                titulo_raiox_unidades = "🔎 Raio-X dos Centros de Custo"
                 contexto_inst = "IAV · Estrutura, projetos e serviços"
             else:
-                nome_unidade = "Unidade de Gestão"
+                nome_unidade = "Unidade"
+                titulo_ranking_unidades = "📊 Unidades | Maior Custo Acumulado"
+                titulo_raiox_unidades = "🔎 Raio-X das Unidades"
                 contexto_inst = "AMES + IAV · Visão consolidada"
 
             st.caption(f"{contexto_inst} · Acumulado até {mes_sel}/{ano_sel}")
@@ -430,10 +436,14 @@ else:
 
             def limpar_unidade(valor):
                 texto = str(valor).strip()
+                # Ignora o código do ERP entre parênteses e padroniza espaços.
                 texto = re.sub(r"\s*\(\d+\)\s*$", "", texto).strip()
+                texto = re.sub(r"\s+", " ", texto)
+                texto = re.sub(r"\s*-\s*", " - ", texto)
+                # Correções conhecidas de nomenclatura.
                 texto = texto.replace("RDB7G83", "RBD7G83")
                 texto = texto.replace("LOGISTICA", "LOGÍSTICA")
-                return texto
+                return texto.strip()
 
             # Base financeira: exclui somente o cadastro auxiliar da frota.
             # Permanecem placas físicas + placas digitais de custo.
@@ -506,14 +516,17 @@ else:
                     draw_card("🎯 EXECUÇÃO ORÇAMENTÁRIA", "—", "Orçamento não cadastrado para o ano")
             with c3:
                 if ano_sel == 2026 and orcamento_total_global > 0:
-                    status_proj = "Dentro do orçamento" if projecao_anual <= orcamento_total_global else "Acima do orçamento"
+                    if projecao_anual <= orcamento_total_global:
+                        texto_proj = f"🟢 {fmt_br(diferenca_proj, True)} abaixo do orçamento"
+                    else:
+                        texto_proj = f"🔴 {fmt_br(abs(diferenca_proj), True)} acima do orçamento"
                     draw_card(
-                        "📈 PROJEÇÃO DE FECHAMENTO",
+                        "📈 PREVISÃO DE GASTO ATÉ DEZ/26",
                         fmt_br(projecao_anual, True),
-                        status_proj
+                        texto_proj
                     )
                 else:
-                    draw_card("📈 PROJEÇÃO DE FECHAMENTO", fmt_br(projecao_anual, True), "Projeção pela média mensal")
+                    draw_card("📈 PREVISÃO DE GASTO ATÉ DEZ", fmt_br(projecao_anual, True), "Estimativa com base no ritmo atual")
             with c4:
                 draw_card(
                     "🛣️ KM ACUMULADOS",
@@ -523,7 +536,7 @@ else:
                 )
             with c5:
                 draw_card(
-                    "🚙 FROTA CADASTRADA",
+                    "🚙 ATIVOS CADASTRADOS",
                     fmt_br(qtd_frota),
                     "Ativos no último vínculo conhecido do ano",
                     is_lower_better=False
@@ -556,7 +569,7 @@ else:
 
                 resumo_inst.append({
                     "Instituição": inst_nome,
-                    "Frota": frota_i,
+                    "Ativos": frota_i,
                     "KM Acumulado": km_i,
                     "Custo Acumulado": custo_i,
                     "Orçamento": orc_i,
@@ -571,7 +584,7 @@ else:
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        "Frota": st.column_config.NumberColumn("Frota", format="%d"),
+                        "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
                         "KM Acumulado": st.column_config.NumberColumn("KM Acumulado", format="%.0f"),
                         "Custo Acumulado": st.column_config.NumberColumn("Custo Acumulado", format="R$ %.2f"),
                         "Orçamento": st.column_config.NumberColumn("Orçamento", format="R$ %.2f"),
@@ -631,34 +644,43 @@ else:
                             f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido."
                         )
 
-                # Veículo físico com maior manutenção no acumulado
+                # Veículo físico com maior manutenção no acumulado.
                 mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-                df_placas_exec = df_fin_exec[mask_placa_fisica]
+                df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
                 if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
-                    manut_placa = df_placas_exec.groupby("Placa")["Custo de manutenção"].sum().sort_values(ascending=False)
-                    placa_crit = manut_placa.index[0]
-                    valor_crit = manut_placa.iloc[0]
-                    alertas.append(f"🔧 **Maior manutenção acumulada:** {placa_crit} · {fmt_br(valor_crit, True)}.")
+                    resumo_placa = df_placas_exec.groupby("Placa", as_index=False).agg({
+                        "Custo de manutenção": "sum",
+                        "Custo_Total": "sum",
+                        "Quilometragem": "sum"
+                    }).sort_values("Custo de manutenção", ascending=False)
+                    placa_crit = resumo_placa.iloc[0]["Placa"]
+                    valor_crit = resumo_placa.iloc[0]["Custo de manutenção"]
+                    custo_total_crit = resumo_placa.iloc[0]["Custo_Total"]
+                    km_crit = resumo_placa.iloc[0]["Quilometragem"]
+                    cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
+
+                    # Procura o nome da unidade vinculada ao veículo para contextualizar o alerta.
+                    unidade_crit = ""
+                    if not df_frota_atual.empty:
+                        vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
+                        if not vinculo.empty:
+                            unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
+
+                    if "ODONTOVAN" in unidade_crit.upper():
+                        titulo_crit = unidade_crit
+                    else:
+                        titulo_crit = placa_crit
+
+                    alertas.append(
+                        f"🔧 **{titulo_crit}** · Maior manutenção acumulada: {fmt_br(valor_crit, True)} · "
+                        f"Custo/KM: {fmt_br(cpk_crit, True)}"
+                    )
 
                 if alertas:
                     for alerta in alertas[:4]:
                         st.warning(alerta)
                 else:
                     st.success("✅ Nenhum alerta financeiro crítico identificado para a seleção atual.")
-
-                if ano_sel == 2026 and orcamento_total_global > 0:
-                    if projecao_anual <= orcamento_total_global:
-                        st.success(
-                            f"🎯 **Fechamento projetado dentro do orçamento**\n\n"
-                            f"Projeção: **{fmt_br(projecao_anual, True)}** · "
-                            f"Margem estimada: **{fmt_br(diferenca_proj, True)}**"
-                        )
-                    else:
-                        st.error(
-                            f"📈 **Fechamento projetado acima do orçamento**\n\n"
-                            f"Projeção: **{fmt_br(projecao_anual, True)}** · "
-                            f"Excesso estimado: **{fmt_br(abs(diferenca_proj), True)}**"
-                        )
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -673,19 +695,19 @@ else:
             })
 
             if not df_frota_atual.empty:
-                frota_unid = df_frota_atual.groupby(["Instituição", "Unidade_Gestao"])["Placa_Fisica"].nunique().reset_index(name="Frota")
+                frota_unid = df_frota_atual.groupby(["Instituição", "Unidade_Gestao"])["Placa_Fisica"].nunique().reset_index(name="Ativos")
                 df_unidades = pd.merge(df_unidades, frota_unid, on=["Instituição", "Unidade_Gestao"], how="left")
             else:
-                df_unidades["Frota"] = 0
+                df_unidades["Ativos"] = 0
 
-            df_unidades["Frota"] = df_unidades["Frota"].fillna(0).astype(int)
+            df_unidades["Ativos"] = df_unidades["Ativos"].fillna(0).astype(int)
             df_unidades["Custo/KM"] = df_unidades.apply(
                 lambda r: r["Custo_Total"] / r["Quilometragem"] if r["Quilometragem"] > 0 else 0, axis=1
             )
 
             col_rank, col_top = st.columns([1.25, 1])
             with col_rank:
-                st.markdown(f'<div class="chart-title">📍 {nome_unidade}s com Maior Custo Acumulado</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="chart-title">{titulo_ranking_unidades}</div>', unsafe_allow_html=True)
                 top_unidades = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total").sort_values("Custo_Total")
                 if not top_unidades.empty:
                     fig_unid = px.bar(
@@ -708,16 +730,16 @@ else:
                     st.info("Sem custos para exibir nesta seleção.")
 
             with col_top:
-                st.markdown(f'<div class="chart-title">🔎 Raio-X das {nome_unidade}s</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="chart-title">{titulo_raiox_unidades}</div>', unsafe_allow_html=True)
                 tabela_unid = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total")[
-                    ["Instituição", "Unidade_Gestao", "Frota", "Quilometragem", "Custo_Total", "Custo/KM"]
+                    ["Instituição", "Unidade_Gestao", "Ativos", "Quilometragem", "Custo_Total", "Custo/KM"]
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
                 if not tabela_unid.empty:
                     st.dataframe(
                         tabela_unid,
                         use_container_width=True, hide_index=True, height=355,
                         column_config={
-                            "Frota": st.column_config.NumberColumn("Frota", format="%d"),
+                            "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
                             "Quilometragem": st.column_config.NumberColumn("KM", format="%.0f"),
                             "Custo_Total": st.column_config.NumberColumn("Custo Total", format="R$ %.2f"),
                             "Custo/KM": st.column_config.NumberColumn("Custo/KM", format="R$ %.2f")
@@ -731,7 +753,7 @@ else:
                 st.markdown('<div class="chart-title">🦷 Odontovans | Visão Financeira e Operacional</div>', unsafe_allow_html=True)
                 st.caption("As Odontovans são Centros de Custo do IAV. Na visão consolidada, despesas eventualmente pagas pela AMES permanecem atribuídas à instituição pagadora, preservando a prestação de contas.")
                 tabela_odonto = df_odonto[[
-                    "Instituição", "Unidade_Gestao", "Frota", "Quilometragem",
+                    "Instituição", "Unidade_Gestao", "Ativos", "Quilometragem",
                     "Custo de manutenção", "Custo Combustível", "Custo_Total", "Custo/KM"
                 ]].sort_values("Custo_Total", ascending=False).rename(columns={
                     "Unidade_Gestao": "Odontovan",
@@ -740,7 +762,7 @@ else:
                 st.dataframe(
                     tabela_odonto, use_container_width=True, hide_index=True,
                     column_config={
-                        "Frota": st.column_config.NumberColumn("Frota", format="%d"),
+                        "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
                         "KM": st.column_config.NumberColumn("KM", format="%.0f"),
                         "Custo de manutenção": st.column_config.NumberColumn("Manutenção", format="R$ %.2f"),
                         "Custo Combustível": st.column_config.NumberColumn("Combustível", format="R$ %.2f"),
