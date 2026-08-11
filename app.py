@@ -33,23 +33,85 @@ st.markdown("""
     h1, h2, h3, p, span, label { color: #1A237E !important; }
 
     .metric-container {
-        background-color: #FFFFFF !important;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #CFD8DC;
-        box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
-        min-height: 200px; 
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(180deg, #FFFFFF 0%, #FCFDFF 100%) !important;
+        padding: 21px 20px 18px 20px;
+        border-radius: 14px;
+        border: 1px solid #D7E0EA;
+        box-shadow: 0 5px 16px rgba(26, 35, 126, 0.07);
+        min-height: 185px;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         margin-bottom: 10px;
     }
-    
-    .metric-label { color: #546E7A !important; font-size: 11px; font-weight: 700; text-transform: uppercase; height: 35px; display: flex; align-items: center; }
-    .metric-value { color: #1A237E !important; font-size: 24px; font-weight: 800; height: 40px; display: flex; align-items: center; }
-    
-    .metric-subtext { color: #333333 !important; font-size: 13px; font-weight: 500; min-height: 25px; display: block; line-height: 1.5; margin-top: 8px; }
-    .trend-container { height: 25px; display: flex; align-items: center; margin-top: 5px; }
+
+    .metric-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #1A237E;
+    }
+
+    .metric-label {
+        color: #60758A !important;
+        font-size: 10.5px;
+        letter-spacing: .35px;
+        font-weight: 800;
+        text-transform: uppercase;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+    }
+
+    .metric-value {
+        color: #14206F !important;
+        font-size: 25px;
+        font-weight: 800;
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        letter-spacing: -.25px;
+    }
+
+    .metric-subtext {
+        color: #455A64 !important;
+        font-size: 12.5px;
+        font-weight: 500;
+        min-height: 31px;
+        display: block;
+        line-height: 1.45;
+        margin-top: 7px;
+        padding-top: 8px;
+        border-top: 1px solid #EEF2F6;
+    }
+
+    .trend-container {
+        min-height: 18px;
+        display: flex;
+        align-items: center;
+        margin-top: 4px;
+    }
+
+    .radar-card {
+        background: #FFFFFF;
+        border: 1px solid #DCE4EC;
+        border-left: 4px solid #1A237E;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05);
+        color: #263238 !important;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .radar-card.warning { border-left-color: #F57C00; }
+    .radar-card.critical { border-left-color: #D32F2F; }
+    .radar-card.ok { border-left-color: #2E7D32; }
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
@@ -678,9 +740,17 @@ else:
 
                 if alertas:
                     for alerta in alertas[:4]:
-                        st.warning(alerta)
+                        classe = "critical" if ("acima do orçamento" in alerta.lower() or "ritmo de consumo elevado" in alerta.lower()) else "warning"
+                        alerta_html = alerta.replace("**", "")
+                        st.markdown(
+                            f'<div class="radar-card {classe}">{alerta_html}</div>',
+                            unsafe_allow_html=True
+                        )
                 else:
-                    st.success("✅ Nenhum alerta financeiro crítico identificado para a seleção atual.")
+                    st.markdown(
+                        '<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>',
+                        unsafe_allow_html=True
+                    )
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
