@@ -97,24 +97,22 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Radar cards atualizados */
     .radar-card {
         background: #FFFFFF;
         border: 1px solid #DCE4EC;
         border-left: 4px solid #1A237E;
         border-radius: 10px;
-        padding: 16px 20px;
-        margin-bottom: 12px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
         box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05);
         color: #263238 !important;
-        font-size: 14.5px; 
+        font-size: 13px;
         line-height: 1.5;
     }
     .radar-card.warning { border-left-color: #F57C00; }
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
-    
-    .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #1A237E !important; text-align: left; margin-bottom: 8px; }
+    .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
@@ -191,65 +189,58 @@ st.markdown("""
     .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
     .stDownloadButton button:hover { background-color: #E65100 !important; }
     
-    /* Tabelas Raio-X atualizadas (com estética de rolagem) */
+    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:14px 16px;margin:8px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
+    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:9px}
+    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .inst-lbl{color:#78909C;font-size:9px;font-weight:800;text-transform:uppercase}
+    .inst-val{color:#263238;font-size:13px;font-weight:750;margin-top:2px}
+    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
+    .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
+    .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
+    .exec-row:last-child{border-bottom:none}.exec-row:hover{background:#FAFCFF}
+    .exec-name{color:#263238;font-size:11.5px;font-weight:750}.exec-muted{color:#607D8B;font-size:10.5px;text-align:right}
+    .exec-money{color:#14206F;font-size:11.5px;font-weight:750;text-align:right}.exec-badge{justify-self:end;background:#F2F5FA;color:#14206F;border:1px solid #E0E6EF;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:750}
+    .exec-inst{color:#607D8B;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
+    .odonto-list .exec-row{grid-template-columns:minmax(210px,2.3fr) .55fr .75fr 1fr 1fr 1.05fr .8fr}
+
+
     .rx-list{
         background:#FFFFFF;
         border:1px solid #DCE4EC;
         border-radius:12px;
+        overflow:hidden;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
-        scrollbar-width: thin;
-        scrollbar-color: #90CAF9 #F0F4F8;
     }
-    
-    .rx-list::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    .rx-list::-webkit-scrollbar-track {
-        background: #F0F4F8; 
-        border-radius: 10px;
-    }
-    .rx-list::-webkit-scrollbar-thumb {
-        background: #90CAF9; 
-        border-radius: 10px;
-    }
-    .rx-list::-webkit-scrollbar-thumb:hover {
-        background: #42A5F5; 
-    }
-
     .rx-header{
         display:grid;
+        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
         align-items:center;
         gap:10px;
-        padding:12px 16px 10px 16px;
+        padding:10px 14px 8px 14px;
         background:#F9FBFD;
         border-bottom:1px solid #E7EDF3;
         color:#607D8B !important;
-        font-size: 12px;
+        font-size:9.5px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.35px;
-        /* Cabeçalho fixo durante rolagem */
-        position: sticky;
-        top: 0;
-        z-index: 10;
     }
     .rx-row{
         display:grid;
+        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
         align-items:center;
         gap:10px;
-        padding: 16px 16px;
+        padding:12px 14px;
         border-bottom:1px solid #EEF2F6;
     }
     .rx-row:last-child{border-bottom:none}
     .rx-row:hover{background:#FAFCFF}
-    
-    .rx-name{color:#17206A !important;font-size:14.5px;font-weight:800; line-height: 1.2;}
-    .rx-ativos{color:#2E7D32 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-km{color:#1976D2 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-money{color:#14206F !important;font-size:14.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;white-space:nowrap}
-    .rx-inst{color:#607D8B !important;font-size:10px;font-weight:800;margin-left:6px;background:#F3F6F9;border-radius:999px;padding:3px 6px}
+    .rx-name{color:#17206A !important;font-size:11.8px;font-weight:800}
+    .rx-ativos{color:#2E7D32 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-km{color:#1976D2 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-money{color:#14206F !important;font-size:11.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap}
+    .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
 </style>
 """, unsafe_allow_html=True)
@@ -321,83 +312,6 @@ else:
     </div>
     """
         st.markdown(html_card, unsafe_allow_html=True)
-        
-    # --- GERADOR DINÂMICO DE TABELAS (ATUALIZADO PARA ROLAGEM) ---
-    def generate_html_table(df, col_formats=None, header_aligns=None, min_width="800px", custom_grid=None, max_height=None):
-        if df.empty:
-            return "<div class='rx-list' style='padding: 20px; text-align: center; color: #607D8B; font-weight: bold;'>Sem dados para exibir.</div>"
-        
-        cols = df.columns.tolist()
-        
-        if custom_grid:
-            grid_style = custom_grid
-        else:
-            fracs = ["minmax(180px, 2fr)"] + ["1fr"] * (len(cols) - 1)
-            grid_style = " ".join(fracs)
-        
-        # Adiciona a lógica de scroll vertical, caso max_height seja passado
-        style_scroll = f"max-height: {max_height}; overflow-y: auto;" if max_height else "overflow: hidden;"
-        
-        html = f"<div class='rx-list' style='overflow-x: auto; width: 100%; {style_scroll}'>"
-        html += f"<div style='min-width: {min_width};'>" 
-        
-        # Header
-        html += f"<div class='rx-header' style='grid-template-columns: {grid_style};'>"
-        for col in cols:
-            align = header_aligns.get(col, 'left') if header_aligns else 'left'
-            html += f"<div style='text-align: {align};'>{col}</div>"
-        html += "</div>"
-        
-        # Rows
-        for _, row in df.iterrows():
-            placa_val = str(row['Placa']).upper() if 'Placa' in df.columns else str(row.iloc[0]).upper()
-            row_style = ""
-            font_color_override = ""
-            
-            # Formatação especial de linhas (Subtotais, Totais, Combustível, Frota)
-            if "⛽" in placa_val:
-                row_style = "background-color: #FFF3E0; border-bottom: 1px solid #FFE0B2;"
-                font_color_override = "color: #E65100 !important;"
-            elif "💰" in placa_val or "TOTAL" in placa_val or "🔸" in placa_val:
-                row_style = "background-color: #1A237E; border-bottom: 1px solid #1A237E;"
-                font_color_override = "color: #FFFFFF !important;"
-            elif "SUBTOTAL" in placa_val:
-                row_style = "background-color: #E3F2FD; border-bottom: 1px solid #90CAF9;"
-                font_color_override = "color: #1A237E !important;"
-                
-            html += f"<div class='rx-row' style='grid-template-columns: {grid_style}; {row_style}'>"
-            
-            for i, col in enumerate(cols):
-                val = row[col]
-                
-                if col_formats and col in col_formats:
-                    try:
-                        disp_val = col_formats[col](val)
-                    except:
-                        disp_val = str(val)
-                else:
-                    disp_val = "-" if pd.isna(val) or str(val).strip() == "" else str(val)
-                    
-                align = header_aligns.get(col, 'left') if header_aligns else 'left'
-                
-                cell_classes = ["rx-name"] if i == 0 else []
-                class_attr = f"class='{' '.join(cell_classes)}'" if cell_classes else ""
-                
-                # Se houver override, usa ele; senão usa padrão.
-                if not font_color_override:
-                    if i > 0:
-                        def_color = "color: #455A64; font-weight: 700; font-size: 13.5px;"
-                    else:
-                        def_color = ""
-                else:
-                    def_color = font_color_override
-                    
-                html += f"<div {class_attr} style='text-align: {align}; {def_color}'>{disp_val}</div>"
-                
-            html += "</div>"
-        
-        html += "</div></div>"
-        return html
 
     def to_float(serie):
         def clean_val(x):
@@ -594,7 +508,7 @@ else:
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
         # ==========================================================
-        # CONJUNTO DE ABAS
+        # CONJUNTO DE ABAS - OTIMIZADO PARA 8 OPÇÕES
         # ==========================================================
         tab_ceo, tab_manut, tab_comb, tab_seg, tab_raiox, tab_km, tab_frota, tab_detalhes = st.tabs([
             "🌐 Visão Executiva",
@@ -608,6 +522,9 @@ else:
         ])
 
         with tab_ceo:
+            # ==========================================================
+            # VISÃO EXECUTIVA 2.0 — GESTÃO, ORÇAMENTO E RASTREABILIDADE
+            # ==========================================================
             st.markdown(f"### 🌎 Painel Executivo de Logística | {ano_sel}")
 
             if inst_sel == "AMES":
@@ -628,17 +545,24 @@ else:
 
             st.caption(f"{contexto_inst} · Acumulado até {mes_sel}/{ano_sel}")
 
+            # ---------- Regras centrais de classificação ----------
+            # Cadastro/composição da frota: serve para identificar os ativos,
+            # modelos, motoristas e vínculos. NÃO entra nos custos.
             cadastro_pattern = r"^(VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO)"
 
             def limpar_unidade(valor):
                 texto = str(valor).strip()
+                # Ignora o código do ERP entre parênteses e padroniza espaços.
                 texto = re.sub(r"\s*\(\d+\)\s*$", "", texto).strip()
                 texto = re.sub(r"\s+", " ", texto)
                 texto = re.sub(r"\s*-\s*", " - ", texto)
+                # Correções conhecidas de nomenclatura.
                 texto = texto.replace("RDB7G83", "RBD7G83")
                 texto = texto.replace("LOGISTICA", "LOGÍSTICA")
                 return texto.strip()
 
+            # Base financeira: exclui somente o cadastro auxiliar da frota.
+            # Permanecem placas físicas + placas digitais de custo.
             mask_cadastro_exec = df_base_completa["Placa"].astype(str).str.contains(
                 cadastro_pattern, case=False, na=False, regex=True
             )
@@ -652,6 +576,8 @@ else:
                 + df_fin_exec["Custo de Rastreador"]
             )
 
+            # Frota atual: usa o cadastro auxiliar, pega o último vínculo conhecido
+            # de cada placa física no ano e só então aplica o filtro da unidade.
             mask_cadastro_frota = df_temp_inst["Placa"].astype(str).str.contains(
                 cadastro_pattern, case=False, na=False, regex=True
             )
@@ -665,6 +591,7 @@ else:
                     unidade_sel_limpa = limpar_unidade(cc_sel)
                     df_frota_atual = df_frota_atual[df_frota_atual["Unidade_Gestao"] == unidade_sel_limpa]
 
+            # ---------- Indicadores executivos ----------
             gasto_manut_acum = df_fin_exec["Custo de manutenção"].sum()
             gasto_comb_acum = df_fin_exec["Custo Combustível"].sum()
             gasto_seguro_acum = df_fin_exec["Custo de seguro"].sum()
@@ -733,7 +660,8 @@ else:
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
 
-            col_recursos, col_radar = st.columns([1.1, 1])
+            # ---------- Onde os recursos estão sendo utilizados ----------
+            col_recursos, col_radar = st.columns([1.25, 1])
 
             with col_recursos:
                 st.markdown('<div class="chart-title">💰 Composição dos Custos</div>', unsafe_allow_html=True)
@@ -756,13 +684,13 @@ else:
                             "Rastreador": "#81D4FA"
                         }
                     )
-                    fig_comp.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', textfont=dict(size=15, color="#1A237E"), cliponaxis=False)
+                    fig_comp.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
                     fig_comp.update_layout(
                         height=330, showlegend=False, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=120, t=5, b=10),
+                        margin=dict(l=10, r=80, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", tickfont=dict(size=14, color="#333333", weight="bold"))
+                        yaxis=dict(title="")
                     )
                     st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False})
 
@@ -781,6 +709,7 @@ else:
                             f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido."
                         )
 
+                # Veículo físico com maior manutenção no acumulado.
                 mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
                 df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
                 if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
@@ -795,6 +724,7 @@ else:
                     km_crit = resumo_placa.iloc[0]["Quilometragem"]
                     cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
 
+                    # Procura o nome da unidade vinculada ao veículo para contextualizar o alerta.
                     unidade_crit = ""
                     if not df_frota_atual.empty:
                         vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
@@ -827,6 +757,7 @@ else:
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
+            # ---------- Ranking de Bases Sociais / Centros de Custo ----------
             df_unidades = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False).agg({
                 "Custo de manutenção": "sum",
                 "Custo Combustível": "sum",
@@ -847,8 +778,7 @@ else:
                 lambda r: r["Custo_Total"] / r["Quilometragem"] if r["Quilometragem"] > 0 else 0, axis=1
             )
 
-            col_rank, col_top = st.columns([1, 1.25]) 
-            
+            col_rank, col_top = st.columns([1.25, 1])
             with col_rank:
                 st.markdown(f'<div class="chart-title">{titulo_ranking_unidades}</div>', unsafe_allow_html=True)
                 top_unidades = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total").sort_values("Custo_Total")
@@ -859,13 +789,13 @@ else:
                         text="Custo_Total", color="Instituição",
                         color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
                     )
-                    fig_unid.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', textfont=dict(size=14, color="#1A237E"), cliponaxis=False)
+                    fig_unid.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
                     fig_unid.update_layout(
                         height=390, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=100, t=5, b=10),
+                        margin=dict(l=10, r=90, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#333333", weight="bold")),
+                        yaxis=dict(title="", automargin=True),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="")
                     )
                     st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
@@ -877,7 +807,6 @@ else:
                 tabela_unid = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total")[
                     ["Instituição", "Unidade_Gestao", "Ativos", "Quilometragem", "Custo_Total", "Custo/KM"]
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
-                
                 if not tabela_unid.empty:
                     linhas = []
                     mostrar_inst = inst_sel == "TODAS"
@@ -908,11 +837,12 @@ else:
                         unsafe_allow_html=True
                     )
 
+            # ---------- Destaque específico: Odontovans ----------
             df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
                 st.markdown('<div class="chart-title">🦷 Odontovans | Visão Financeira e Operacional</div>', unsafe_allow_html=True)
-                
+                st.caption("As Odontovans são Centros de Custo do IAV. Na visão consolidada, despesas eventualmente pagas pela AMES permanecem atribuídas à instituição pagadora, preservando a prestação de contas.")
                 tabela_odonto = df_odonto[[
                     "Instituição", "Unidade_Gestao", "Ativos", "Quilometragem",
                     "Custo de manutenção", "Custo Combustível", "Custo_Total", "Custo/KM"
@@ -920,34 +850,21 @@ else:
                     "Unidade_Gestao": "Odontovan",
                     "Quilometragem": "KM"
                 })
-                
                 linhas_od = []
-                mostrar_inst_od = inst_sel == "TODAS"
                 for _, r in tabela_odonto.iterrows():
-                    tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst_od else ""
                     linhas_od.append(
-                        f'<div class="rx-row">'
-                        f'<div class="rx-name">{r["Odontovan"]}{tag}</div>'
-                        f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
-                        f'<div class="rx-km">{fmt_br(r["KM"])} km</div>'
-                        f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
-                        f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
-                        f'</div>'
+                        f'<div class="exec-row"><div class="exec-name">{r["Odontovan"]}</div>'
+                        f'<div class="exec-muted">{int(r["Ativos"])} ativos</div>'
+                        f'<div class="exec-muted">{fmt_br(r["KM"])} km</div>'
+                        f'<div class="exec-muted">Manut. {fmt_br(r["Custo de manutenção"], True)}</div>'
+                        f'<div class="exec-muted">Comb. {fmt_br(r["Custo Combustível"], True)}</div>'
+                        f'<div class="exec-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                        f'<div class="exec-badge">{fmt_br(r["Custo/KM"], True)}/km</div></div>'
                     )
-                
-                cabecalho_od = (
-                    '<div class="rx-header">'
-                    f'<div>Odontovan</div>'
-                    '<div style="text-align:right">Ativos</div>'
-                    '<div style="text-align:right">KM</div>'
-                    '<div style="text-align:right">Custo Total</div>'
-                    '<div style="text-align:right">Custo/KM</div>'
-                    '</div>'
-                )
-                
-                st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-list odonto-list">' + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
+            # ================= VISÃO MENSAL =================
             st.markdown(f"### 📊 Desempenho Mensal | {mes_sel}/{ano_sel}")
             c1, c2, c3 = st.columns(3)
             
@@ -1053,6 +970,7 @@ else:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
+            # ================= VISÃO ACUMULADA =================
             st.markdown(f"### 📈 Desempenho Acumulado | {ano_sel}")
             
             ca1, ca2, ca3 = st.columns(3)
@@ -1358,12 +1276,14 @@ else:
                         else:
                             df_placas[f"Custo Manutenção ({m})"] = 0
                             
+                    # --- NOVIDADE: CRIANDO AS COLUNAS DE TOTAIS ---
                     cols_km = [f"KM ({m})" for m in meses_ordem]
                     cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
                     
                     df_placas["KM Total Acumulado"] = df_placas[cols_km].sum(axis=1)
                     df_placas["Custo Total Acumulado"] = df_placas[cols_custo].sum(axis=1)
                     
+                    # Ordena pelos veículos que mais gastaram no total
                     df_placas = df_placas.sort_values("Custo Total Acumulado", ascending=False)
                 else:
                     cols_vazias = ["Placa"]
@@ -1381,8 +1301,10 @@ else:
                 total_comb = 0
                 for m in meses_ordem:
                     comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
+                    
                     if comb_val > 0: 
                         tem_combustivel = True
+                        
                     linha_comb[f"KM ({m})"] = 0
                     linha_comb[f"Custo Manutenção ({m})"] = comb_val
                     total_comb += comb_val
@@ -1393,11 +1315,13 @@ else:
                 if tem_combustivel:
                     df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
                 
+                # --- NOVIDADE: LINHA DE TOTAL GERAL DA BASE ---
                 if not df_placas.empty:
                     linha_total = {"Placa": "💰 TOTAL GERAL DA BASE"}
                     for col in df_placas.columns:
                         if col != "Placa":
                             linha_total[col] = df_placas[col].sum()
+                    
                     df_placas = pd.concat([df_placas, pd.DataFrame([linha_total])], ignore_index=True)
                 
                 col_btn_placas, col_espaco = st.columns([1, 2])
@@ -1413,30 +1337,35 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                col_formats_rx = {}
-                header_aligns_rx = {}
-                for m in meses_ordem:
-                    col_formats_rx[f"KM ({m})"] = lambda x: fmt_br(x) if pd.notna(x) and str(x).strip() != "" else "-"
-                    col_formats_rx[f"Custo Manutenção ({m})"] = lambda x: fmt_br(x, True) if pd.notna(x) and str(x).strip() != "" else "-"
-                    header_aligns_rx[f"KM ({m})"] = 'right'
-                    header_aligns_rx[f"Custo Manutenção ({m})"] = 'right'
+                # --- NOVIDADE: ESTILIZAÇÃO DO TOTAL ---
+                def highlight_special_rows(row):
+                    placa = str(row['Placa'])
+                    if "⛽" in placa:
+                        return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
+                    elif "💰" in placa:
+                        return ['background-color: #1A237E; font-weight: bold; color: white'] * len(row)
+                    return [''] * len(row)
                 
-                col_formats_rx["KM Total Acumulado"] = lambda x: fmt_br(x) if pd.notna(x) and str(x).strip() != "" else "-"
-                col_formats_rx["Custo Total Acumulado"] = lambda x: fmt_br(x, True) if pd.notna(x) and str(x).strip() != "" else "-"
-                header_aligns_rx["KM Total Acumulado"] = 'right'
-                header_aligns_rx["Custo Total Acumulado"] = 'right'
-
-                fracs_rx = []
-                for c in df_placas.columns:
-                    if c == 'Placa': fracs_rx.append("minmax(200px, 2.5fr)")
-                    elif 'Custo' in c: fracs_rx.append("1.2fr")
-                    else: fracs_rx.append("1fr")
-                grid_rx = " ".join(fracs_rx)
-
-                html_rx = generate_html_table(df_placas, col_formats_rx, header_aligns_rx, min_width="1200px", custom_grid=grid_rx)
-                st.markdown(html_rx, unsafe_allow_html=True)
+                df_styled_placas = df_placas.style.apply(highlight_special_rows, axis=1)
+                
+                config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
+                for m in meses_ordem:
+                    config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
+                    config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
+                
+                # Configurando o formato visual das novas colunas
+                config_cols_dinamicas["KM Total Acumulado"] = st.column_config.NumberColumn("KM Total Acumulado", format="%.0f")
+                config_cols_dinamicas["Custo Total Acumulado"] = st.column_config.NumberColumn("Custo Total Acumulado", format="R$ %.2f")
+                
+                st.dataframe(
+                    df_styled_placas, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config=config_cols_dinamicas
+                )
 
         with tab_km:
+            # ================= TOP 15 KM =================
             st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
             st.markdown("Análise dos veículos mais rodados da frota")
             
@@ -1476,15 +1405,15 @@ else:
                         
                         top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
                         
-                        # --- NOVIDADE: APLICANDO O DEGRADÊ VERMELHO PERSONALIZADO ---
+                        # APLICADO O DEGRADÊ DE VERMELHO ABAIXO
                         fig_top15 = px.bar(
                             top15, 
                             x=col_km, 
                             y=col_placa, 
                             orientation='h', 
                             text='KM_Formatado', 
-                            color=col_km,  
-                            color_continuous_scale=['#FFCDD2', '#F44336', '#B71C1C']  
+                            color=col_km,  # Mapeia a cor para o valor da Quilometragem
+                            color_continuous_scale='Reds'  # Aplica o degradê do mais claro ao mais escuro
                         )
                         
                         fig_top15.update_traces(
@@ -1502,36 +1431,26 @@ else:
                             margin=dict(r=60, l=10, t=10, b=10), 
                             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
                             yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""),
-                            coloraxis_showscale=False  
+                            coloraxis_showscale=False  # Oculta a barrinha lateral do degradê para ficar mais limpo
                         )
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
                     
                     with c_tabela:
                         st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
                         tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
-                        
-                        col_formats_km = {
-                            col_km: lambda x: f"{fmt_br(x)} km" if pd.notna(x) else "-"
-                        }
-                        header_aligns_km = {
-                            col_km: 'right',
-                            'Base': 'right'
-                        }
-                        fracs_top = []
-                        for c in tabela_top15.columns:
-                            if c == col_placa: fracs_top.append("minmax(150px, 1.5fr)")
-                            elif c == col_km: fracs_top.append("1fr")
-                            else: fracs_top.append("1.5fr")
-                        grid_top15 = " ".join(fracs_top)
-                        
-                        html_top15 = generate_html_table(tabela_top15, col_formats_km, header_aligns_km, min_width="500px", custom_grid=grid_top15)
-                        st.markdown(html_top15, unsafe_allow_html=True)
+                        st.dataframe(
+                            tabela_top15, 
+                            use_container_width=True, 
+                            hide_index=True,
+                            column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
+                        )
                 else:
                     st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
 
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
+            # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
@@ -1596,6 +1515,21 @@ else:
                 
                 df_km_subtotals = pd.DataFrame(linhas_subtotal)
                 
+                def highlight_subtotals(row):
+                    placa = str(row['Placa']).upper()
+                    if 'SUBTOTAL' in placa:
+                        return ['background-color: #E3F2FD; font-weight: bold; color: #1A237E'] * len(row)
+                    elif 'TOTAL' in placa:
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                
+                def format_br_int(val):
+                    try: return f"{int(val):,.0f}".replace(",", ".")
+                    except: return "0"
+                
+                format_dict = {c: format_br_int for c in nomes_meses_presentes + ['TOTAL']}
+                df_styled = df_km_subtotals.style.apply(highlight_subtotals, axis=1).format(format_dict)
+                
                 col_btn_km1, col_btn_km2 = st.columns([2, 1])
                 with col_btn_km2:
                     st.markdown("<br>", unsafe_allow_html=True)
@@ -1608,31 +1542,13 @@ else:
                         key="btn_download_km"
                     )
                 
-                def format_mapa_km(x):
-                    try:
-                        return fmt_br(float(x)) if pd.notna(x) and str(x).strip() != "" else "-"
-                    except:
-                        return str(x)
-
-                col_formats_mapa = {c: format_mapa_km for c in nomes_meses_presentes + ['TOTAL']}
-                header_aligns_mapa = {c: 'right' for c in nomes_meses_presentes + ['TOTAL']}
-                
-                fracs_mapa = []
-                for c in df_km_subtotals.columns:
-                    if c == 'Placa': fracs_mapa.append("minmax(180px, 2fr)")
-                    elif c == 'Instituição': fracs_mapa.append("1fr")
-                    elif c == col_cc: fracs_mapa.append("1.5fr")
-                    elif c == 'TOTAL': fracs_mapa.append("1fr")
-                    else: fracs_mapa.append("0.8fr")
-                grid_mapa = " ".join(fracs_mapa)
-                
-                html_mapa = generate_html_table(df_km_subtotals, col_formats_mapa, header_aligns_mapa, min_width="1000px", custom_grid=grid_mapa)
-                st.markdown(html_mapa, unsafe_allow_html=True)
+                st.dataframe(df_styled, use_container_width=True, height=600, hide_index=True)
                 
             else:
                 st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
 
         with tab_frota:
+            # ================= RELAÇÃO DA FROTA =================
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
@@ -1687,6 +1603,14 @@ else:
                             
                 df_apresentacao = pd.DataFrame(linhas_segmentadas)
                 
+                def highlight_category(row):
+                    placa_val = str(row['Placa'])
+                    if placa_val.startswith('🔸'):
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                    return [''] * len(row)
+                
+                df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
+                
                 csv_relacao = df_apresentacao.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                 st.download_button(
                     label="📥 Baixar Relação da Frota Segmentada (Excel/CSV)",
@@ -1697,16 +1621,7 @@ else:
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                fracs_frota = []
-                for c in df_apresentacao.columns:
-                    if c == 'Placa': fracs_frota.append("minmax(150px, 1.5fr)")
-                    elif c == 'Modelo': fracs_frota.append("2fr")
-                    else: fracs_frota.append("1.2fr")
-                grid_frota = " ".join(fracs_frota)
-                
-                # --- NOVIDADE: ADICIONADO SCROLL COM max_height ---
-                html_frota = generate_html_table(df_apresentacao, min_width="800px", custom_grid=grid_frota, max_height="500px")
-                st.markdown(html_frota, unsafe_allow_html=True)
+                st.dataframe(df_styled, use_container_width=True, hide_index=True)
                 st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
@@ -1714,6 +1629,7 @@ else:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
+            # ================= VEÍCULOS & IPVA =================
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
             st.markdown("Base de consulta atualizada automaticamente via Google Sheets.")
             
@@ -1742,6 +1658,14 @@ else:
                 if ano_ipva != "TODOS":
                     df_ipva_filtrado = df_ipva_filtrado[df_ipva_filtrado['Ano base'] == ano_ipva]
                 
+                config_cols_ipva = {}
+                if 'Ipva estimado' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ipva estimado'] = st.column_config.NumberColumn("Ipva estimado", format="R$ %.2f")
+                if 'Ano base' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ano base'] = st.column_config.NumberColumn("Ano base", format="%d")
+                if 'Ano do veículo' in df_ipva_filtrado.columns:
+                    config_cols_ipva['Ano do veículo'] = st.column_config.NumberColumn("Ano do veículo", format="%d")
+                
                 total_ipva = df_ipva_filtrado['Ipva estimado'].sum() if 'Ipva estimado' in df_ipva_filtrado.columns else 0
                 st.markdown(f"**Total de veículos listados:** {len(df_ipva_filtrado)} | **Valor Total Estimado:** {fmt_br(total_ipva, True)}")
                 
@@ -1758,35 +1682,12 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                col_formats_ipva = {
-                    'Ipva estimado': lambda x: fmt_br(x, True) if pd.notna(x) and str(x).strip() != "" else "-",
-                    'Ano base': lambda x: str(int(x)) if pd.notna(x) and str(x).strip() != "" else "-",
-                    'Ano do veículo': lambda x: str(int(x)) if pd.notna(x) and str(x).strip() != "" else "-"
-                }
-                header_aligns_ipva = {
-                    'Ipva estimado': 'right',
-                    'Ano base': 'center',
-                    'Ano do veículo': 'center',
-                    'Aliquota': 'center'
-                }
-                fracs_ipva = []
-                for col_name in df_ipva_filtrado.columns:
-                    if col_name == 'Veículo': fracs_ipva.append("minmax(200px, 2.5fr)")
-                    elif col_name == 'Placa': fracs_ipva.append("1.2fr")
-                    elif col_name == 'Ipva estimado': fracs_ipva.append("1.2fr")
-                    elif col_name in ['Ano base', 'Aliquota', 'Instituição']: fracs_ipva.append("0.8fr")
-                    else: fracs_ipva.append("1fr")
-                grid_ipva = " ".join(fracs_ipva)
-                
-                # --- NOVIDADE: ADICIONADO SCROLL COM max_height ---
-                html_ipva = generate_html_table(df_ipva_filtrado, col_formats_ipva, header_aligns_ipva, min_width="1000px", custom_grid=grid_ipva, max_height="500px")
-                st.markdown(html_ipva, unsafe_allow_html=True)
+                st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
         with tab_detalhes:
             st.markdown("### 📑 Detalhamento dos Dados")
-            st.info("💡 A tabela abaixo exibe os dados brutos e utiliza a visualização padrão nativa. Isso garante que a rolagem, os filtros integrados da tabela e o carregamento de grandes volumes sejam mantidos ágeis.")
             
             df_download = df_base_completa.drop(columns=['Mes_Num'], errors='ignore')
             
