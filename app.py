@@ -188,7 +188,22 @@ st.markdown("""
     
     .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
     .stDownloadButton button:hover { background-color: #E65100 !important; }
-    </style>
+    
+    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:14px 16px;margin:8px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
+    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:9px}
+    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .inst-lbl{color:#78909C;font-size:9px;font-weight:800;text-transform:uppercase}
+    .inst-val{color:#263238;font-size:13px;font-weight:750;margin-top:2px}
+    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
+    .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
+    .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
+    .exec-row:last-child{border-bottom:none}.exec-row:hover{background:#FAFCFF}
+    .exec-name{color:#263238;font-size:11.5px;font-weight:750}.exec-muted{color:#607D8B;font-size:10.5px;text-align:right}
+    .exec-money{color:#14206F;font-size:11.5px;font-weight:750;text-align:right}.exec-badge{justify-self:end;background:#F2F5FA;color:#14206F;border:1px solid #E0E6EF;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:750}
+    .exec-inst{color:#607D8B;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
+    .odonto-list .exec-row{grid-template-columns:minmax(210px,2.3fr) .55fr .75fr 1fr 1fr 1.05fr .8fr}
+
+</style>
 """, unsafe_allow_html=True)
 
 if not st.session_state["autenticado"]:
@@ -641,19 +656,21 @@ else:
 
             df_resumo_inst = pd.DataFrame(resumo_inst)
             if not df_resumo_inst.empty:
-                st.dataframe(
-                    df_resumo_inst,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
-                        "KM Acumulado": st.column_config.NumberColumn("KM Acumulado", format="%.0f"),
-                        "Custo Acumulado": st.column_config.NumberColumn("Custo Acumulado", format="R$ %.2f"),
-                        "Orçamento": st.column_config.NumberColumn("Orçamento", format="R$ %.2f"),
-                        "% Consumido": st.column_config.ProgressColumn("% Consumido", format="%.1f%%", min_value=0, max_value=100),
-                        "Custo/KM": st.column_config.NumberColumn("Custo/KM", format="R$ %.2f")
-                    }
-                )
+                for _, r in df_resumo_inst.iterrows():
+                    pb = max(0, min(float(r["% Consumido"]), 100))
+                    st.markdown(f"""
+                    <div class="inst-card">
+                      <div class="inst-name">{r["Instituição"]}</div>
+                      <div class="inst-grid">
+                        <div><div class="inst-lbl">Ativos</div><div class="inst-val">{fmt_br(r["Ativos"])}</div></div>
+                        <div><div class="inst-lbl">KM acumulado</div><div class="inst-val">{fmt_br(r["KM Acumulado"])}</div></div>
+                        <div><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(r["Custo Acumulado"], True)}</div></div>
+                        <div><div class="inst-lbl">Orçamento</div><div class="inst-val">{fmt_br(r["Orçamento"], True)}</div></div>
+                        <div><div class="inst-lbl">Custo/KM</div><div class="inst-val">{fmt_br(r["Custo/KM"], True)}/km</div></div>
+                      </div>
+                      <div class="inst-progress"><div style="width:{pb:.1f}%"></div></div>
+                      <div style="margin-top:5px;color:#607D8B;font-size:10px">{r["% Consumido"]:.1f}% do orçamento consumido</div>
+                    </div>""", unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
@@ -805,16 +822,17 @@ else:
                     ["Instituição", "Unidade_Gestao", "Ativos", "Quilometragem", "Custo_Total", "Custo/KM"]
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
                 if not tabela_unid.empty:
-                    st.dataframe(
-                        tabela_unid,
-                        use_container_width=True, hide_index=True, height=355,
-                        column_config={
-                            "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
-                            "Quilometragem": st.column_config.NumberColumn("KM", format="%.0f"),
-                            "Custo_Total": st.column_config.NumberColumn("Custo Total", format="R$ %.2f"),
-                            "Custo/KM": st.column_config.NumberColumn("Custo/KM", format="R$ %.2f")
-                        }
-                    )
+                    linhas = []
+                    for _, r in tabela_unid.iterrows():
+                        tag = f'<span class="exec-inst">{r["Instituição"]}</span>' if inst_sel == "TODAS" else ""
+                        linhas.append(
+                            f'<div class="exec-row"><div class="exec-name">{r[nome_unidade]}{tag}</div>'
+                            f'<div class="exec-muted">{int(r["Ativos"])} ativos</div>'
+                            f'<div class="exec-muted">{fmt_br(r["Quilometragem"])} km</div>'
+                            f'<div class="exec-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                            f'<div class="exec-badge">{fmt_br(r["Custo/KM"], True)}/km</div></div>'
+                        )
+                    st.markdown('<div class="exec-list">' + "".join(linhas) + '</div>', unsafe_allow_html=True)
 
             # ---------- Destaque específico: Odontovans ----------
             df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
@@ -829,17 +847,18 @@ else:
                     "Unidade_Gestao": "Odontovan",
                     "Quilometragem": "KM"
                 })
-                st.dataframe(
-                    tabela_odonto, use_container_width=True, hide_index=True,
-                    column_config={
-                        "Ativos": st.column_config.NumberColumn("Ativos", format="%d"),
-                        "KM": st.column_config.NumberColumn("KM", format="%.0f"),
-                        "Custo de manutenção": st.column_config.NumberColumn("Manutenção", format="R$ %.2f"),
-                        "Custo Combustível": st.column_config.NumberColumn("Combustível", format="R$ %.2f"),
-                        "Custo_Total": st.column_config.NumberColumn("Custo Total", format="R$ %.2f"),
-                        "Custo/KM": st.column_config.NumberColumn("Custo/KM", format="R$ %.2f")
-                    }
-                )
+                linhas_od = []
+                for _, r in tabela_odonto.iterrows():
+                    linhas_od.append(
+                        f'<div class="exec-row"><div class="exec-name">{r["Odontovan"]}</div>'
+                        f'<div class="exec-muted">{int(r["Ativos"])} ativos</div>'
+                        f'<div class="exec-muted">{fmt_br(r["KM"])} km</div>'
+                        f'<div class="exec-muted">Manut. {fmt_br(r["Custo de manutenção"], True)}</div>'
+                        f'<div class="exec-muted">Comb. {fmt_br(r["Custo Combustível"], True)}</div>'
+                        f'<div class="exec-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                        f'<div class="exec-badge">{fmt_br(r["Custo/KM"], True)}/km</div></div>'
+                    )
+                st.markdown('<div class="exec-list odonto-list">' + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
             # ================= VISÃO MENSAL =================
