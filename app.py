@@ -203,6 +203,45 @@ st.markdown("""
     .exec-inst{color:#607D8B;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
     .odonto-list .exec-row{grid-template-columns:minmax(210px,2.3fr) .55fr .75fr 1fr 1fr 1.05fr .8fr}
 
+
+    .rx-list{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .rx-header{
+        display:grid;
+        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
+        align-items:center;
+        gap:10px;
+        padding:10px 14px 8px 14px;
+        background:#F9FBFD;
+        border-bottom:1px solid #E7EDF3;
+        color:#607D8B !important;
+        font-size:9.5px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:.35px;
+    }
+    .rx-row{
+        display:grid;
+        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
+        align-items:center;
+        gap:10px;
+        padding:12px 14px;
+        border-bottom:1px solid #EEF2F6;
+    }
+    .rx-row:last-child{border-bottom:none}
+    .rx-row:hover{background:#FAFCFF}
+    .rx-name{color:#17206A !important;font-size:11.8px;font-weight:800}
+    .rx-ativos{color:#2E7D32 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-km{color:#1976D2 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-money{color:#14206F !important;font-size:11.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap}
+    .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -603,7 +642,7 @@ else:
                         texto_proj
                     )
                 else:
-                    draw_card("📈 PREVISÃO DE GASTO ATÉ DEZ", fmt_br(projecao_anual, True), "Estimativa com base no ritmo atual")
+                    draw_card("📈 PREVISÃO DE GASTO ATÉ DEZ", fmt_br(projecao_anual, True), "Mantida a média atual de gastos")
             with c4:
                 draw_card(
                     "🛣️ KM ACUMULADOS",
@@ -620,59 +659,6 @@ else:
                 )
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
-
-            # ---------- Visão AMES x IAV ----------
-            st.markdown('<div class="chart-title">🏢 Visão por Instituição</div>', unsafe_allow_html=True)
-            resumo_inst = []
-            for inst_nome in ["AMES", "IAV"]:
-                df_i = df_fin_exec[df_fin_exec["Instituição"] == inst_nome]
-                if df_i.empty and inst_sel != "TODAS":
-                    continue
-
-                custo_i = df_i["Custo_Total"].sum()
-                km_i = df_i["Quilometragem"].sum()
-                frota_i = 0
-                if not df_frota_atual.empty:
-                    frota_i = df_frota_atual[df_frota_atual["Instituição"] == inst_nome]["Placa_Fisica"].nunique()
-
-                orc_i = (
-                    ORCAMENTOS_MANUT_2026.get(inst_nome, 0)
-                    + ORCAMENTOS_COMB_2026.get(inst_nome, 0)
-                    + ORCAMENTOS_SEGURO_2026.get(inst_nome, 0)
-                    + ORCAMENTOS_RASTREADOR_2026.get(inst_nome, 0)
-                ) if ano_sel == 2026 else 0
-                perc_i = (custo_i / orc_i * 100) if orc_i > 0 else 0
-                cpk_i = (custo_i / km_i) if km_i > 0 else 0
-
-                resumo_inst.append({
-                    "Instituição": inst_nome,
-                    "Ativos": frota_i,
-                    "KM Acumulado": km_i,
-                    "Custo Acumulado": custo_i,
-                    "Orçamento": orc_i,
-                    "% Consumido": perc_i,
-                    "Custo/KM": cpk_i
-                })
-
-            df_resumo_inst = pd.DataFrame(resumo_inst)
-            if not df_resumo_inst.empty:
-                for _, r in df_resumo_inst.iterrows():
-                    pb = max(0, min(float(r["% Consumido"]), 100))
-                    st.markdown(f"""
-                    <div class="inst-card">
-                      <div class="inst-name">{r["Instituição"]}</div>
-                      <div class="inst-grid">
-                        <div><div class="inst-lbl">Ativos</div><div class="inst-val">{fmt_br(r["Ativos"])}</div></div>
-                        <div><div class="inst-lbl">KM acumulado</div><div class="inst-val">{fmt_br(r["KM Acumulado"])}</div></div>
-                        <div><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(r["Custo Acumulado"], True)}</div></div>
-                        <div><div class="inst-lbl">Orçamento</div><div class="inst-val">{fmt_br(r["Orçamento"], True)}</div></div>
-                        <div><div class="inst-lbl">Custo/KM</div><div class="inst-val">{fmt_br(r["Custo/KM"], True)}/km</div></div>
-                      </div>
-                      <div class="inst-progress"><div style="width:{pb:.1f}%"></div></div>
-                      <div style="margin-top:5px;color:#607D8B;font-size:10px">{r["% Consumido"]:.1f}% do orçamento consumido</div>
-                    </div>""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
 
             # ---------- Onde os recursos estão sendo utilizados ----------
             col_recursos, col_radar = st.columns([1.25, 1])
@@ -823,16 +809,33 @@ else:
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
                 if not tabela_unid.empty:
                     linhas = []
+                    mostrar_inst = inst_sel == "TODAS"
                     for _, r in tabela_unid.iterrows():
-                        tag = f'<span class="exec-inst">{r["Instituição"]}</span>' if inst_sel == "TODAS" else ""
+                        tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst else ""
                         linhas.append(
-                            f'<div class="exec-row"><div class="exec-name">{r[nome_unidade]}{tag}</div>'
-                            f'<div class="exec-muted">{int(r["Ativos"])} ativos</div>'
-                            f'<div class="exec-muted">{fmt_br(r["Quilometragem"])} km</div>'
-                            f'<div class="exec-money">{fmt_br(r["Custo_Total"], True)}</div>'
-                            f'<div class="exec-badge">{fmt_br(r["Custo/KM"], True)}/km</div></div>'
+                            f'<div class="rx-row">'
+                            f'<div class="rx-name">{r[nome_unidade]}{tag}</div>'
+                            f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
+                            f'<div class="rx-km">{fmt_br(r["Quilometragem"])} km</div>'
+                            f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                            f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
+                            f'</div>'
                         )
-                    st.markdown('<div class="exec-list">' + "".join(linhas) + '</div>', unsafe_allow_html=True)
+
+                    cabecalho_rx = (
+                        '<div class="rx-header">'
+                        f'<div>{nome_unidade}</div>'
+                        '<div style="text-align:right">Ativos</div>'
+                        '<div style="text-align:right">KM</div>'
+                        '<div style="text-align:right">Custo Total</div>'
+                        '<div style="text-align:right">Custo/KM</div>'
+                        '</div>'
+                    )
+
+                    st.markdown(
+                        '<div class="rx-list">' + cabecalho_rx + "".join(linhas) + '</div>',
+                        unsafe_allow_html=True
+                    )
 
             # ---------- Destaque específico: Odontovans ----------
             df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
