@@ -97,7 +97,7 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Radar cards atualizados (fonte e margens maiores) */
+    /* Radar cards atualizados */
     .radar-card {
         background: #FFFFFF;
         border: 1px solid #DCE4EC;
@@ -114,7 +114,6 @@ st.markdown("""
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
     
-    /* Título dos gráficos atualizados (mais destaque) */
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #1A237E !important; text-align: left; margin-bottom: 8px; }
 
     /* ==========================================
@@ -192,14 +191,32 @@ st.markdown("""
     .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
     .stDownloadButton button:hover { background-color: #E65100 !important; }
     
-    /* Tabelas Raio-X atualizadas (Fontes e espaçamentos reajustados para visibilidade) */
+    /* Tabelas Raio-X atualizadas (com estética de rolagem) */
     .rx-list{
         background:#FFFFFF;
         border:1px solid #DCE4EC;
         border-radius:12px;
-        overflow:hidden;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
+        scrollbar-width: thin;
+        scrollbar-color: #90CAF9 #F0F4F8;
     }
+    
+    .rx-list::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .rx-list::-webkit-scrollbar-track {
+        background: #F0F4F8; 
+        border-radius: 10px;
+    }
+    .rx-list::-webkit-scrollbar-thumb {
+        background: #90CAF9; 
+        border-radius: 10px;
+    }
+    .rx-list::-webkit-scrollbar-thumb:hover {
+        background: #42A5F5; 
+    }
+
     .rx-header{
         display:grid;
         align-items:center;
@@ -212,6 +229,10 @@ st.markdown("""
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.35px;
+        /* Cabeçalho fixo durante rolagem */
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
     .rx-row{
         display:grid;
@@ -301,8 +322,8 @@ else:
     """
         st.markdown(html_card, unsafe_allow_html=True)
         
-    # --- GERADOR DINÂMICO DE TABELAS (NOVIDADE) ---
-    def generate_html_table(df, col_formats=None, header_aligns=None, min_width="800px", custom_grid=None):
+    # --- GERADOR DINÂMICO DE TABELAS (ATUALIZADO PARA ROLAGEM) ---
+    def generate_html_table(df, col_formats=None, header_aligns=None, min_width="800px", custom_grid=None, max_height=None):
         if df.empty:
             return "<div class='rx-list' style='padding: 20px; text-align: center; color: #607D8B; font-weight: bold;'>Sem dados para exibir.</div>"
         
@@ -314,7 +335,10 @@ else:
             fracs = ["minmax(180px, 2fr)"] + ["1fr"] * (len(cols) - 1)
             grid_style = " ".join(fracs)
         
-        html = f"<div class='rx-list' style='overflow-x: auto; width: 100%;'>"
+        # Adiciona a lógica de scroll vertical, caso max_height seja passado
+        style_scroll = f"max-height: {max_height}; overflow-y: auto;" if max_height else "overflow: hidden;"
+        
+        html = f"<div class='rx-list' style='overflow-x: auto; width: 100%; {style_scroll}'>"
         html += f"<div style='min-width: {min_width};'>" 
         
         # Header
@@ -359,15 +383,16 @@ else:
                 cell_classes = ["rx-name"] if i == 0 else []
                 class_attr = f"class='{' '.join(cell_classes)}'" if cell_classes else ""
                 
+                # Se houver override, usa ele; senão usa padrão.
                 if not font_color_override:
                     if i > 0:
                         def_color = "color: #455A64; font-weight: 700; font-size: 13.5px;"
                     else:
                         def_color = ""
                 else:
-                    def_color = ""
+                    def_color = font_color_override
                     
-                html += f"<div {class_attr} style='text-align: {align}; {def_color} {font_color_override}'>{disp_val}</div>"
+                html += f"<div {class_attr} style='text-align: {align}; {def_color}'>{disp_val}</div>"
                 
             html += "</div>"
         
@@ -569,7 +594,7 @@ else:
         df_comb_anterior = df_apenas_comb[df_apenas_comb["Mes_Num"] == mes_num_atual - 1]
 
         # ==========================================================
-        # CONJUNTO DE ABAS - OTIMIZADO PARA 8 OPÇÕES
+        # CONJUNTO DE ABAS
         # ==========================================================
         tab_ceo, tab_manut, tab_comb, tab_seg, tab_raiox, tab_km, tab_frota, tab_detalhes = st.tabs([
             "🌐 Visão Executiva",
@@ -583,9 +608,6 @@ else:
         ])
 
         with tab_ceo:
-            # ==========================================================
-            # VISÃO EXECUTIVA 2.0 — GESTÃO, ORÇAMENTO E RASTREABILIDADE
-            # ==========================================================
             st.markdown(f"### 🌎 Painel Executivo de Logística | {ano_sel}")
 
             if inst_sel == "AMES":
@@ -606,7 +628,6 @@ else:
 
             st.caption(f"{contexto_inst} · Acumulado até {mes_sel}/{ano_sel}")
 
-            # ---------- Regras centrais de classificação ----------
             cadastro_pattern = r"^(VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO)"
 
             def limpar_unidade(valor):
@@ -644,7 +665,6 @@ else:
                     unidade_sel_limpa = limpar_unidade(cc_sel)
                     df_frota_atual = df_frota_atual[df_frota_atual["Unidade_Gestao"] == unidade_sel_limpa]
 
-            # ---------- Indicadores executivos ----------
             gasto_manut_acum = df_fin_exec["Custo de manutenção"].sum()
             gasto_comb_acum = df_fin_exec["Custo Combustível"].sum()
             gasto_seguro_acum = df_fin_exec["Custo de seguro"].sum()
@@ -713,7 +733,6 @@ else:
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
 
-            # ---------- Onde os recursos estão sendo utilizados ----------
             col_recursos, col_radar = st.columns([1.1, 1])
 
             with col_recursos:
@@ -762,7 +781,6 @@ else:
                             f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido."
                         )
 
-                # Veículo físico com maior manutenção no acumulado.
                 mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
                 df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
                 if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
@@ -809,7 +827,6 @@ else:
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
-            # ---------- Ranking de Bases Sociais / Centros de Custo ----------
             df_unidades = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False).agg({
                 "Custo de manutenção": "sum",
                 "Custo Combustível": "sum",
@@ -891,7 +908,6 @@ else:
                         unsafe_allow_html=True
                     )
 
-            # ---------- Destaque específico: Odontovans ----------
             df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
@@ -932,7 +948,6 @@ else:
                 st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
-            # ================= VISÃO MENSAL =================
             st.markdown(f"### 📊 Desempenho Mensal | {mes_sel}/{ano_sel}")
             c1, c2, c3 = st.columns(3)
             
@@ -1038,7 +1053,6 @@ else:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
-            # ================= VISÃO ACUMULADA =================
             st.markdown(f"### 📈 Desempenho Acumulado | {ano_sel}")
             
             ca1, ca2, ca3 = st.columns(3)
@@ -1399,7 +1413,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # --- NOVIDADE: SUBSTITUIÇÃO PARA HTML TABLE ---
                 col_formats_rx = {}
                 header_aligns_rx = {}
                 for m in meses_ordem:
@@ -1424,7 +1437,6 @@ else:
                 st.markdown(html_rx, unsafe_allow_html=True)
 
         with tab_km:
-            # ================= TOP 15 KM =================
             st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
             st.markdown("Análise dos veículos mais rodados da frota")
             
@@ -1464,6 +1476,7 @@ else:
                         
                         top15['KM_Formatado'] = top15[col_km].apply(formatar_k)
                         
+                        # --- NOVIDADE: APLICANDO O DEGRADÊ VERMELHO PERSONALIZADO ---
                         fig_top15 = px.bar(
                             top15, 
                             x=col_km, 
@@ -1471,7 +1484,7 @@ else:
                             orientation='h', 
                             text='KM_Formatado', 
                             color=col_km,  
-                            color_continuous_scale='Reds'  
+                            color_continuous_scale=['#FFCDD2', '#F44336', '#B71C1C']  
                         )
                         
                         fig_top15.update_traces(
@@ -1497,7 +1510,6 @@ else:
                         st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
                         tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
                         
-                        # --- NOVIDADE: SUBSTITUIÇÃO PARA HTML TABLE ---
                         col_formats_km = {
                             col_km: lambda x: f"{fmt_br(x)} km" if pd.notna(x) else "-"
                         }
@@ -1520,7 +1532,6 @@ else:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
-            # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
@@ -1597,7 +1608,6 @@ else:
                         key="btn_download_km"
                     )
                 
-                # --- NOVIDADE: SUBSTITUIÇÃO PARA HTML TABLE ---
                 def format_mapa_km(x):
                     try:
                         return fmt_br(float(x)) if pd.notna(x) and str(x).strip() != "" else "-"
@@ -1623,7 +1633,6 @@ else:
                 st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
 
         with tab_frota:
-            # ================= RELAÇÃO DA FROTA =================
             st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
             st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
@@ -1688,7 +1697,6 @@ else:
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # --- NOVIDADE: SUBSTITUIÇÃO PARA HTML TABLE ---
                 fracs_frota = []
                 for c in df_apresentacao.columns:
                     if c == 'Placa': fracs_frota.append("minmax(150px, 1.5fr)")
@@ -1696,7 +1704,8 @@ else:
                     else: fracs_frota.append("1.2fr")
                 grid_frota = " ".join(fracs_frota)
                 
-                html_frota = generate_html_table(df_apresentacao, min_width="800px", custom_grid=grid_frota)
+                # --- NOVIDADE: ADICIONADO SCROLL COM max_height ---
+                html_frota = generate_html_table(df_apresentacao, min_width="800px", custom_grid=grid_frota, max_height="500px")
                 st.markdown(html_frota, unsafe_allow_html=True)
                 st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
@@ -1705,7 +1714,6 @@ else:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
 
-            # ================= VEÍCULOS & IPVA =================
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
             st.markdown("Base de consulta atualizada automaticamente via Google Sheets.")
             
@@ -1750,7 +1758,6 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # --- NOVIDADE: SUBSTITUIÇÃO PARA HTML TABLE ---
                 col_formats_ipva = {
                     'Ipva estimado': lambda x: fmt_br(x, True) if pd.notna(x) and str(x).strip() != "" else "-",
                     'Ano base': lambda x: str(int(x)) if pd.notna(x) and str(x).strip() != "" else "-",
@@ -1771,7 +1778,8 @@ else:
                     else: fracs_ipva.append("1fr")
                 grid_ipva = " ".join(fracs_ipva)
                 
-                html_ipva = generate_html_table(df_ipva_filtrado, col_formats_ipva, header_aligns_ipva, min_width="1000px", custom_grid=grid_ipva)
+                # --- NOVIDADE: ADICIONADO SCROLL COM max_height ---
+                html_ipva = generate_html_table(df_ipva_filtrado, col_formats_ipva, header_aligns_ipva, min_width="1000px", custom_grid=grid_ipva, max_height="500px")
                 st.markdown(html_ipva, unsafe_allow_html=True)
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
