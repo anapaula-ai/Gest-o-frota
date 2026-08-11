@@ -97,22 +97,25 @@ st.markdown("""
         margin-top: 4px;
     }
 
+    /* Radar cards atualizados (fonte e margens maiores) */
     .radar-card {
         background: #FFFFFF;
         border: 1px solid #DCE4EC;
         border-left: 4px solid #1A237E;
         border-radius: 10px;
-        padding: 14px 16px;
-        margin-bottom: 10px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
         box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05);
         color: #263238 !important;
-        font-size: 13px;
+        font-size: 14.5px; 
         line-height: 1.5;
     }
     .radar-card.warning { border-left-color: #F57C00; }
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
-    .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
+    
+    /* Título dos gráficos atualizados (mais destaque) */
+    .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 800; color: #1A237E !important; text-align: left; margin-bottom: 8px; }
 
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
@@ -189,20 +192,7 @@ st.markdown("""
     .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
     .stDownloadButton button:hover { background-color: #E65100 !important; }
     
-    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:14px 16px;margin:8px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
-    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:9px}
-    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-    .inst-lbl{color:#78909C;font-size:9px;font-weight:800;text-transform:uppercase}
-    .inst-val{color:#263238;font-size:13px;font-weight:750;margin-top:2px}
-    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
-    .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
-    .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
-    .exec-row:last-child{border-bottom:none}.exec-row:hover{background:#FAFCFF}
-    .exec-name{color:#263238;font-size:11.5px;font-weight:750}.exec-muted{color:#607D8B;font-size:10.5px;text-align:right}
-    .exec-money{color:#14206F;font-size:11.5px;font-weight:750;text-align:right}.exec-badge{justify-self:end;background:#F2F5FA;color:#14206F;border:1px solid #E0E6EF;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:750}
-    .exec-inst{color:#607D8B;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
-    .odonto-list .exec-row{grid-template-columns:minmax(210px,2.3fr) .55fr .75fr 1fr 1fr 1.05fr .8fr}
-
+    /* Tabelas Raio-X atualizadas (Fontes e espaçamentos reajustados para visibilidade) */
     .rx-list{
         background:#FFFFFF;
         border:1px solid #DCE4EC;
@@ -212,34 +202,35 @@ st.markdown("""
     }
     .rx-header{
         display:grid;
-        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
+        grid-template-columns: minmax(180px, 2.3fr) 0.8fr 1fr 1.3fr 1fr;
         align-items:center;
         gap:10px;
-        padding:10px 14px 8px 14px;
+        padding:12px 16px 10px 16px;
         background:#F9FBFD;
         border-bottom:1px solid #E7EDF3;
         color:#607D8B !important;
-        font-size:9.5px;
+        font-size: 12px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.35px;
     }
     .rx-row{
         display:grid;
-        grid-template-columns:minmax(190px,2.15fr) .75fr 1fr 1.2fr .9fr;
+        grid-template-columns: minmax(180px, 2.3fr) 0.8fr 1fr 1.3fr 1fr;
         align-items:center;
         gap:10px;
-        padding:12px 14px;
+        padding: 16px 16px;
         border-bottom:1px solid #EEF2F6;
     }
     .rx-row:last-child{border-bottom:none}
     .rx-row:hover{background:#FAFCFF}
-    .rx-name{color:#17206A !important;font-size:11.8px;font-weight:800}
-    .rx-ativos{color:#2E7D32 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-km{color:#1976D2 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-money{color:#14206F !important;font-size:11.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap}
-    .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
+    
+    .rx-name{color:#17206A !important;font-size:14.5px;font-weight:800; line-height: 1.2;}
+    .rx-ativos{color:#2E7D32 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-km{color:#1976D2 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-money{color:#14206F !important;font-size:14.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;white-space:nowrap}
+    .rx-inst{color:#607D8B !important;font-size:10px;font-weight:800;margin-left:6px;background:#F3F6F9;border-radius:999px;padding:3px 6px}
 
 </style>
 """, unsafe_allow_html=True)
@@ -545,23 +536,17 @@ else:
             st.caption(f"{contexto_inst} · Acumulado até {mes_sel}/{ano_sel}")
 
             # ---------- Regras centrais de classificação ----------
-            # Cadastro/composição da frota: serve para identificar os ativos,
-            # modelos, motoristas e vínculos. NÃO entra nos custos.
             cadastro_pattern = r"^(VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO)"
 
             def limpar_unidade(valor):
                 texto = str(valor).strip()
-                # Ignora o código do ERP entre parênteses e padroniza espaços.
                 texto = re.sub(r"\s*\(\d+\)\s*$", "", texto).strip()
                 texto = re.sub(r"\s+", " ", texto)
                 texto = re.sub(r"\s*-\s*", " - ", texto)
-                # Correções conhecidas de nomenclatura.
                 texto = texto.replace("RDB7G83", "RBD7G83")
                 texto = texto.replace("LOGISTICA", "LOGÍSTICA")
                 return texto.strip()
 
-            # Base financeira: exclui somente o cadastro auxiliar da frota.
-            # Permanecem placas físicas + placas digitais de custo.
             mask_cadastro_exec = df_base_completa["Placa"].astype(str).str.contains(
                 cadastro_pattern, case=False, na=False, regex=True
             )
@@ -575,8 +560,6 @@ else:
                 + df_fin_exec["Custo de Rastreador"]
             )
 
-            # Frota atual: usa o cadastro auxiliar, pega o último vínculo conhecido
-            # de cada placa física no ano e só então aplica o filtro da unidade.
             mask_cadastro_frota = df_temp_inst["Placa"].astype(str).str.contains(
                 cadastro_pattern, case=False, na=False, regex=True
             )
@@ -660,7 +643,7 @@ else:
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
 
             # ---------- Onde os recursos estão sendo utilizados ----------
-            col_recursos, col_radar = st.columns([1.25, 1])
+            col_recursos, col_radar = st.columns([1.1, 1]) # Ajustado para dar mais largura equilibrada
 
             with col_recursos:
                 st.markdown('<div class="chart-title">💰 Composição dos Custos</div>', unsafe_allow_html=True)
@@ -683,13 +666,14 @@ else:
                             "Rastreador": "#81D4FA"
                         }
                     )
-                    fig_comp.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
+                    # Aumentando o texto do gráfico e ajustando os eixos
+                    fig_comp.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', textfont=dict(size=15, color="#1A237E"), cliponaxis=False)
                     fig_comp.update_layout(
                         height=330, showlegend=False, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=80, t=5, b=10),
+                        margin=dict(l=10, r=120, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="")
+                        yaxis=dict(title="", tickfont=dict(size=14, color="#333333", weight="bold"))
                     )
                     st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False})
 
@@ -723,7 +707,6 @@ else:
                     km_crit = resumo_placa.iloc[0]["Quilometragem"]
                     cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
 
-                    # Procura o nome da unidade vinculada ao veículo para contextualizar o alerta.
                     unidade_crit = ""
                     if not df_frota_atual.empty:
                         vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
@@ -777,7 +760,8 @@ else:
                 lambda r: r["Custo_Total"] / r["Quilometragem"] if r["Quilometragem"] > 0 else 0, axis=1
             )
 
-            col_rank, col_top = st.columns([1.25, 1])
+            col_rank, col_top = st.columns([1, 1.25]) # A tabela agora tem mais espaço para exibir os textos grandes.
+            
             with col_rank:
                 st.markdown(f'<div class="chart-title">{titulo_ranking_unidades}</div>', unsafe_allow_html=True)
                 top_unidades = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total").sort_values("Custo_Total")
@@ -788,13 +772,13 @@ else:
                         text="Custo_Total", color="Instituição",
                         color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
                     )
-                    fig_unid.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
+                    fig_unid.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', textfont=dict(size=14, color="#1A237E"), cliponaxis=False)
                     fig_unid.update_layout(
                         height=390, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=90, t=5, b=10),
+                        margin=dict(l=10, r=100, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", automargin=True),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#333333", weight="bold")),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="")
                     )
                     st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
@@ -806,6 +790,7 @@ else:
                 tabela_unid = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total")[
                     ["Instituição", "Unidade_Gestao", "Ativos", "Quilometragem", "Custo_Total", "Custo/KM"]
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
+                
                 if not tabela_unid.empty:
                     linhas = []
                     mostrar_inst = inst_sel == "TODAS"
