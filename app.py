@@ -59,8 +59,8 @@ st.markdown("""
 
     .metric-label {
         color: #60758A !important;
-        font-size: 10.5px;
-        letter-spacing: .35px;
+        font-size: 12.5px;
+        letter-spacing: .30px;
         font-weight: 800;
         text-transform: uppercase;
         min-height: 34px;
@@ -70,7 +70,7 @@ st.markdown("""
 
     .metric-value {
         color: #14206F !important;
-        font-size: 25px;
+        font-size: 29px;
         font-weight: 800;
         min-height: 42px;
         display: flex;
@@ -80,7 +80,7 @@ st.markdown("""
 
     .metric-subtext {
         color: #455A64 !important;
-        font-size: 12.5px;
+        font-size: 14px;
         font-weight: 500;
         min-height: 31px;
         display: block;
@@ -106,13 +106,13 @@ st.markdown("""
         margin-bottom: 10px;
         box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05);
         color: #263238 !important;
-        font-size: 13px;
+        font-size: 14.5px;
         line-height: 1.5;
     }
     .radar-card.warning { border-left-color: #F57C00; }
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
-    .chart-title { height: 50px; display: flex; align-items: center; font-size: 16px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
+    .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
@@ -219,7 +219,7 @@ st.markdown("""
         background:#F9FBFD;
         border-bottom:1px solid #E7EDF3;
         color:#607D8B !important;
-        font-size:9.5px;
+        font-size:11px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.35px;
@@ -234,11 +234,11 @@ st.markdown("""
     }
     .rx-row:last-child{border-bottom:none}
     .rx-row:hover{background:#FAFCFF}
-    .rx-name{color:#17206A !important;font-size:11.8px;font-weight:800}
-    .rx-ativos{color:#2E7D32 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-km{color:#1976D2 !important;font-size:11px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-money{color:#14206F !important;font-size:11.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap}
+    .rx-name{color:#17206A !important;font-size:13.5px;font-weight:800}
+    .rx-ativos{color:#2E7D32 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-money{color:#14206F !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
 </style>
@@ -671,27 +671,50 @@ else:
                 df_composicao = df_composicao[df_composicao["Valor"] > 0]
 
                 if not df_composicao.empty:
-                    fig_comp = px.bar(
-                        df_composicao.sort_values("Valor"),
-                        x="Valor", y="Categoria", orientation="h",
-                        text="Valor",
+                    fig_comp = px.pie(
+                        df_composicao,
+                        names="Categoria",
+                        values="Valor",
                         color="Categoria",
                         color_discrete_map={
                             "Manutenção": "#F57C00",
                             "Combustível": "#0288D1",
                             "Seguro": "#1A237E",
                             "Rastreador": "#81D4FA"
-                        }
+                        },
+                        hole=0
                     )
-                    fig_comp.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
+
+                    fig_comp.update_traces(
+                        textposition="inside",
+                        textinfo="percent+label",
+                        textfont=dict(size=14),
+                        hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+                        marker=dict(line=dict(color="#FFFFFF", width=2))
+                    )
+
                     fig_comp.update_layout(
-                        height=330, showlegend=False, separators=',.',
-                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=80, t=5, b=10),
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="")
+                        height=350,
+                        separators=",.",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        margin=dict(l=5, r=5, t=5, b=5),
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="top",
+                            y=-0.05,
+                            xanchor="center",
+                            x=0.5,
+                            font=dict(size=12)
+                        )
                     )
-                    st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False})
+
+                    st.plotly_chart(
+                        fig_comp,
+                        use_container_width=True,
+                        config={"displayModeBar": False}
+                    )
 
             with col_radar:
                 st.markdown('<div class="chart-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
@@ -794,8 +817,8 @@ else:
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(l=10, r=90, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", automargin=True),
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="")
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13)),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                     )
                     st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
                 else:
