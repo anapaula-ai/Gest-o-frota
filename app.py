@@ -997,7 +997,26 @@ else:
 
             m1, m2, m3, m4, m5 = st.columns(5)
             with m1:
-                draw_card("🔧 CUSTO NO MÊS", fmt_br(custo_m, True), f"Vs mês anterior: {trend_c:+.1f}%")
+                if custo_a > 0:
+                    if trend_c > 0:
+                        cor_vs = "#D32F2F"
+                        icone_vs = "▲"
+                    elif trend_c < 0:
+                        cor_vs = "#2E7D32"
+                        icone_vs = "▼"
+                    else:
+                        cor_vs = "#607D8B"
+                        icone_vs = "●"
+
+                    texto_vs = (
+                        f'Vs mês anterior: '
+                        f'<span style="color:{cor_vs};font-weight:800;">'
+                        f'{icone_vs} {abs(trend_c):.1f}%</span>'
+                    )
+                else:
+                    texto_vs = "Vs mês anterior: sem base de comparação"
+
+                draw_card("🔧 CUSTO NO MÊS", fmt_br(custo_m, True), texto_vs)
             with m2:
                 draw_card("💰 CUSTO ACUMULADO", fmt_br(gasto_manut_acum_aba, True), f"Até {mes_sel}/{ano_sel}")
             with m3:
