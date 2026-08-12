@@ -2256,6 +2256,7 @@ else:
             # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
+            st.caption("A intensidade do azul destaca os maiores volumes de KM em cada coluna · células sem movimentação ficam em branco.")
             
             padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             
@@ -2327,12 +2328,50 @@ else:
                     return [''] * len(row)
                 
                 def format_br_int(val):
-                    try: return f"{int(val):,.0f}".replace(",", ".")
-                    except: return "0"
-                
-                format_dict = {c: format_br_int for c in nomes_meses_presentes + ['TOTAL']}
-                df_styled = df_km_subtotals.style.apply(highlight_subtotals, axis=1).format(format_dict)
-                
+                    try:
+                        num = int(val)
+                        return "" if num == 0 else f"{num:,.0f}".replace(",", ".")
+                    except:
+                        return ""
+
+                cols_valores_km = nomes_meses_presentes + ['TOTAL']
+                format_dict = {c: format_br_int for c in cols_valores_km}
+
+                # Mapa de calor para facilitar a leitura dos maiores volumes de KM.
+                def heatmap_km(col):
+                    valores = pd.to_numeric(col, errors="coerce").fillna(0)
+                    maximo = valores.max()
+                    estilos = []
+
+                    for idx, valor in zip(col.index, valores):
+                        placa = str(df_km_subtotals.loc[idx, 'Placa']).upper()
+
+                        # Subtotais e totais mantêm a identidade visual própria.
+                        if 'SUBTOTAL' in placa or 'TOTAL' in placa or valor <= 0 or maximo <= 0:
+                            estilos.append("")
+                        else:
+                            intensidade = valor / maximo
+                            if intensidade >= 0.75:
+                                estilos.append("background-color:#90CAF9;color:#0D47A1;font-weight:700;")
+                            elif intensidade >= 0.45:
+                                estilos.append("background-color:#BBDEFB;color:#0D47A1;font-weight:600;")
+                            elif intensidade >= 0.20:
+                                estilos.append("background-color:#E3F2FD;color:#263238;")
+                            else:
+                                estilos.append("background-color:#F5FAFF;color:#455A64;")
+                    return estilos
+
+                df_styled = (
+                    df_km_subtotals.style
+                    .apply(heatmap_km, subset=cols_valores_km, axis=0)
+                    .apply(highlight_subtotals, axis=1)
+                    .format(format_dict)
+                    .set_properties(
+                        subset=['TOTAL'],
+                        **{'font-weight': '700', 'border-left': '2px solid #90A4AE'}
+                    )
+                )
+
                 col_btn_km1, col_btn_km2 = st.columns([2, 1])
                 with col_btn_km2:
                     st.markdown("<br>", unsafe_allow_html=True)
