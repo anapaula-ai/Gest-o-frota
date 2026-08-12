@@ -59,7 +59,7 @@ st.markdown("""
 
     .metric-label {
         color: #60758A !important;
-        font-size: 12px;
+        font-size: 11.5px;
         letter-spacing: .28px;
         font-weight: 750;
         text-transform: uppercase;
@@ -70,9 +70,9 @@ st.markdown("""
 
     .metric-value {
         color: #14206F !important;
-        font-size: 25px;
+        font-size: 23px;
         font-weight: 750;
-        min-height: 40px;
+        min-height: 39px;
         display: flex;
         align-items: center;
         letter-spacing: -.25px;
@@ -80,7 +80,7 @@ st.markdown("""
 
     .metric-subtext {
         color: #455A64 !important;
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 500;
         min-height: 31px;
         display: block;
@@ -243,16 +243,11 @@ st.markdown("""
 
     .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 14px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
-    .odonto-kpi-label{color:#60758A !important;font-size:10.5px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:26px}
-    .odonto-kpi-value{color:#14206F !important;font-size:18px;font-weight:850;margin-top:7px;white-space:nowrap}
-    .odonto-kpi-sub{color:#607D8B !important;font-size:10px;margin-top:3px}
+    .odonto-kpi-label{color:#60758A !important;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:28px}
+    .odonto-kpi-value{color:#14206F !important;font-size:22px;font-weight:800;margin-top:7px;white-space:nowrap}
+    .odonto-kpi-sub{color:#607D8B !important;font-size:11.5px;margin-top:4px}
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
-
-    /* Cards executivos das Odontovans */
-    .odonto-kpi .metric-label { font-size: 12.8px !important; }
-    .odonto-kpi .metric-value { font-size: 27px !important; font-weight: 750 !important; }
-    .odonto-kpi .metric-subtext { font-size: 14px !important; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -914,7 +909,6 @@ else:
                     + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Manutenção</div><div class="odonto-kpi-value">{fmt_br(od_manut, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
                     + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Combustível</div><div class="odonto-kpi-value">{fmt_br(od_comb, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
                     + f'<div class="odonto-kpi"><div class="odonto-kpi-label">KM acumulados</div><div class="odonto-kpi-value">{fmt_br(od_km)}</div><div class="odonto-kpi-sub">Quilometragem total</div></div>'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Custo / KM</div><div class="odonto-kpi-value">{fmt_br(od_cpk, True)}/km</div><div class="odonto-kpi-sub">Eficiência consolidada</div></div>'
                     + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Participação no IAV</div><div class="odonto-kpi-value">{od_part_iav:.1f}%</div><div class="odonto-kpi-sub">Do custo total do IAV</div></div>'
                     + '</div>'
                 )
