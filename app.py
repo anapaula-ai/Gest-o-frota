@@ -1293,16 +1293,101 @@ else:
                 st.info("Sem dados mensais de manutenção para a seleção atual.")
 
             st.markdown("---")
-            st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
-            custo_base_acum = df_acumulado_ate_mes_manut.groupby('Base')['Custo de manutenção'].sum().reset_index().nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
-            
-            if not custo_base_acum.empty and custo_base_acum['Custo de manutenção'].sum() > 0:
-                fig_base_acum = px.bar(custo_base_acum, x='Custo de manutenção', y='Base', orientation='h', text='Custo de manutenção', color='Custo de manutenção', color_continuous_scale='Blues')
-                fig_base_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-                max_cb = custo_base_acum['Custo de manutenção'].max()
-                
-                fig_base_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), showlegend=False, coloraxis_showscale=False, xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cb * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif")))
-                st.plotly_chart(fig_base_acum, use_container_width=True, config={'displayModeBar': False})
+            if inst_sel == "AMES":
+                rotulo_unid_manut = "Bases Sociais"
+            elif inst_sel == "IAV":
+                rotulo_unid_manut = "Centros de Custo"
+            else:
+                rotulo_unid_manut = "Bases / Centros de Custo"
+
+            st.markdown(
+                f'<div class="chart-title">Top 10 {rotulo_unid_manut} | Maior Custo de Manutenção Acumulado</div>',
+                unsafe_allow_html=True
+            )
+            st.caption(
+                f"Acumulado de janeiro até {mes_sel}/{ano_sel} · participação sobre o custo total de manutenção da seleção."
+            )
+
+            df_rank_acum = df_acumulado_ate_mes_manut.copy()
+            df_rank_acum["Unidade_Ranking"] = df_rank_acum[col_cc].apply(limpar_unidade)
+
+            custo_total_manut_rank = df_rank_acum["Custo de manutenção"].sum()
+
+            custo_base_acum = (
+                df_rank_acum
+                .groupby("Unidade_Ranking", as_index=False)["Custo de manutenção"]
+                .sum()
+            )
+            custo_base_acum = custo_base_acum[
+                custo_base_acum["Custo de manutenção"] > 0
+            ].copy()
+
+            if not custo_base_acum.empty and custo_total_manut_rank > 0:
+                custo_base_acum["Participação"] = (
+                    custo_base_acum["Custo de manutenção"] / custo_total_manut_rank * 100
+                )
+
+                custo_base_acum = (
+                    custo_base_acum
+                    .nlargest(10, "Custo de manutenção")
+                    .sort_values("Custo de manutenção", ascending=True)
+                )
+
+                custo_base_acum["Rotulo"] = custo_base_acum.apply(
+                    lambda r: f'{fmt_br(r["Custo de manutenção"], True)} · {r["Participação"]:.1f}%',
+                    axis=1
+                )
+
+                fig_base_acum = px.bar(
+                    custo_base_acum,
+                    x="Custo de manutenção",
+                    y="Unidade_Ranking",
+                    orientation="h",
+                    text="Rotulo",
+                    color_discrete_sequence=["#F57C00"]
+                )
+
+                fig_base_acum.update_traces(
+                    texttemplate="<b>%{text}</b>",
+                    textposition="outside",
+                    textfont=dict(size=12, color="#263238"),
+                    cliponaxis=False,
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Manutenção acumulada: R$ %{x:,.2f}<br>"
+                        "<extra></extra>"
+                    )
+                )
+
+                max_cb = custo_base_acum["Custo de manutenção"].max()
+
+                fig_base_acum.update_layout(
+                    height=470,
+                    separators=",.",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(r=175, l=10, t=10, b=10),
+                    showlegend=False,
+                    xaxis=dict(
+                        showticklabels=False,
+                        showgrid=False,
+                        zeroline=False,
+                        range=[0, max_cb * 1.48]
+                    ),
+                    yaxis=dict(
+                        title="",
+                        automargin=True,
+                        tickfont=dict(size=12.5, color="#333333", family="Arial, sans-serif")
+                    )
+                )
+
+                st.plotly_chart(
+                    fig_base_acum,
+                    use_container_width=True,
+                    config={"displayModeBar": False}
+                )
+            else:
+                st.info("Sem custo de manutenção acumulado para exibir nesta seleção.")
 
         with tab_comb:
             st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
