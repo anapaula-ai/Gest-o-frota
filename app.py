@@ -1474,53 +1474,279 @@ else:
                 st.info("Sem custo de manutenção acumulado para exibir nesta seleção.")
 
         with tab_comb:
-            st.markdown(f"### ⛽ Gestão de Combustível | {ano_sel}")
+            st.markdown(f"### ⛽ Desempenho de Combustível | {mes_sel}/{ano_sel}")
 
-            k1, k2 = st.columns(2)
-            with k1:
-                gasto_m_comb = df_comb_mes["Custo Combustível"].sum()
-                gasto_a_comb = df_comb_anterior["Custo Combustível"].sum()
-                trend_comb = ((gasto_m_comb - gasto_a_comb) / gasto_a_comb * 100) if gasto_a_comb > 0 else 0
-                sub_comb_m = f"Gasto exclusivo em {mes_sel}"
-                draw_card("CUSTO COMBUSTÍVEL MENSAL", fmt_br(gasto_m_comb, True), sub_comb_m, trend=trend_comb)
-                
-            with k2:
-                if ano_sel == 2026:
-                    orc_total_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
-                    saldo_comb = orc_total_comb - gasto_comb_acum
-                    perc_comb = (gasto_comb_acum / orc_total_comb * 100) if orc_total_comb > 0 else 0
-                    sub_comb = f"Orçamento Anual: <b>{fmt_br(orc_total_comb, True)}</b>"
-                    prog_text_comb = f"{perc_comb:.1f}% &middot; Saldo {fmt_br(saldo_comb, True)}"
-                    draw_card("EXECUÇÃO COMBUSTÍVEL ANUAL", fmt_br(gasto_comb_acum, True), sub_comb, progress=perc_comb, progress_text=prog_text_comb)
+            # Combustível é controlado financeiramente pelas placas digitais.
+            df_comb = df_base[df_base["Placa"].astype(str).str.contains("COMBUST", case=False, na=False)].copy()
+            df_comb_mes = df_comb[df_comb["Mes_Num"] == mes_num].copy()
+            df_comb_acum = df_comb[df_comb["Mes_Num"] <= mes_num].copy()
+            df_comb_ant = df_comb[df_comb["Mes_Num"] == (mes_num - 1)].copy() if mes_num > 1 else df_comb.iloc[0:0].copy()
+
+            custo_comb_mes = df_comb_mes["Custo de combustível"].sum()
+            custo_comb_ant = df_comb_ant["Custo de combustível"].sum()
+            custo_comb_acum = df_comb_acum["Custo de combustível"].sum()
+            var_comb = ((custo_comb_mes - custo_comb_ant) / custo_comb_ant * 100) if custo_comb_ant > 0 else 0
+
+            df_comb_mes["Unidade_Comb"] = df_comb_mes[col_cc].apply(limpar_unidade)
+            unidades_gasto_mes = df_comb_mes.loc[
+                df_comb_mes["Custo de combustível"] > 0, "Unidade_Comb"
+            ].nunique()
+            media_unidade_comb = custo_comb_mes / unidades_gasto_mes if unidades_gasto_mes > 0 else 0
+
+            orc_comb_aba = sum(
+                ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas
+            ) if ano_sel == 2026 else 0
+            perc_comb_aba = (custo_comb_acum / orc_comb_aba * 100) if orc_comb_aba > 0 else 0
+
+            c1, c2, c3, c4, c5 = st.columns(5)
+            with c1:
+                if custo_comb_ant > 0:
+                    if var_comb > 0:
+                        classe_comb, icone_comb = "vs-alta", "▲"
+                    elif var_comb < 0:
+                        classe_comb, icone_comb = "vs-baixa", "▼"
+                    else:
+                        classe_comb, icone_comb = "vs-neutro", "●"
+                    sub_comb = (
+                        f'Vs mês anterior: <span class="{classe_comb}">'
+                        f'{icone_comb} {abs(var_comb):.1f}%</span>'
+                    )
                 else:
-                    sub_comb = "Orçamento Anual: <b>A definir</b>"
-                    draw_card("CUSTO COMBUSTÍVEL (ACUMULADO)", fmt_br(gasto_comb_acum, True), sub_comb)
-            
+                    sub_comb = "Vs mês anterior: sem base de comparação"
+                draw_card("⛽ CUSTO NO MÊS", fmt_br(custo_comb_mes, True), sub_comb)
+
+            with c2:
+                draw_card(
+                    "💰 CUSTO ACUMULADO",
+                    fmt_br(custo_comb_acum, True),
+                    f"Até {mes_sel}/{ano_sel}"
+                )
+
+            with c3:
+                draw_card(
+                    "📍 UNIDADES COM GASTO",
+                    fmt_br(unidades_gasto_mes),
+                    "Bases/Centros de Custo no mês",
+                    is_lower_better=False
+                )
+
+            with c4:
+                draw_card(
+                    "📊 MÉDIA POR UNIDADE",
+                    fmt_br(media_unidade_comb, True),
+                    "Entre unidades com gasto no mês"
+                )
+
+            with c5:
+                if ano_sel == 2026 and orc_comb_aba > 0:
+                    draw_card(
+                        "🎯 ORÇAMENTO CONSUMIDO",
+                        f"{perc_comb_aba:.1f}%",
+                        f"Orçamento anual: <b>{fmt_br(orc_comb_aba, True)}</b>",
+                        progress=perc_comb_aba,
+                        progress_text=f"Saldo: {fmt_br(orc_comb_aba-custo_comb_acum, True)}"
+                    )
+                else:
+                    draw_card(
+                        "🎯 ORÇAMENTO CONSUMIDO",
+                        "—",
+                        "Orçamento não cadastrado para o ano"
+                    )
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            if inst_sel == "AMES":
+                rotulo_comb = "Bases Sociais"
+            elif inst_sel == "IAV":
+                rotulo_comb = "Centros de Custo"
+            else:
+                rotulo_comb = "Bases / Centros de Custo"
+
+            g1, g2 = st.columns(2)
+
+            with g1:
+                st.markdown(
+                    f'<div class="chart-title">Top 10 {rotulo_comb} | Maior Custo de Combustível no Mês</div>',
+                    unsafe_allow_html=True
+                )
+                rank_mes = (
+                    df_comb_mes.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
+                    .sum()
+                )
+                rank_mes = rank_mes[rank_mes["Custo de combustível"] > 0].nlargest(
+                    10, "Custo de combustível"
+                ).sort_values("Custo de combustível", ascending=True)
+
+                if not rank_mes.empty:
+                    fig_cm = px.bar(
+                        rank_mes,
+                        x="Custo de combustível",
+                        y="Unidade_Comb",
+                        orientation="h",
+                        text="Custo de combustível",
+                        color_discrete_sequence=["#0288D1"]
+                    )
+                    fig_cm.update_traces(
+                        texttemplate="<b>R$ %{text:,.2f}</b>",
+                        textposition="outside",
+                        textfont=dict(size=12.5, color="#263238"),
+                        cliponaxis=False
+                    )
+                    max_cm = rank_mes["Custo de combustível"].max()
+                    fig_cm.update_layout(
+                        height=430, separators=",.",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        margin=dict(r=115, l=10, t=10, b=10),
+                        showlegend=False,
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.38]),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
+                    )
+                    st.plotly_chart(fig_cm, use_container_width=True, config={"displayModeBar": False})
+                else:
+                    st.info("Sem custo de combustível no mês para esta seleção.")
+
+            with g2:
+                st.markdown(
+                    f'<div class="chart-title">Top 10 {rotulo_comb} | Maior Custo de Combustível Acumulado</div>',
+                    unsafe_allow_html=True
+                )
+                st.caption(
+                    f"Acumulado até {mes_sel}/{ano_sel} · % representa a participação no custo total de combustível."
+                )
+                df_comb_acum["Unidade_Comb"] = df_comb_acum[col_cc].apply(limpar_unidade)
+                rank_ac = (
+                    df_comb_acum.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
+                    .sum()
+                )
+                rank_ac = rank_ac[rank_ac["Custo de combustível"] > 0].copy()
+                total_rank_ac = rank_ac["Custo de combustível"].sum()
+
+                if not rank_ac.empty and total_rank_ac > 0:
+                    rank_ac["Participação"] = rank_ac["Custo de combustível"] / total_rank_ac * 100
+                    rank_ac = rank_ac.nlargest(10, "Custo de combustível").sort_values(
+                        "Custo de combustível", ascending=True
+                    )
+                    rank_ac["Rotulo"] = rank_ac.apply(
+                        lambda r: f'{fmt_br(r["Custo de combustível"], True)}  |  {r["Participação"]:.1f}% do total',
+                        axis=1
+                    )
+                    fig_ca = go.Figure(go.Bar(
+                        x=rank_ac["Custo de combustível"],
+                        y=rank_ac["Unidade_Comb"],
+                        orientation="h",
+                        marker_color="#0288D1",
+                        text=rank_ac["Rotulo"],
+                        textposition="outside",
+                        textfont=dict(size=12.5, color="#37474F"),
+                        cliponaxis=False,
+                        customdata=rank_ac["Participação"],
+                        hovertemplate=(
+                            "<b>%{y}</b><br>Custo acumulado: R$ %{x:,.2f}<br>"
+                            "Participação: %{customdata:.1f}%<extra></extra>"
+                        )
+                    ))
+                    max_ca = rank_ac["Custo de combustível"].max()
+                    fig_ca.update_layout(
+                        height=430, separators=",.",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        margin=dict(r=165, l=10, t=10, b=10),
+                        showlegend=False,
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.62]),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
+                    )
+                    st.plotly_chart(fig_ca, use_container_width=True, config={"displayModeBar": False})
+                else:
+                    st.info("Sem custo acumulado de combustível para esta seleção.")
+
             st.markdown("---")
-            
-            col_g1, col_g2 = st.columns(2)
-            
-            with col_g1:
-                st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível em {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
-                custo_comb_base_mes = df_comb_mes.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
-                
-                if not custo_comb_base_mes.empty and custo_comb_base_mes['Custo Combustível'].sum() > 0:
-                    fig_comb_mes = px.bar(custo_comb_base_mes, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#0288D1'])
-                    fig_comb_mes.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-                    max_cc_m = custo_comb_base_mes['Custo Combustível'].max()
-                    fig_comb_mes.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_m * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
-                    st.plotly_chart(fig_comb_mes, use_container_width=True, config={'displayModeBar': False})
-            
-            with col_g2:
-                st.markdown(f'<div class="chart-title">Top 10 Bases | Custo de Combustível Acumulado em {ano_sel}</div>', unsafe_allow_html=True)
-                custo_comb_base_acum = df_comb_acum.groupby('Base')['Custo Combustível'].sum().reset_index().nlargest(10, 'Custo Combustível').sort_values('Custo Combustível', ascending=True)
-                
-                if not custo_comb_base_acum.empty and custo_comb_base_acum['Custo Combustível'].sum() > 0:
-                    fig_comb_acum = px.bar(custo_comb_base_acum, x='Custo Combustível', y='Base', orientation='h', text='Custo Combustível', color_discrete_sequence=['#F57C00'])
-                    fig_comb_acum.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
-                    max_cc_a = custo_comb_base_acum['Custo Combustível'].max()
-                    fig_comb_acum.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cc_a * 1.4]), yaxis=dict(tickfont=dict(size=12, color='#333333', family="Arial, sans-serif"), title=""), showlegend=False)
-                    st.plotly_chart(fig_comb_acum, use_container_width=True, config={'displayModeBar': False})
+            st.markdown(
+                f'<div class="chart-title">Evolução Mensal do Custo de Combustível | {ano_sel}</div>',
+                unsafe_allow_html=True
+            )
+
+            evol_comb_inst = (
+                df_comb_acum.groupby(["Mes_Num", "Mes_Nome", "Instituição"])["Custo de combustível"]
+                .sum().reset_index().sort_values("Mes_Num")
+            )
+            evol_comb_total = (
+                df_comb_acum.groupby(["Mes_Num", "Mes_Nome"])["Custo de combustível"]
+                .sum().reset_index().sort_values("Mes_Num")
+            )
+
+            if not evol_comb_inst.empty and not evol_comb_total.empty:
+                media_comb = evol_comb_total["Custo de combustível"].mean()
+
+                fig_ec = px.line(
+                    evol_comb_inst,
+                    x="Mes_Nome",
+                    y="Custo de combustível",
+                    color="Instituição",
+                    markers=True,
+                    text="Custo de combustível",
+                    color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
+                )
+                fig_ec.update_traces(
+                    texttemplate="<b>R$ %{text:,.0f}</b>",
+                    textposition="top center",
+                    textfont=dict(size=11),
+                    line=dict(width=3),
+                    marker=dict(size=8)
+                )
+                fig_ec.add_hline(
+                    y=media_comb,
+                    line_dash="dash",
+                    line_color="#78909C",
+                    line_width=1.5,
+                    annotation_text=f"Média mensal total: {fmt_br(media_comb, True)}",
+                    annotation_position="bottom right",
+                    annotation_font=dict(size=11, color="#546E7A")
+                )
+                max_ec = max(evol_comb_inst["Custo de combustível"].max(), media_comb)
+                fig_ec.update_layout(
+                    height=430, separators=",.",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(r=20, l=10, t=35, b=10),
+                    yaxis=dict(
+                        title="Custo no Mês (R$)",
+                        showgrid=True,
+                        gridcolor="#E0E0E0",
+                        range=[0, max_ec*1.30]
+                    ),
+                    xaxis=dict(title=""),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="right", x=1, title=""
+                    )
+                )
+                st.plotly_chart(fig_ec, use_container_width=True, config={"displayModeBar": False})
+
+                if len(evol_comb_total) >= 2:
+                    atual = float(evol_comb_total.iloc[-1]["Custo de combustível"])
+                    anterior = float(evol_comb_total.iloc[-2]["Custo de combustível"])
+                    nome_atual = str(evol_comb_total.iloc[-1]["Mes_Nome"])
+                    nome_ant = str(evol_comb_total.iloc[-2]["Mes_Nome"])
+
+                    if anterior > 0:
+                        var_ec = (atual-anterior)/anterior*100
+                        if var_ec > 0:
+                            classe_ec, icone_ec = "vs-alta", "▲"
+                        elif var_ec < 0:
+                            classe_ec, icone_ec = "vs-baixa", "▼"
+                        else:
+                            classe_ec, icone_ec = "vs-neutro", "●"
+
+                        st.markdown(
+                            f'<div style="font-size:12.5px;color:#455A64;margin-top:-8px;">'
+                            f'{nome_atual} vs {nome_ant}: '
+                            f'<span class="{classe_ec}">{icone_ec} {abs(var_ec):.1f}%</span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+            else:
+                st.info("Sem dados mensais de combustível para a seleção atual.")
 
         with tab_seg:
             st.markdown(f"### 🛡️ Seguro/Rastreadores | {ano_sel}")
