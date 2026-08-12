@@ -1482,6 +1482,13 @@ else:
             df_comb_acum = df_comb[df_comb["Mes_Num"] <= mes_num].copy()
             df_comb_ant = df_comb[df_comb["Mes_Num"] == (mes_num - 1)].copy() if mes_num > 1 else df_comb.iloc[0:0].copy()
 
+            # Unidade de gestão usada nos rankings de combustível.
+            # Criada logo no início para estar disponível em todos os blocos.
+            df_comb_mes["Unidade_Comb"] = df_comb_mes[col_cc].apply(limpar_unidade)
+            df_comb_acum["Unidade_Comb"] = df_comb_acum[col_cc].apply(limpar_unidade)
+            if not df_comb_ant.empty:
+                df_comb_ant["Unidade_Comb"] = df_comb_ant[col_cc].apply(limpar_unidade)
+
             custo_comb_mes = df_comb_mes["Custo de combustível"].sum()
             custo_comb_ant = df_comb_ant["Custo de combustível"].sum()
             custo_comb_acum = df_comb_acum["Custo de combustível"].sum()
@@ -1614,7 +1621,6 @@ else:
                 st.caption(
                     f"Acumulado até {mes_sel}/{ano_sel} · % representa a participação no custo total de combustível."
                 )
-                df_comb_acum["Unidade_Comb"] = df_comb_acum[col_cc].apply(limpar_unidade)
                 rank_ac = (
                     df_comb_acum.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
                     .sum()
