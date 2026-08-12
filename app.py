@@ -1959,7 +1959,7 @@ else:
                     st.info("Sem gastos de manutenção ou combustível no mês selecionado.")
 
                 st.markdown("---")
-                st.markdown(f"#### 📋 Detalhamento para o Missionário | {base_raiox}")
+                st.markdown(f"#### 📋 Detalhamento da {rotulo_rx} | {base_raiox}")
                 st.caption(
                     f"Histórico de janeiro até {mes_sel}/{ano_sel}, organizado em duas leituras: "
                     "evolução mensal da unidade e detalhamento das placas."
@@ -2152,10 +2152,10 @@ else:
                 csv_missionario = "\n".join(linhas_csv).encode("utf-8-sig")
 
                 st.download_button(
-                    label="📥 Baixar Relatório Completo para o Missionário",
+                    label="📥 Baixar Relatório Completo",
                     data=csv_missionario,
                     file_name=(
-                        f"Relatorio_Missionario_{str(base_raiox).replace(' ', '_')}_"
+                        f"Relatorio_Detalhamento_{str(base_raiox).replace(' ', '_')}_"
                         f"Ate_{mes_sel}_{ano_sel}.csv"
                     ),
                     mime="text/csv",
