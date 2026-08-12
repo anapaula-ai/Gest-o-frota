@@ -25,94 +25,12 @@ if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
 # Estilo global (CSS)
-
-# ================= TESTE DE IDENTIDADE VISUAL V33 =================
-# Camada exclusivamente visual. Pode ser removida para voltar ao padrão V32.
-st.markdown("""
-<style>
-/* Fundo geral mais claro */
-.stApp {
-    background: #F4F8FC;
-}
-
-/* Sidebar em azul suave */
-[data-testid="stSidebar"] {
-    background: #E7F2FD;
-    border-right: 1px solid #D4E4F3;
-}
-
-/* Texto principal */
-html, body, [class*="css"] {
-    color: #243447;
-}
-
-/* Títulos: azul profundo */
-h1, h2, h3, h4, h5 {
-    color: #173B7A !important;
-    letter-spacing: -0.15px;
-}
-
-/* Cards do dashboard: mais leves e modernos */
-.kpi-card, .metric-card, div[data-testid="stMetric"] {
-    background: #FFFFFF !important;
-    border: 1px solid #E2EAF3 !important;
-    border-top: 3px solid #2583F7 !important;
-    border-radius: 12px !important;
-    box-shadow: 0 3px 12px rgba(39, 82, 130, 0.06) !important;
-}
-
-/* Botões */
-.stButton > button, .stDownloadButton > button {
-    border-radius: 8px !important;
-    border: 1px solid #D6E2F0 !important;
-    background: #FFFFFF !important;
-    color: #173B7A !important;
-    font-weight: 600 !important;
-}
-.stButton > button:hover, .stDownloadButton > button:hover {
-    border-color: #6C63D9 !important;
-    color: #554BC4 !important;
-    box-shadow: 0 2px 8px rgba(108, 99, 217, 0.12) !important;
-}
-
-/* Campos e seletores */
-div[data-baseweb="select"] > div,
-div[data-testid="stTextInput"] input {
-    background: #FFFFFF !important;
-    border-color: #D7E3EF !important;
-    border-radius: 8px !important;
-}
-
-/* Tabelas */
-div[data-testid="stDataFrame"] {
-    background: #FFFFFF;
-    border: 1px solid #E2EAF3;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-/* Separadores mais discretos */
-hr {
-    border-color: #DCE7F1 !important;
-}
-
-/* Roxo como detalhe secundário */
-.v33-purple-accent {
-    color: #6C63D9 !important;
-}
-
-/* Mantém cores semânticas já existentes:
-   verde = redução/favorável, vermelho = aumento/atenção, laranja = manutenção */
-</style>
-""", unsafe_allow_html=True)
-# ================================================================
-
 st.markdown("""
     <style>
     .stApp { background-color: #E3F2FD !important; }
     [data-testid="stAppViewContainer"] { background-color: #E3F2FD !important; }
     [data-testid="stSidebar"] { background-color: #BBDEFB !important; border-right: 1px solid #90CAF9; }
-    h1, h2, h3, p, span, label { color: #2457A6 !important; }
+    h1, h2, h3, p, span, label { color: #1A237E !important; }
 
     .metric-container {
         position: relative;
@@ -136,7 +54,7 @@ st.markdown("""
         left: 0;
         right: 0;
         height: 4px;
-        background: #2457A6;
+        background: #1A237E;
     }
 
     .metric-label {
@@ -182,7 +100,7 @@ st.markdown("""
     .radar-card {
         background: #FFFFFF;
         border: 1px solid #DCE4EC;
-        border-left: 4px solid #2457A6;
+        border-left: 4px solid #1A237E;
         border-radius: 10px;
         padding: 14px 16px;
         margin-bottom: 10px;
@@ -194,7 +112,7 @@ st.markdown("""
     .radar-card.warning { border-left-color: #F57C00; }
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
-    .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #2457A6 !important; text-align: left; margin-bottom: 5px; }
+    .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
@@ -229,7 +147,7 @@ st.markdown("""
     }
 
     div[data-testid="stTabs"] [role="tab"] p {
-        color: #2457A6 !important; 
+        color: #1A237E !important; 
         font-weight: 700 !important; 
         font-size: 14px !important;
         margin: 0 !important;
@@ -245,8 +163,8 @@ st.markdown("""
     }
 
     div[data-testid="stTabs"] [role="tab"][aria-selected="true"] { 
-        background-color: #2457A6 !important; 
-        border-color: #2457A6 !important; 
+        background-color: #1A237E !important; 
+        border-color: #1A237E !important; 
         box-shadow: 0px 4px 10px rgba(26, 35, 126, 0.2) !important;
     }
 
@@ -266,7 +184,7 @@ st.markdown("""
     .raiox-item { flex: 1; min-width: 130px; text-align: center; border-right: 1px solid #E0E0E0; }
     .raiox-item:last-child { border-right: none; }
     .raiox-label { color: #546E7A !important; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-    .raiox-value { color: #2457A6 !important; font-size: 20px; font-weight: 800; margin-top: 5px; }
+    .raiox-value { color: #1A237E !important; font-size: 20px; font-weight: 800; margin-top: 5px; }
     
     .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
     .stDownloadButton button:hover { background-color: #E65100 !important; }
@@ -276,7 +194,7 @@ st.markdown("""
     .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
     .inst-lbl{color:#78909C;font-size:9px;font-weight:800;text-transform:uppercase}
     .inst-val{color:#263238;font-size:13px;font-weight:750;margin-top:2px}
-    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#2457A6}
+    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
     .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
     .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
     .exec-row:last-child{border-bottom:none}.exec-row:hover{background:#FAFCFF}
@@ -355,7 +273,7 @@ if not st.session_state["autenticado"]:
     with col2:
         st.markdown("""
         <div style="background-color: white; padding: 40px; border-radius: 15px; box-shadow: 0px 4px 15px rgba(0,0,0,0.1); text-align: center;">
-            <h2 style="color: #2457A6; margin-bottom: 5px;">🏢 LOGÍSTICA</h2>
+            <h2 style="color: #1A237E; margin-bottom: 5px;">🏢 LOGÍSTICA</h2>
             <p style="color: #546E7A; margin-bottom: 30px;">Acesso Restrito</p>
         """, unsafe_allow_html=True)
         
@@ -779,7 +697,7 @@ else:
                         df_composicao, names="Categoria", values="Valor", color="Categoria",
                         color_discrete_map={
                             "Manutenção": "#F57C00", "Combustível": "#0288D1",
-                            "Seguro": "#2457A6", "Rastreador": "#81D4FA"
+                            "Seguro": "#1A237E", "Rastreador": "#81D4FA"
                         }, hole=0
                     )
                     fig_comp.update_traces(
@@ -817,7 +735,7 @@ else:
                     fig_orcado = px.bar(
                         df_orcado_long, x="Categoria", y="Valor", color="Referência", barmode="group",
                         text="Valor", custom_data=["Execução"],
-                        color_discrete_map={"Real acumulado": "#F57C00", "Orçamento anual": "#2457A6"}
+                        color_discrete_map={"Real acumulado": "#F57C00", "Orçamento anual": "#1A237E"}
                     )
                     fig_orcado.update_traces(
                         texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False,
@@ -1158,7 +1076,7 @@ else:
                     """, unsafe_allow_html=True)
                     
                     fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
-                    fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#2457A6'))
+                    fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
                     fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
                     st.plotly_chart(fig_raiox, use_container_width=True)
                 else:
@@ -1874,7 +1792,7 @@ else:
             evol_fixos_melted['Tipo Despesa'] = evol_fixos_melted['Tipo Despesa'].map({'Custo de seguro': 'Seguro', 'Custo de Rastreador': 'Rastreador'})
             
             if evol_fixos_melted['Custo'].sum() > 0:
-                fig_fixos = px.bar(evol_fixos_melted, x='Mes_Nome', y='Custo', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#2457A6", "Rastreador": "#0288D1"})
+                fig_fixos = px.bar(evol_fixos_melted, x='Mes_Nome', y='Custo', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#1A237E", "Rastreador": "#0288D1"})
                 
                 max_f = evol_fixos_melted['Custo'].max()
                 fig_fixos.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
@@ -2404,9 +2322,9 @@ else:
                 def highlight_subtotals(row):
                     placa = str(row['Placa']).upper()
                     if 'SUBTOTAL' in placa:
-                        return ['background-color: #E3F2FD; font-weight: bold; color: #2457A6'] * len(row)
+                        return ['background-color: #E3F2FD; font-weight: bold; color: #1A237E'] * len(row)
                     elif 'TOTAL' in placa:
-                        return ['background-color: #2457A6; color: white; font-weight: bold'] * len(row)
+                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
                     return [''] * len(row)
                 
                 # Insere linhas separadoras entre uma Base/Centro de Custo e outra
@@ -2459,9 +2377,9 @@ else:
                         else:
                             intensidade = valor / maximo
                             if intensidade >= 0.75:
-                                estilos.append("background-color:#90CAF9;color:#173B7A;font-weight:700;")
+                                estilos.append("background-color:#90CAF9;color:#0D47A1;font-weight:700;")
                             elif intensidade >= 0.45:
-                                estilos.append("background-color:#BBDEFB;color:#173B7A;font-weight:600;")
+                                estilos.append("background-color:#BBDEFB;color:#0D47A1;font-weight:600;")
                             elif intensidade >= 0.20:
                                 estilos.append("background-color:#E3F2FD;color:#263238;")
                             else:
@@ -2582,7 +2500,7 @@ else:
                 def highlight_category(row):
                     placa_val = str(row['Placa'])
                     if placa_val.startswith('🔸'):
-                        return ['background-color:#2457A6;color:white;font-weight:700;border-top:8px solid white;border-bottom:2px solid white'] * len(row)
+                        return ['background-color:#1A237E;color:white;font-weight:700;border-top:8px solid white;border-bottom:2px solid white'] * len(row)
                     return [''] * len(row)
                 
                 df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
