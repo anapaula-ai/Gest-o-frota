@@ -59,9 +59,9 @@ st.markdown("""
 
     .metric-label {
         color: #60758A !important;
-        font-size: 12.5px;
-        letter-spacing: .30px;
-        font-weight: 800;
+        font-size: 12px;
+        letter-spacing: .28px;
+        font-weight: 750;
         text-transform: uppercase;
         min-height: 34px;
         display: flex;
@@ -70,9 +70,9 @@ st.markdown("""
 
     .metric-value {
         color: #14206F !important;
-        font-size: 29px;
-        font-weight: 800;
-        min-height: 42px;
+        font-size: 25px;
+        font-weight: 750;
+        min-height: 40px;
         display: flex;
         align-items: center;
         letter-spacing: -.25px;
@@ -80,7 +80,7 @@ st.markdown("""
 
     .metric-subtext {
         color: #455A64 !important;
-        font-size: 14px;
+        font-size: 13.5px;
         font-weight: 500;
         min-height: 31px;
         display: block;
@@ -306,7 +306,7 @@ else:
         prog_html = ""
         if progress is not None:
             prog_color = "bg-alert" if progress > 100 else "bg-normal"
-            prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div><div style="font-size: 13.5px; color: #333333; margin-top: 6px; font-weight: 500;">{progress_text}</div>'
+            prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div><div style="font-size: 13px; color: #455A64; margin-top: 6px; font-weight: 500;">{progress_text}</div>'
         
         html_card = f"""
     <div class="metric-container">
