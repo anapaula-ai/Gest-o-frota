@@ -1121,7 +1121,14 @@ else:
                     st.info("Nenhum custo lançado neste mês.")
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>',
+                unsafe_allow_html=True
+            )
+            st.caption(
+                "Critério gerencial: veículos que apresentam pelo menos 2 sinais de atenção entre "
+                "custo acumulado acima da média, custo de manutenção por KM acima da média e recorrência de manutenção."
+            )
 
             mask_fisica_acum = df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
                 r"[A-Z0-9]{7}", case=False, na=False
@@ -1130,33 +1137,105 @@ else:
 
             if not df_atencao_base.empty:
                 resumo_atencao = df_atencao_base.groupby("Placa", as_index=False).agg({
-                    "Custo de manutenção": "sum", "Quilometragem": "sum"
+                    "Custo de manutenção": "sum",
+                    "Quilometragem": "sum"
                 })
-                resumo_atencao = resumo_atencao[resumo_atencao["Custo de manutenção"] > 0].copy()
-                resumo_atencao["Custo/KM Manut."] = resumo_atencao.apply(
-                    lambda r: r["Custo de manutenção"] / r["Quilometragem"] if r["Quilometragem"] > 0 else 0, axis=1
-                )
-                media_custo_frota = resumo_atencao["Custo de manutenção"].mean() if not resumo_atencao.empty else 0
-                positivos = resumo_atencao[resumo_atencao["Custo/KM Manut."] > 0]
-                media_cpk_frota = positivos["Custo/KM Manut."].mean() if not positivos.empty else 0
 
-                criticos = resumo_atencao[
-                    (resumo_atencao["Custo de manutenção"] > media_custo_frota) &
+                meses_manut = (
+                    df_atencao_base[df_atencao_base["Custo de manutenção"] > 0]
+                    .groupby("Placa")["Mes_Num"]
+                    .nunique()
+                    .reset_index(name="Meses com Manutenção")
+                )
+
+                resumo_atencao = resumo_atencao.merge(
+                    meses_manut, on="Placa", how="left"
+                )
+                resumo_atencao["Meses com Manutenção"] = (
+                    resumo_atencao["Meses com Manutenção"].fillna(0).astype(int)
+                )
+
+                resumo_atencao = resumo_atencao[
+                    resumo_atencao["Custo de manutenção"] > 0
+                ].copy()
+
+                resumo_atencao["Custo/KM Manut."] = resumo_atencao.apply(
+                    lambda r: (
+                        r["Custo de manutenção"] / r["Quilometragem"]
+                        if r["Quilometragem"] > 0 else 0
+                    ),
+                    axis=1
+                )
+
+                media_custo_frota = (
+                    resumo_atencao["Custo de manutenção"].mean()
+                    if not resumo_atencao.empty else 0
+                )
+
+                positivos_cpk = resumo_atencao[
+                    resumo_atencao["Custo/KM Manut."] > 0
+                ]
+                media_cpk_frota = (
+                    positivos_cpk["Custo/KM Manut."].mean()
+                    if not positivos_cpk.empty else 0
+                )
+
+                # Recorrência: manutenção registrada em 2 ou mais competências.
+                resumo_atencao["Sinal_Custo"] = (
+                    resumo_atencao["Custo de manutenção"] > media_custo_frota
+                )
+                resumo_atencao["Sinal_CPK"] = (
                     (resumo_atencao["Custo/KM Manut."] > media_cpk_frota)
-                ].sort_values("Custo de manutenção", ascending=False).head(5)
+                    & (resumo_atencao["Quilometragem"] > 0)
+                )
+                resumo_atencao["Sinal_Recorrencia"] = (
+                    resumo_atencao["Meses com Manutenção"] >= 2
+                )
+
+                resumo_atencao["Qtd_Sinais"] = (
+                    resumo_atencao[
+                        ["Sinal_Custo", "Sinal_CPK", "Sinal_Recorrencia"]
+                    ].sum(axis=1)
+                )
+
+                criticos = (
+                    resumo_atencao[resumo_atencao["Qtd_Sinais"] >= 2]
+                    .sort_values(
+                        ["Qtd_Sinais", "Custo de manutenção"],
+                        ascending=[False, False]
+                    )
+                    .head(5)
+                )
 
                 if not criticos.empty:
-                    st.caption("Veículos acima da média da frota tanto em custo acumulado de manutenção quanto em custo de manutenção por KM.")
                     for _, r in criticos.iterrows():
+                        motivos = []
+                        if r["Sinal_Custo"]:
+                            motivos.append("custo acima da média")
+                        if r["Sinal_CPK"]:
+                            motivos.append("custo/KM acima da média")
+                        if r["Sinal_Recorrencia"]:
+                            motivos.append(
+                                f'{int(r["Meses com Manutenção"])} meses com manutenção'
+                            )
+
+                        motivos_txt = " · ".join(motivos)
+
                         st.markdown(
-                            f'<div class="manut-attention"><b>{r["Placa"]}</b> · '
+                            f'<div class="manut-attention">'
+                            f'<b>{r["Placa"]}</b> · '
                             f'Manutenção: <b>{fmt_br(r["Custo de manutenção"], True)}</b> · '
                             f'KM: {fmt_br(r["Quilometragem"])} · '
-                            f'Custo manut./KM: <b>{fmt_br(r["Custo/KM Manut."], True)}/km</b></div>',
+                            f'Custo manut./KM: <b>{fmt_br(r["Custo/KM Manut."], True)}/km</b><br>'
+                            f'<span style="font-size:11.5px;color:#607D8B;">'
+                            f'Motivos: {motivos_txt}</span>'
+                            f'</div>',
                             unsafe_allow_html=True
                         )
                 else:
-                    st.success("Nenhum veículo está simultaneamente acima das médias de custo e custo/KM.")
+                    st.success(
+                        "Nenhum veículo apresenta pelo menos 2 sinais de atenção na seleção atual."
+                    )
             else:
                 st.info("Sem dados suficientes para análise de veículos em atenção.")
 
