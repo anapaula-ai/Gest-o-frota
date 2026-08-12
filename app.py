@@ -1333,31 +1333,40 @@ else:
                     .sort_values("Custo de manutenção", ascending=True)
                 )
 
-                custo_base_acum["Rotulo"] = custo_base_acum.apply(
-                    lambda r: f'{fmt_br(r["Custo de manutenção"], True)} · {r["Participação"]:.1f}%',
-                    axis=1
-                )
+                # Rótulos em duas camadas para diferenciar valor e participação.
+                # A barra continua representando somente o custo acumulado em R$.
+                fig_base_acum = go.Figure()
 
-                fig_base_acum = px.bar(
-                    custo_base_acum,
-                    x="Custo de manutenção",
-                    y="Unidade_Ranking",
+                fig_base_acum.add_trace(go.Bar(
+                    x=custo_base_acum["Custo de manutenção"],
+                    y=custo_base_acum["Unidade_Ranking"],
                     orientation="h",
-                    text="Rotulo",
-                    color_discrete_sequence=["#F57C00"]
-                )
-
-                fig_base_acum.update_traces(
-                    texttemplate="<b>%{text}</b>",
+                    marker_color="#F57C00",
+                    text=[fmt_br(v, True) for v in custo_base_acum["Custo de manutenção"]],
                     textposition="outside",
-                    textfont=dict(size=12, color="#263238"),
+                    textfont=dict(size=14, color="#263238"),
                     cliponaxis=False,
+                    customdata=custo_base_acum["Participação"],
                     hovertemplate=(
                         "<b>%{y}</b><br>"
                         "Manutenção acumulada: R$ %{x:,.2f}<br>"
+                        "Participação no total: %{customdata:.1f}%"
                         "<extra></extra>"
+                    ),
+                    showlegend=False
+                ))
+
+                # Percentual em uma segunda coluna visual, com cor distinta.
+                max_cb = custo_base_acum["Custo de manutenção"].max()
+                for _, r in custo_base_acum.iterrows():
+                    fig_base_acum.add_annotation(
+                        x=float(r["Custo de manutenção"]) + max_cb * 0.31,
+                        y=r["Unidade_Ranking"],
+                        text=f'<b>{r["Participação"]:.1f}%</b>',
+                        showarrow=False,
+                        xanchor="left",
+                        font=dict(size=13, color="#F57C00")
                     )
-                )
 
                 max_cb = custo_base_acum["Custo de manutenção"].max()
 
@@ -1366,13 +1375,13 @@ else:
                     separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(r=175, l=10, t=10, b=10),
+                    margin=dict(r=205, l=10, t=10, b=10),
                     showlegend=False,
                     xaxis=dict(
                         showticklabels=False,
                         showgrid=False,
                         zeroline=False,
-                        range=[0, max_cb * 1.48]
+                        range=[0, max_cb * 1.62]
                     ),
                     yaxis=dict(
                         title="",
