@@ -1432,7 +1432,7 @@ else:
                     marker_color="#F57C00",
                     text=custo_base_acum["Rotulo_Profissional"],
                     textposition="outside",
-                    textfont=dict(size=13.5, color="#37474F"),
+                    textfont=dict(size=14, color="#37474F"),
                     cliponaxis=False,
                     customdata=custo_base_acum["Participação"],
                     hovertemplate=(
@@ -1445,30 +1445,18 @@ else:
                 ))
 
                 max_cb = custo_base_acum["Custo de manutenção"].max()
-                for _, r in custo_base_acum.iterrows():
-                    fig_base_acum.add_annotation(
-                        x=float(r["Custo de manutenção"]) + max_cb * 0.31,
-                        y=r["Unidade_Ranking"],
-                        text=f'<b>{r["Participação"]:.1f}%</b>',
-                        showarrow=False,
-                        xanchor="left",
-                        font=dict(size=13, color="#F57C00")
-                    )
-
-                max_cb = custo_base_acum["Custo de manutenção"].max()
-
                 fig_base_acum.update_layout(
                     height=470,
                     separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(r=185, l=10, t=10, b=10),
+                    margin=dict(r=165, l=10, t=10, b=10),
                     showlegend=False,
                     xaxis=dict(
                         showticklabels=False,
                         showgrid=False,
                         zeroline=False,
-                        range=[0, max_cb * 1.58]
+                        range=[0, max_cb * 1.52]
                     ),
                     yaxis=dict(
                         title="",
