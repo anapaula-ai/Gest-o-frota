@@ -248,6 +248,12 @@ st.markdown("""
     .odonto-kpi-sub{color:#607D8B !important;font-size:10px;margin-top:3px}
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
+
+    /* Cards executivos das Odontovans */
+    .odonto-kpi .metric-label { font-size: 12.8px !important; }
+    .odonto-kpi .metric-value { font-size: 27px !important; font-weight: 750 !important; }
+    .odonto-kpi .metric-subtext { font-size: 14px !important; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -296,7 +302,7 @@ else:
             (df["Placa"].astype(str).str.strip() != "0")
         ]["Placa"].unique()
 
-    def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text=""):
+    def draw_card(label, value, subtext="", trend=None, is_lower_better=True, progress=None, progress_text="", extra_class=""):
         trend_html = ""
         if trend is not None and trend != 0:
             color = "trend-down" if (trend <= 0 if is_lower_better else trend >= 0) else "trend-up"
@@ -309,7 +315,7 @@ else:
             prog_html = f'<div class="progress-bg"><div class="progress-fill {prog_color}" style="width: {min(progress, 100)}%;"></div></div><div style="font-size: 13px; color: #455A64; margin-top: 6px; font-weight: 500;">{progress_text}</div>'
         
         html_card = f"""
-    <div class="metric-container">
+    <div class="metric-container {extra_class}">
     <div class="metric-label">{label}</div>
     <div class="metric-value">{value}</div>
     <div class="metric-subtext">{subtext}</div>
@@ -876,7 +882,10 @@ else:
                     )
 
             # ---------- Destaque específico: Odontovans ----------
-            df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
+            df_odonto = df_unidades[
+                df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)
+                & ~df_unidades["Unidade_Gestao"].astype(str).str.contains("CAFARNAUM", case=False, na=False)
+            ].copy()
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
                 st.markdown('<div class="chart-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
