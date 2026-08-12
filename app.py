@@ -1478,9 +1478,9 @@ else:
 
             # Combustível é controlado financeiramente pelas placas digitais.
             df_comb = df_base[df_base["Placa"].astype(str).str.contains("COMBUST", case=False, na=False)].copy()
-            df_comb_mes = df_comb[df_comb["Mes_Num"] == mes_num].copy()
-            df_comb_acum = df_comb[df_comb["Mes_Num"] <= mes_num].copy()
-            df_comb_ant = df_comb[df_comb["Mes_Num"] == (mes_num - 1)].copy() if mes_num > 1 else df_comb.iloc[0:0].copy()
+            df_comb_mes = df_comb[df_comb["Mes_Num"] == mes_num_atual].copy()
+            df_comb_acum = df_comb[df_comb["Mes_Num"] <= mes_num_atual].copy()
+            df_comb_ant = df_comb[df_comb["Mes_Num"] == (mes_num_atual - 1)].copy() if mes_num_atual > 1 else df_comb.iloc[0:0].copy()
 
             # Unidade de gestão usada nos rankings de combustível.
             # Criada logo no início para estar disponível em todos os blocos.
