@@ -2448,6 +2448,25 @@ else:
                     else: return 'Veículos Próprios'
                     
                 df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
+
+                # Indicadores rápidos da composição da frota
+                total_frota = len(df_frota_unica)
+                total_proprios = (df_frota_unica['Categoria'] == 'Veículos Próprios').sum()
+                total_alugados = (df_frota_unica['Categoria'] == 'Alugados').sum()
+                total_outros = total_frota - total_proprios - total_alugados
+
+                fc1, fc2, fc3, fc4 = st.columns(4)
+                with fc1:
+                    draw_card("🚘 TOTAL DA FROTA", fmt_br(total_frota), "Registros ativos no cadastro", is_lower_better=False)
+                with fc2:
+                    draw_card("🔑 VEÍCULOS PRÓPRIOS", fmt_br(total_proprios), "Patrimônio próprio", is_lower_better=False)
+                with fc3:
+                    draw_card("🚙 ALUGADOS", fmt_br(total_alugados), "Veículos locados", is_lower_better=False)
+                with fc4:
+                    draw_card("🚌 OUTROS ATIVOS", fmt_br(total_outros), "Motos, ônibus, reboques e demais", is_lower_better=False)
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
                 
                 ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
                 df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
@@ -2482,7 +2501,7 @@ else:
                 def highlight_category(row):
                     placa_val = str(row['Placa'])
                     if placa_val.startswith('🔸'):
-                        return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
+                        return ['background-color:#1A237E;color:white;font-weight:700;border-top:8px solid white;border-bottom:2px solid white'] * len(row)
                     return [''] * len(row)
                 
                 df_styled = df_apresentacao.style.apply(highlight_category, axis=1)
@@ -2498,7 +2517,6 @@ else:
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 st.dataframe(df_styled, use_container_width=True, hide_index=True, height=560)
-                st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
@@ -2543,7 +2561,49 @@ else:
                     config_cols_ipva['Ano do veículo'] = st.column_config.NumberColumn("Ano do veículo", format="%d")
                 
                 total_ipva = df_ipva_filtrado['Ipva estimado'].sum() if 'Ipva estimado' in df_ipva_filtrado.columns else 0
-                st.markdown(f"**Total de veículos listados:** {len(df_ipva_filtrado)} | **Valor Total Estimado:** {fmt_br(total_ipva, True)}")
+
+                qtd_ipva = len(df_ipva_filtrado)
+                idade_media = None
+                if 'Ano do veículo' in df_ipva_filtrado.columns:
+                    anos_validos = pd.to_numeric(
+                        df_ipva_filtrado['Ano do veículo'], errors='coerce'
+                    ).dropna()
+                    anos_validos = anos_validos[
+                        (anos_validos > 1900) & (anos_validos <= ano_sel)
+                    ]
+                    if not anos_validos.empty:
+                        idade_media = (ano_sel - anos_validos).mean()
+
+                ip1, ip2, ip3 = st.columns(3)
+                with ip1:
+                    draw_card(
+                        "🚘 VEÍCULOS LISTADOS",
+                        fmt_br(qtd_ipva),
+                        "Conforme filtros selecionados",
+                        is_lower_better=False
+                    )
+                with ip2:
+                    draw_card(
+                        "💰 IPVA TOTAL ESTIMADO",
+                        fmt_br(total_ipva, True),
+                        "Conforme base de consulta"
+                    )
+                with ip3:
+                    if idade_media is not None:
+                        draw_card(
+                            "📅 IDADE MÉDIA DA FROTA",
+                            f"{idade_media:.1f}".replace(".", ",") + " anos",
+                            "Calculada pelo ano do veículo",
+                            is_lower_better=False
+                        )
+                    else:
+                        draw_card(
+                            "📅 IDADE MÉDIA DA FROTA",
+                            "—",
+                            "Ano do veículo não disponível"
+                        )
+
+                st.markdown("<br>", unsafe_allow_html=True)
                 
                 col_btn, col_esp = st.columns([1, 2])
                 with col_btn:
