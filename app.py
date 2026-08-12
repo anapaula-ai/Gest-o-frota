@@ -2451,19 +2451,18 @@ else:
 
                 # Indicadores rápidos da composição da frota
                 total_frota = len(df_frota_unica)
-                total_proprios = (df_frota_unica['Categoria'] == 'Veículos Próprios').sum()
                 total_alugados = (df_frota_unica['Categoria'] == 'Alugados').sum()
-                total_outros = total_frota - total_proprios - total_alugados
+                # Tudo que não estiver classificado como Alugado pertence à frota própria.
+                total_proprios = total_frota - total_alugados
+                total_outros = 0
 
-                fc1, fc2, fc3, fc4 = st.columns(4)
+                fc1, fc2, fc3 = st.columns(3)
                 with fc1:
                     draw_card("🚘 TOTAL DA FROTA", fmt_br(total_frota), "Registros ativos no cadastro", is_lower_better=False)
                 with fc2:
-                    draw_card("🔑 VEÍCULOS PRÓPRIOS", fmt_br(total_proprios), "Patrimônio próprio", is_lower_better=False)
+                    draw_card("🔑 FROTA PRÓPRIA", fmt_br(total_proprios), "Todos os ativos, exceto alugados", is_lower_better=False)
                 with fc3:
                     draw_card("🚙 ALUGADOS", fmt_br(total_alugados), "Veículos locados", is_lower_better=False)
-                with fc4:
-                    draw_card("🚌 OUTROS ATIVOS", fmt_br(total_outros), "Motos, ônibus, reboques e demais", is_lower_better=False)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
