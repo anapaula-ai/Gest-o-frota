@@ -2561,49 +2561,12 @@ else:
                 
                 total_ipva = df_ipva_filtrado['Ipva estimado'].sum() if 'Ipva estimado' in df_ipva_filtrado.columns else 0
 
-                qtd_ipva = len(df_ipva_filtrado)
-                idade_media = None
-                if 'Ano do veículo' in df_ipva_filtrado.columns:
-                    anos_validos = pd.to_numeric(
-                        df_ipva_filtrado['Ano do veículo'], errors='coerce'
-                    ).dropna()
-                    anos_validos = anos_validos[
-                        (anos_validos > 1900) & (anos_validos <= ano_sel)
-                    ]
-                    if not anos_validos.empty:
-                        idade_media = (ano_sel - anos_validos).mean()
+                # Relatório histórico de IPVA mantido apenas para consulta/registro.
+                st.markdown(
+                    f"**Total de veículos listados:** {len(df_ipva_filtrado)} | "
+                    f"**Valor Total Estimado:** {fmt_br(total_ipva, True)}"
+                )
 
-                ip1, ip2, ip3 = st.columns(3)
-                with ip1:
-                    draw_card(
-                        "🚘 VEÍCULOS LISTADOS",
-                        fmt_br(qtd_ipva),
-                        "Conforme filtros selecionados",
-                        is_lower_better=False
-                    )
-                with ip2:
-                    draw_card(
-                        "💰 IPVA TOTAL ESTIMADO",
-                        fmt_br(total_ipva, True),
-                        "Conforme base de consulta"
-                    )
-                with ip3:
-                    if idade_media is not None:
-                        draw_card(
-                            "📅 IDADE MÉDIA DA FROTA",
-                            f"{idade_media:.1f}".replace(".", ",") + " anos",
-                            "Calculada pelo ano do veículo",
-                            is_lower_better=False
-                        )
-                    else:
-                        draw_card(
-                            "📅 IDADE MÉDIA DA FROTA",
-                            "—",
-                            "Ano do veículo não disponível"
-                        )
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                
                 col_btn, col_esp = st.columns([1, 2])
                 with col_btn:
                     csv_ipva = df_ipva_filtrado.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
