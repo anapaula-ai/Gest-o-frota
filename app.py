@@ -241,6 +241,13 @@ st.markdown("""
     .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
+    .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 14px 0}
+    .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
+    .odonto-kpi-label{color:#60758A !important;font-size:10.5px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:26px}
+    .odonto-kpi-value{color:#14206F !important;font-size:18px;font-weight:850;margin-top:7px;white-space:nowrap}
+    .odonto-kpi-sub{color:#607D8B !important;font-size:10px;margin-top:3px}
+    @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -659,8 +666,8 @@ else:
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
 
-            # ---------- Onde os recursos estão sendo utilizados ----------
-            col_recursos, col_radar = st.columns([1.25, 1])
+            # ---------- Leitura financeira executiva ----------
+            col_recursos, col_orcado = st.columns([1, 1.45])
 
             with col_recursos:
                 st.markdown('<div class="chart-title">💰 Composição dos Custos</div>', unsafe_allow_html=True)
@@ -669,113 +676,122 @@ else:
                     "Valor": [gasto_manut_acum, gasto_comb_acum, gasto_seguro_acum, gasto_rastreador_acum]
                 })
                 df_composicao = df_composicao[df_composicao["Valor"] > 0]
-
                 if not df_composicao.empty:
                     fig_comp = px.pie(
-                        df_composicao,
-                        names="Categoria",
-                        values="Valor",
-                        color="Categoria",
+                        df_composicao, names="Categoria", values="Valor", color="Categoria",
                         color_discrete_map={
-                            "Manutenção": "#F57C00",
-                            "Combustível": "#0288D1",
-                            "Seguro": "#1A237E",
-                            "Rastreador": "#81D4FA"
-                        },
-                        hole=0
+                            "Manutenção": "#F57C00", "Combustível": "#0288D1",
+                            "Seguro": "#1A237E", "Rastreador": "#81D4FA"
+                        }, hole=0
                     )
-
                     fig_comp.update_traces(
-                        textposition="inside",
-                        textinfo="percent+label",
-                        textfont=dict(size=14),
+                        textposition="inside", textinfo="percent+label", textfont=dict(size=14),
                         hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
                         marker=dict(line=dict(color="#FFFFFF", width=2))
                     )
-
                     fig_comp.update_layout(
-                        height=350,
-                        separators=",.",
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(l=5, r=5, t=5, b=5),
+                        height=360, separators=",.", paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=5, r=5, t=5, b=30),
                         showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="top",
-                            y=-0.05,
-                            xanchor="center",
-                            x=0.5,
-                            font=dict(size=12)
-                        )
+                        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=12))
                     )
-
-                    st.plotly_chart(
-                        fig_comp,
-                        use_container_width=True,
-                        config={"displayModeBar": False}
-                    )
-
-            with col_radar:
-                st.markdown('<div class="chart-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
-                alertas = []
-
-                if ano_sel == 2026 and orcamento_total_global > 0:
-                    perc_tempo = (mes_num_atual / 12) * 100
-                    if projecao_anual > orcamento_total_global:
-                        alertas.append(
-                            f"⚠️ **Projeção acima do orçamento:** excesso estimado de {fmt_br(abs(diferenca_proj), True)}."
-                        )
-                    elif perc_global > perc_tempo + 10:
-                        alertas.append(
-                            f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido."
-                        )
-
-                # Veículo físico com maior manutenção no acumulado.
-                mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-                df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
-                if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
-                    resumo_placa = df_placas_exec.groupby("Placa", as_index=False).agg({
-                        "Custo de manutenção": "sum",
-                        "Custo_Total": "sum",
-                        "Quilometragem": "sum"
-                    }).sort_values("Custo de manutenção", ascending=False)
-                    placa_crit = resumo_placa.iloc[0]["Placa"]
-                    valor_crit = resumo_placa.iloc[0]["Custo de manutenção"]
-                    custo_total_crit = resumo_placa.iloc[0]["Custo_Total"]
-                    km_crit = resumo_placa.iloc[0]["Quilometragem"]
-                    cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
-
-                    # Procura o nome da unidade vinculada ao veículo para contextualizar o alerta.
-                    unidade_crit = ""
-                    if not df_frota_atual.empty:
-                        vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
-                        if not vinculo.empty:
-                            unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
-
-                    if "ODONTOVAN" in unidade_crit.upper():
-                        titulo_crit = unidade_crit
-                    else:
-                        titulo_crit = placa_crit
-
-                    alertas.append(
-                        f"🔧 **{titulo_crit}** · Maior manutenção acumulada: {fmt_br(valor_crit, True)} · "
-                        f"Custo/KM: {fmt_br(cpk_crit, True)}"
-                    )
-
-                if alertas:
-                    for alerta in alertas[:4]:
-                        classe = "critical" if ("acima do orçamento" in alerta.lower() or "ritmo de consumo elevado" in alerta.lower()) else "warning"
-                        alerta_html = alerta.replace("**", "")
-                        st.markdown(
-                            f'<div class="radar-card {classe}">{alerta_html}</div>',
-                            unsafe_allow_html=True
-                        )
+                    st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
                 else:
-                    st.markdown(
-                        '<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>',
-                        unsafe_allow_html=True
+                    st.info("Sem custos para exibir nesta seleção.")
+
+            with col_orcado:
+                st.markdown('<div class="chart-title">🎯 Real x Orçado por Categoria</div>', unsafe_allow_html=True)
+                if ano_sel == 2026:
+                    df_orcado = pd.DataFrame({
+                        "Categoria": ["Manutenção", "Combustível", "Seguro", "Rastreador"],
+                        "Real acumulado": [gasto_manut_acum, gasto_comb_acum, gasto_seguro_acum, gasto_rastreador_acum],
+                        "Orçamento anual": [orc_manut, orc_comb, orc_seg, orc_rast]
+                    })
+                    df_orcado["Execução"] = df_orcado.apply(
+                        lambda r: (r["Real acumulado"] / r["Orçamento anual"] * 100) if r["Orçamento anual"] > 0 else 0,
+                        axis=1
                     )
+                    df_orcado_long = df_orcado.melt(
+                        id_vars=["Categoria", "Execução"],
+                        value_vars=["Real acumulado", "Orçamento anual"],
+                        var_name="Referência", value_name="Valor"
+                    )
+                    fig_orcado = px.bar(
+                        df_orcado_long, x="Categoria", y="Valor", color="Referência", barmode="group",
+                        text="Valor", custom_data=["Execução"],
+                        color_discrete_map={"Real acumulado": "#F57C00", "Orçamento anual": "#1A237E"}
+                    )
+                    fig_orcado.update_traces(
+                        texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False,
+                        hovertemplate='<b>%{x}</b><br>%{fullData.name}: R$ %{y:,.2f}<br>Execução: %{customdata[0]:.1f}%<extra></extra>'
+                    )
+                    max_orcado = df_orcado_long["Valor"].max() if not df_orcado_long.empty else 1
+                    fig_orcado.update_layout(
+                        height=360, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=5, r=10, t=5, b=20),
+                        yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max_orcado * 1.22]),
+                        xaxis=dict(title="", tickfont=dict(size=12)),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
+                    )
+                    st.plotly_chart(fig_orcado, use_container_width=True, config={"displayModeBar": False})
+                    execucao_resumo = " · ".join(
+                        f'{r["Categoria"]}: {r["Execução"]:.1f}%' if r["Orçamento anual"] > 0 else f'{r["Categoria"]}: sem orçamento'
+                        for _, r in df_orcado.iterrows()
+                    )
+                    st.caption(f"Execução do orçamento anual · {execucao_resumo}")
+                else:
+                    st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
+
+            st.markdown('<div class="chart-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
+            alertas = []
+            if ano_sel == 2026 and orcamento_total_global > 0:
+                perc_tempo = (mes_num_atual / 12) * 100
+                if projecao_anual > orcamento_total_global:
+                    alertas.append(f"⚠️ **Projeção acima do orçamento:** excesso estimado de {fmt_br(abs(diferenca_proj), True)}.")
+                elif perc_global > perc_tempo + 10:
+                    alertas.append(f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido.")
+
+                exec_categorias = [
+                    ("Manutenção", gasto_manut_acum, orc_manut),
+                    ("Combustível", gasto_comb_acum, orc_comb),
+                    ("Seguro", gasto_seguro_acum, orc_seg),
+                    ("Rastreador", gasto_rastreador_acum, orc_rast)
+                ]
+                exec_validas = [(cat, real / orc * 100) for cat, real, orc in exec_categorias if orc > 0]
+                if exec_validas:
+                    cat_crit, perc_crit = max(exec_validas, key=lambda x: x[1])
+                    if perc_crit > perc_tempo + 10:
+                        alertas.append(f"🎯 **{cat_crit}** · Maior pressão orçamentária: {perc_crit:.1f}% do orçamento anual já executado.")
+
+            mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+            df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
+            if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
+                resumo_placa = df_placas_exec.groupby("Placa", as_index=False).agg({
+                    "Custo de manutenção": "sum", "Custo_Total": "sum", "Quilometragem": "sum"
+                }).sort_values("Custo de manutenção", ascending=False)
+                placa_crit = resumo_placa.iloc[0]["Placa"]
+                valor_crit = resumo_placa.iloc[0]["Custo de manutenção"]
+                custo_total_crit = resumo_placa.iloc[0]["Custo_Total"]
+                km_crit = resumo_placa.iloc[0]["Quilometragem"]
+                cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
+                unidade_crit = ""
+                if not df_frota_atual.empty:
+                    vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
+                    if not vinculo.empty:
+                        unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
+                titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
+                alertas.append(
+                    f"🔧 **{titulo_crit}** · Maior manutenção acumulada: {fmt_br(valor_crit, True)} · Custo/KM: {fmt_br(cpk_crit, True)}"
+                )
+
+            if alertas:
+                radar_cols = st.columns(2)
+                for idx, alerta in enumerate(alertas[:4]):
+                    classe = "critical" if ("acima do orçamento" in alerta.lower() or "ritmo de consumo elevado" in alerta.lower()) else "warning"
+                    with radar_cols[idx % 2]:
+                        st.markdown(f'<div class="radar-card {classe}">{alerta.replace("**", "")}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>', unsafe_allow_html=True)
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -863,41 +879,86 @@ else:
             df_odonto = df_unidades[df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)].copy()
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
-                st.markdown('<div class="chart-title">🦷 Odontovans | Visão Financeira e Operacional</div>', unsafe_allow_html=True)
-                
+                st.markdown('<div class="chart-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
+
+                od_custo = df_odonto["Custo_Total"].sum()
+                od_manut = df_odonto["Custo de manutenção"].sum()
+                od_comb = df_odonto["Custo Combustível"].sum()
+                od_km = df_odonto["Quilometragem"].sum()
+                od_cpk = od_custo / od_km if od_km > 0 else 0
+
+                df_iav_ref = df_ano[df_ano["Instituição"] == "IAV"].copy()
+                mask_cadastro_iav = df_iav_ref["Placa"].astype(str).str.contains(
+                    cadastro_pattern, case=False, na=False, regex=True
+                )
+                df_iav_ref = df_iav_ref[~mask_cadastro_iav].copy()
+                df_iav_ref = df_iav_ref[df_iav_ref["Mes_Num"] <= mes_num_atual].copy()
+                custo_iav_ref = (
+                    df_iav_ref["Custo de manutenção"].sum() + df_iav_ref["Custo Combustível"].sum()
+                    + df_iav_ref["Custo de seguro"].sum() + df_iav_ref["Custo de Rastreador"].sum()
+                )
+                od_part_iav = (od_custo / custo_iav_ref * 100) if custo_iav_ref > 0 else 0
+
+                resumo_od_html = (
+                    '<div class="odonto-summary">'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Custo total</div><div class="odonto-kpi-value">{fmt_br(od_custo, True)}</div><div class="odonto-kpi-sub">Acumulado até {mes_sel}</div></div>'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Manutenção</div><div class="odonto-kpi-value">{fmt_br(od_manut, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Combustível</div><div class="odonto-kpi-value">{fmt_br(od_comb, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">KM acumulados</div><div class="odonto-kpi-value">{fmt_br(od_km)}</div><div class="odonto-kpi-sub">Quilometragem total</div></div>'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Custo / KM</div><div class="odonto-kpi-value">{fmt_br(od_cpk, True)}/km</div><div class="odonto-kpi-sub">Eficiência consolidada</div></div>'
+                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Participação no IAV</div><div class="odonto-kpi-value">{od_part_iav:.1f}%</div><div class="odonto-kpi-sub">Do custo total do IAV</div></div>'
+                    + '</div>'
+                )
+                st.markdown(resumo_od_html, unsafe_allow_html=True)
+
                 tabela_odonto = df_odonto[[
                     "Instituição", "Unidade_Gestao", "Ativos", "Quilometragem",
                     "Custo de manutenção", "Custo Combustível", "Custo_Total", "Custo/KM"
                 ]].sort_values("Custo_Total", ascending=False).rename(columns={
-                    "Unidade_Gestao": "Odontovan",
-                    "Quilometragem": "KM"
+                    "Unidade_Gestao": "Odontovan", "Quilometragem": "KM"
                 })
-                
-                linhas_od = []
-                mostrar_inst_od = inst_sel == "TODAS"
-                for _, r in tabela_odonto.iterrows():
-                    tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst_od else ""
-                    linhas_od.append(
-                        f'<div class="rx-row">'
-                        f'<div class="rx-name">{r["Odontovan"]}{tag}</div>'
-                        f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
-                        f'<div class="rx-km">{fmt_br(r["KM"])} km</div>'
-                        f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
-                        f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
-                        f'</div>'
+
+                col_od_graf, col_od_tabela = st.columns([1, 1.4])
+                with col_od_graf:
+                    st.markdown('<div class="chart-title">📊 Custo Total por Odontovan</div>', unsafe_allow_html=True)
+                    graf_od = tabela_odonto[tabela_odonto["Custo_Total"] > 0].sort_values("Custo_Total")
+                    if not graf_od.empty:
+                        fig_od = px.bar(
+                            graf_od, x="Custo_Total", y="Odontovan", orientation="h",
+                            text="Custo_Total", color_discrete_sequence=["#F57C00"]
+                        )
+                        fig_od.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
+                        max_od = graf_od["Custo_Total"].max() if not graf_od.empty else 1
+                        fig_od.update_layout(
+                            height=max(300, 54 * len(graf_od) + 90), separators=',.',
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                            margin=dict(l=5, r=95, t=5, b=10),
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_od * 1.32]),
+                            yaxis=dict(title="", automargin=True, tickfont=dict(size=12)), showlegend=False
+                        )
+                        st.plotly_chart(fig_od, use_container_width=True, config={"displayModeBar": False})
+
+                with col_od_tabela:
+                    st.markdown('<div class="chart-title">🔎 Comparativo Operacional</div>', unsafe_allow_html=True)
+                    linhas_od = []
+                    mostrar_inst_od = inst_sel == "TODAS"
+                    for _, r in tabela_odonto.iterrows():
+                        tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst_od else ""
+                        linhas_od.append(
+                            f'<div class="rx-row">'
+                            f'<div class="rx-name">{r["Odontovan"]}{tag}</div>'
+                            f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
+                            f'<div class="rx-km">{fmt_br(r["KM"])} km</div>'
+                            f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
+                            f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
+                            f'</div>'
+                        )
+                    cabecalho_od = (
+                        '<div class="rx-header"><div>Odontovan</div>'
+                        '<div style="text-align:right">Ativos</div><div style="text-align:right">KM</div>'
+                        '<div style="text-align:right">Custo Total</div><div style="text-align:right">Custo/KM</div></div>'
                     )
-                
-                cabecalho_od = (
-                    '<div class="rx-header">'
-                    f'<div>Odontovan</div>'
-                    '<div style="text-align:right">Ativos</div>'
-                    '<div style="text-align:right">KM</div>'
-                    '<div style="text-align:right">Custo Total</div>'
-                    '<div style="text-align:right">Custo/KM</div>'
-                    '</div>'
-                )
-                
-                st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
             # ================= VISÃO MENSAL =================
