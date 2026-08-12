@@ -249,6 +249,13 @@ st.markdown("""
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
 
+
+    .manut-attention{
+        background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F57C00;
+        border-radius:10px;padding:12px 14px;margin-bottom:8px;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+        color:#263238 !important;font-size:13px;line-height:1.45;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -966,25 +973,47 @@ else:
         with tab_manut:
             # ================= VISÃO MENSAL =================
             st.markdown(f"### 📊 Desempenho Mensal | {mes_sel}/{ano_sel}")
-            c1, c2, c3 = st.columns(3)
-            
-            with c1:
-                ativos_ano = len(get_ativos(df_base)) 
-                draw_card("VEÍCULOS ATIVOS", fmt_br(ativos_ano), is_lower_better=False)
-            
-            with c2:
-                km_m = df_filtrado_mes_manut['Quilometragem'].sum()
-                km_a = df_anterior_manut['Quilometragem'].sum()
-                trend_km = ((km_m-km_a)/km_a*100) if km_a>0 else 0
-                draw_card("QUILOMETRAGEM MENSAL", fmt_br(km_m), trend=trend_km, is_lower_better=False)
-            
-            with c3:
-                custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
-                custo_a = df_anterior_manut['Custo de manutenção'].sum()
-                ativos_mes = len(get_ativos(df_filtrado_mes_manut)) 
-                custo_medio = custo_m / ativos_mes if ativos_mes > 0 else 0
-                trend_c = ((custo_m - custo_a) / custo_a * 100) if custo_a > 0 else 0
-                draw_card("CUSTO MANUTENÇÃO MENSAL", fmt_br(custo_m, True), f"Média: {fmt_br(custo_medio, True)} /veículo ativo", trend=trend_c)
+
+            km_m = df_filtrado_mes_manut['Quilometragem'].sum()
+            km_a = df_anterior_manut['Quilometragem'].sum()
+            trend_km = ((km_m-km_a)/km_a*100) if km_a > 0 else 0
+
+            custo_m = df_filtrado_mes_manut['Custo de manutenção'].sum()
+            custo_a = df_anterior_manut['Custo de manutenção'].sum()
+            trend_c = ((custo_m-custo_a)/custo_a*100) if custo_a > 0 else 0
+
+            mask_fisica_mes = df_filtrado_mes_manut["Placa"].astype(str).str.fullmatch(
+                r"[A-Z0-9]{7}", case=False, na=False
+            )
+            df_veiculos_manut_mes = df_filtrado_mes_manut[
+                mask_fisica_mes & (df_filtrado_mes_manut["Custo de manutenção"] > 0)
+            ].copy()
+            veiculos_manut_mes = df_veiculos_manut_mes["Placa"].nunique()
+            custo_medio_atendido = custo_m / veiculos_manut_mes if veiculos_manut_mes > 0 else 0
+
+            gasto_manut_acum_aba = df_acumulado_ate_mes_manut["Custo de manutenção"].sum()
+            orc_manut_aba = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas) if ano_sel == 2026 else 0
+            perc_manut_aba = (gasto_manut_acum_aba / orc_manut_aba * 100) if orc_manut_aba > 0 else 0
+
+            m1, m2, m3, m4, m5 = st.columns(5)
+            with m1:
+                draw_card("🔧 CUSTO NO MÊS", fmt_br(custo_m, True), f"Vs mês anterior: {trend_c:+.1f}%")
+            with m2:
+                draw_card("💰 CUSTO ACUMULADO", fmt_br(gasto_manut_acum_aba, True), f"Até {mes_sel}/{ano_sel}")
+            with m3:
+                draw_card("🚙 VEÍCULOS ATENDIDOS", fmt_br(veiculos_manut_mes), "Com manutenção lançada no mês", is_lower_better=False)
+            with m4:
+                draw_card("📊 MÉDIA POR VEÍCULO", fmt_br(custo_medio_atendido, True), "Entre veículos atendidos no mês")
+            with m5:
+                if ano_sel == 2026 and orc_manut_aba > 0:
+                    draw_card(
+                        "🎯 ORÇAMENTO CONSUMIDO", f"{perc_manut_aba:.1f}%",
+                        f"Orçamento anual: <b>{fmt_br(orc_manut_aba, True)}</b>",
+                        progress=perc_manut_aba,
+                        progress_text=f"Saldo: {fmt_br(orc_manut_aba-gasto_manut_acum_aba, True)}"
+                    )
+                else:
+                    draw_card("🎯 ORÇAMENTO CONSUMIDO", "—", "Orçamento não cadastrado para o ano")
 
             if busca_placa:
                 st.markdown("---")
@@ -1066,6 +1095,46 @@ else:
                     st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum custo lançado neste mês.")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>', unsafe_allow_html=True)
+
+            mask_fisica_acum = df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
+                r"[A-Z0-9]{7}", case=False, na=False
+            )
+            df_atencao_base = df_acumulado_ate_mes_manut[mask_fisica_acum].copy()
+
+            if not df_atencao_base.empty:
+                resumo_atencao = df_atencao_base.groupby("Placa", as_index=False).agg({
+                    "Custo de manutenção": "sum", "Quilometragem": "sum"
+                })
+                resumo_atencao = resumo_atencao[resumo_atencao["Custo de manutenção"] > 0].copy()
+                resumo_atencao["Custo/KM Manut."] = resumo_atencao.apply(
+                    lambda r: r["Custo de manutenção"] / r["Quilometragem"] if r["Quilometragem"] > 0 else 0, axis=1
+                )
+                media_custo_frota = resumo_atencao["Custo de manutenção"].mean() if not resumo_atencao.empty else 0
+                positivos = resumo_atencao[resumo_atencao["Custo/KM Manut."] > 0]
+                media_cpk_frota = positivos["Custo/KM Manut."].mean() if not positivos.empty else 0
+
+                criticos = resumo_atencao[
+                    (resumo_atencao["Custo de manutenção"] > media_custo_frota) &
+                    (resumo_atencao["Custo/KM Manut."] > media_cpk_frota)
+                ].sort_values("Custo de manutenção", ascending=False).head(5)
+
+                if not criticos.empty:
+                    st.caption("Veículos acima da média da frota tanto em custo acumulado de manutenção quanto em custo de manutenção por KM.")
+                    for _, r in criticos.iterrows():
+                        st.markdown(
+                            f'<div class="manut-attention"><b>{r["Placa"]}</b> · '
+                            f'Manutenção: <b>{fmt_br(r["Custo de manutenção"], True)}</b> · '
+                            f'KM: {fmt_br(r["Quilometragem"])} · '
+                            f'Custo manut./KM: <b>{fmt_br(r["Custo/KM Manut."], True)}/km</b></div>',
+                            unsafe_allow_html=True
+                        )
+                else:
+                    st.success("Nenhum veículo está simultaneamente acima das médias de custo e custo/KM.")
+            else:
+                st.info("Sem dados suficientes para análise de veículos em atenção.")
 
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("---")
