@@ -1806,236 +1806,252 @@ else:
                 st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
         with tab_raiox:
-            st.markdown(f"### 📍 Raio-X da Base | {ano_sel}")
-            
-            df_acum_geral = df_base[df_base['Mes_Num'] <= mes_num_atual]
-            
-            df_manut_acum_geral = df_acum_geral[~df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-            manut_por_base = df_manut_acum_geral.groupby(col_cc)['Custo de manutenção'].sum().reset_index()
-            
-            df_comb_acum_geral = df_acum_geral[df_acum_geral["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-            
-            comb_por_base = df_comb_acum_geral.groupby(col_cc)['Custo Combustível'].sum().reset_index()
-            
-            mask_validas = (
-                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "") &
-                (df_manut_acum_geral["Placa"].astype(str).str.upper() != "NAN") &
-                (df_manut_acum_geral["Placa"].astype(str).str.strip() != "0")
+            # Nomenclatura institucional
+            if inst_sel == "AMES":
+                rotulo_rx = "Base Social"
+            elif inst_sel == "IAV":
+                rotulo_rx = "Centro de Custo"
+            else:
+                rotulo_rx = "Unidade"
+
+            st.markdown(f"### 📍 Raio-X da {rotulo_rx} | {mes_sel}/{ano_sel}")
+
+            unidades_rx = sorted(df_base[col_cc].dropna().unique())
+            base_raiox = st.selectbox(
+                f"🔍 Selecione a {rotulo_rx} para análise detalhada:",
+                unidades_rx
             )
-            veic_por_base = df_manut_acum_geral[mask_validas].groupby(col_cc)['Placa'].nunique().reset_index().rename(columns={'Placa': 'Qtd Veículos'})
-            
-            df_resumo_bases = pd.merge(veic_por_base, manut_por_base, on=col_cc, how='outer')
-            df_resumo_bases = pd.merge(df_resumo_bases, comb_por_base, on=col_cc, how='outer').fillna(0)
-            df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo de manutenção'] + df_resumo_bases['Custo Combustível']
-            
-            df_resumo_bases['Custo de manutenção'] = df_resumo_bases['Custo de manutenção'].round(2)
-            df_resumo_bases['Custo Combustível'] = df_resumo_bases['Custo Combustível'].round(2)
-            df_resumo_bases['Custo Total Acumulado'] = df_resumo_bases['Custo Total Acumulado'].round(2)
-            
-            df_resumo_bases.rename(columns={
-                col_cc: 'Base / Centro de Custo',
-                'Custo de manutenção': f'Manutenção Acumulada (Até {mes_sel})',
-                'Custo Combustível': f'Combustível Acumulado (Até {mes_sel})',
-                'Custo Total Acumulado': f'Custo Total Acumulado (Até {mes_sel})'
-            }, inplace=True)
-            
-            col_sel, col_btn = st.columns([2, 1])
-            with col_sel:
-                base_raiox = st.selectbox("🔍 Selecione a Base para análise detalhada:", sorted(df_base[col_cc].dropna().unique()))
-            
-            with col_btn:
-                st.markdown("<br>", unsafe_allow_html=True)
-                csv_resumo = df_resumo_bases.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
-                st.download_button(
-                    label="📥 Baixar Resumo de Todas as Bases",
-                    data=csv_resumo,
-                    file_name=f"Resumo_Custos_por_Base_{mes_sel}_{ano_sel}.csv",
-                    mime="text/csv",
-                    key="btn_download_resumo_bases"
-                )
-            
+
             if base_raiox:
-                df_rx_base = df_base[df_base[col_cc] == base_raiox]
-                df_rx_mes = df_rx_base[df_rx_base['Mes_Nome'] == mes_sel]
-                df_rx_acum = df_rx_base[df_rx_base['Mes_Num'] <= mes_num_atual]
-                
-                km_mes = df_rx_mes['Quilometragem'].sum()
-                km_acum = df_rx_acum['Quilometragem'].sum()
-                
-                manut_mes = df_rx_mes['Custo de manutenção'].sum()
-                manut_acum = df_rx_acum['Custo de manutenção'].sum()
-                
-                comb_mes = df_rx_mes['Custo Combustível'].sum()
-                comb_acum = df_rx_acum['Custo Combustível'].sum()
-                
+                df_rx_base = df_base[df_base[col_cc] == base_raiox].copy()
+                df_rx_mes = df_rx_base[df_rx_base["Mes_Num"] == mes_num_atual].copy()
+                df_rx_acum = df_rx_base[df_rx_base["Mes_Num"] <= mes_num_atual].copy()
+
+                # Mês anterior para comparação
+                df_rx_ant = (
+                    df_rx_base[df_rx_base["Mes_Num"] == (mes_num_atual - 1)].copy()
+                    if mes_num_atual > 1 else df_rx_base.iloc[0:0].copy()
+                )
+
+                km_mes = df_rx_mes["Quilometragem"].sum()
+                km_acum = df_rx_acum["Quilometragem"].sum()
+
+                manut_mes = df_rx_mes["Custo de manutenção"].sum()
+                manut_acum = df_rx_acum["Custo de manutenção"].sum()
+                manut_ant = df_rx_ant["Custo de manutenção"].sum()
+
+                comb_mes = df_rx_mes["Custo Combustível"].sum()
+                comb_acum = df_rx_acum["Custo Combustível"].sum()
+                comb_ant = df_rx_ant["Custo Combustível"].sum()
+
                 total_mes = manut_mes + comb_mes
                 total_acum = manut_acum + comb_acum
-                
-                cpk_mes = total_mes / km_mes if km_mes > 0 else 0
-                cpk_acum = total_acum / km_acum if km_acum > 0 else 0
-                
-                df_rx_manut_acum = df_rx_acum[~df_rx_acum["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
-                qtd_veiculos_base = df_rx_manut_acum.loc[
-                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "") &
-                    (df_rx_manut_acum["Placa"].astype(str).str.upper() != "NAN") &
-                    (df_rx_manut_acum["Placa"].astype(str).str.strip() != "0"),
-                    'Placa'
-                ].nunique()
-                
-                st.markdown(f"""
-                <div class="raiox-container">
-                    <div class="raiox-item">
-                        <div class="raiox-label">🚘 Veículos</div>
-                        <div class="raiox-value">{qtd_veiculos_base}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Ativos na Base</div>
-                    </div>
-                    <div class="raiox-item">
-                        <div class="raiox-label">🛣️ KM Rodado (Mês)</div>
-                        <div class="raiox-value">{fmt_br(km_mes)}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(km_acum)}</div>
-                    </div>
-                    <div class="raiox-item">
-                        <div class="raiox-label">🔧 Manutenção (Mês)</div>
-                        <div class="raiox-value">{fmt_br(manut_mes, True)}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(manut_acum, True)}</div>
-                    </div>
-                    <div class="raiox-item">
-                        <div class="raiox-label">⛽ Combustível (Mês)</div>
-                        <div class="raiox-value">{fmt_br(comb_mes, True)}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(comb_acum, True)}</div>
-                    </div>
-                    <div class="raiox-item">
-                        <div class="raiox-label">💰 Custo Total (Mês)</div>
-                        <div class="raiox-value">{fmt_br(total_mes, True)}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(total_acum, True)}</div>
-                    </div>
-                    <div class="raiox-item">
-                        <div class="raiox-label">📊 Custo por KM (Mês)</div>
-                        <div class="raiox-value">{fmt_br(cpk_mes, True)}</div>
-                        <div style="font-size:13px; color:#546E7A; margin-top:8px; font-weight: 600;">Acumulado: {fmt_br(cpk_acum, True)}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                st.markdown(f"#### 🚘 Detalhamento para o Gestor | {base_raiox}")
-                
-                padrao_exclusao_rx = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-                
-                df_veic_acum = df_rx_acum[~df_rx_acum["Placa"].astype(str).str.contains(padrao_exclusao_rx, case=False, na=True)]
-                meses_ordem = df_rx_acum.drop_duplicates(subset=["Mes_Num"]).sort_values("Mes_Num")["Mes_Nome"].tolist()
-                
-                df_placas = pd.DataFrame()
-                
-                placas_validas = df_veic_acum["Placa"].unique()
-                placas_validas = [p for p in placas_validas if str(p).strip() != "" and str(p).upper() != "NAN" and str(p).strip() != "0"]
-                
-                if len(placas_validas) > 0:
-                    df_placas["Placa"] = sorted(placas_validas)
-                    
-                    df_km_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Quilometragem", aggfunc="sum", fill_value=0).reset_index()
-                    df_manut_pivot = pd.pivot_table(df_veic_acum, index="Placa", columns="Mes_Nome", values="Custo de manutenção", aggfunc="sum", fill_value=0).reset_index()
-                    
-                    for m in meses_ordem:
-                        if m in df_km_pivot.columns:
-                            col_k = df_km_pivot[["Placa", m]].rename(columns={m: f"KM ({m})"})
-                            df_placas = pd.merge(df_placas, col_k, on="Placa", how="left").fillna(0)
-                        else:
-                            df_placas[f"KM ({m})"] = 0
-                            
-                        if m in df_manut_pivot.columns:
-                            col_m = df_manut_pivot[["Placa", m]].rename(columns={m: f"Custo Manutenção ({m})"})
-                            df_placas = pd.merge(df_placas, col_m, on="Placa", how="left").fillna(0)
-                        else:
-                            df_placas[f"Custo Manutenção ({m})"] = 0
-                            
-                    # --- NOVIDADE: CRIANDO AS COLUNAS DE TOTAIS ---
-                    cols_km = [f"KM ({m})" for m in meses_ordem]
-                    cols_custo = [f"Custo Manutenção ({m})" for m in meses_ordem]
-                    
-                    df_placas["KM Total Acumulado"] = df_placas[cols_km].sum(axis=1)
-                    df_placas["Custo Total Acumulado"] = df_placas[cols_custo].sum(axis=1)
-                    
-                    # Ordena pelos veículos que mais gastaram no total
-                    df_placas = df_placas.sort_values("Custo Total Acumulado", ascending=False)
-                else:
-                    cols_vazias = ["Placa"]
-                    for m in meses_ordem:
-                        cols_vazias.extend([f"KM ({m})", f"Custo Manutenção ({m})"])
-                    cols_vazias.extend(["KM Total Acumulado", "Custo Total Acumulado"])
-                    df_placas = pd.DataFrame(columns=cols_vazias)
-                
-                linha_comb = {"Placa": "⛽ COMBUSTÍVEL DA BASE"}
-                tem_combustivel = False
-                
-                mask_combustivel = df_rx_acum["Placa"].astype(str).str.upper().str.startswith("COMBUSTÍVEL", na=False)
-                df_comb_isolado = df_rx_acum[mask_combustivel]
-                
-                total_comb = 0
-                for m in meses_ordem:
-                    comb_val = df_comb_isolado[df_comb_isolado["Mes_Nome"] == m]['Custo Combustível'].sum()
-                    
-                    if comb_val > 0: 
-                        tem_combustivel = True
-                        
-                    linha_comb[f"KM ({m})"] = 0
-                    linha_comb[f"Custo Manutenção ({m})"] = comb_val
-                    total_comb += comb_val
-                
-                linha_comb["KM Total Acumulado"] = 0
-                linha_comb["Custo Total Acumulado"] = total_comb
-                
-                if tem_combustivel:
-                    df_placas = pd.concat([df_placas, pd.DataFrame([linha_comb])], ignore_index=True)
-                
-                # --- NOVIDADE: LINHA DE TOTAL GERAL DA BASE ---
-                if not df_placas.empty:
-                    linha_total = {"Placa": "💰 TOTAL GERAL DA BASE"}
-                    for col in df_placas.columns:
-                        if col != "Placa":
-                            linha_total[col] = df_placas[col].sum()
-                    
-                    df_placas = pd.concat([df_placas, pd.DataFrame([linha_total])], ignore_index=True)
-                
-                col_btn_placas, col_espaco = st.columns([1, 2])
-                with col_btn_placas:
-                    csv_placas = df_placas.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
-                    st.download_button(
-                        label=f"📥 Baixar Relatório do Gestor",
-                        data=csv_placas,
-                        file_name=f"Relatorio_Gestor_{base_raiox.replace(' ', '_')}_Ate_{mes_sel}_{ano_sel}.csv",
-                        mime="text/csv",
-                        use_container_width=True
+                total_ant = manut_ant + comb_ant
+
+                def variacao_rx(atual, anterior):
+                    if anterior <= 0:
+                        return "Sem base de comparação"
+                    v = ((atual - anterior) / anterior) * 100
+                    if v > 0:
+                        return f'<span class="vs-alta">▲ {abs(v):.1f}%</span> vs mês anterior'
+                    elif v < 0:
+                        return f'<span class="vs-baixa">▼ {abs(v):.1f}%</span> vs mês anterior'
+                    return '<span class="vs-neutro">● 0,0%</span> vs mês anterior'
+
+                # Apenas placas físicas no inventário da unidade
+                mask_fisica_rx = df_rx_acum["Placa"].astype(str).str.fullmatch(
+                    r"[A-Z0-9]{7}", case=False, na=False
+                )
+                qtd_veiculos_base = df_rx_acum.loc[mask_fisica_rx, "Placa"].nunique()
+
+                st.markdown(
+                    f'<div style="font-size:14px;color:#455A64;margin:4px 0 14px 0;">'
+                    f'<b>{base_raiox}</b> · Resumo mensal para acompanhamento de Manutenção e Combustível'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+                # Resumo mensal orientado ao missionário
+                r1, r2, r3 = st.columns(3)
+                with r1:
+                    draw_card(
+                        "🔧 MANUTENÇÃO NO MÊS",
+                        fmt_br(manut_mes, True),
+                        variacao_rx(manut_mes, manut_ant)
                     )
-                
+                with r2:
+                    draw_card(
+                        "⛽ COMBUSTÍVEL NO MÊS",
+                        fmt_br(comb_mes, True),
+                        variacao_rx(comb_mes, comb_ant)
+                    )
+                with r3:
+                    draw_card(
+                        "💰 TOTAL ACOMPANHADO",
+                        fmt_br(total_mes, True),
+                        variacao_rx(total_mes, total_ant)
+                    )
+
                 st.markdown("<br>", unsafe_allow_html=True)
-                
-                # --- NOVIDADE: ESTILIZAÇÃO DO TOTAL ---
-                def highlight_special_rows(row):
-                    placa = str(row['Placa'])
+
+                r4, r5, r6 = st.columns(3)
+                with r4:
+                    draw_card(
+                        "🚘 VEÍCULOS DA UNIDADE",
+                        fmt_br(qtd_veiculos_base),
+                        "Placas físicas vinculadas",
+                        is_lower_better=False
+                    )
+                with r5:
+                    draw_card(
+                        "🛣️ KM RODADO NO MÊS",
+                        fmt_br(km_mes),
+                        f"Acumulado: <b>{fmt_br(km_acum)}</b>",
+                        is_lower_better=False
+                    )
+                with r6:
+                    draw_card(
+                        "📅 TOTAL ACUMULADO",
+                        fmt_br(total_acum, True),
+                        f"Manut.: <b>{fmt_br(manut_acum, True)}</b> · Comb.: <b>{fmt_br(comb_acum, True)}</b>"
+                    )
+
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="chart-title">📊 Composição do Gasto Acompanhado | Mês</div>',
+                    unsafe_allow_html=True
+                )
+
+                comp_rx = pd.DataFrame({
+                    "Categoria": ["Manutenção", "Combustível"],
+                    "Valor": [manut_mes, comb_mes]
+                })
+                comp_rx = comp_rx[comp_rx["Valor"] > 0]
+
+                if not comp_rx.empty:
+                    fig_comp_rx = px.pie(
+                        comp_rx,
+                        names="Categoria",
+                        values="Valor",
+                        hole=0.58,
+                        color="Categoria",
+                        color_discrete_map={"Manutenção": "#F57C00", "Combustível": "#0288D1"}
+                    )
+                    fig_comp_rx.update_traces(
+                        textposition="outside",
+                        textinfo="label+percent",
+                        textfont=dict(size=13),
+                        hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>"
+                    )
+                    fig_comp_rx.add_annotation(
+                        text=f"<b>{fmt_br(total_mes, True)}</b><br>Total do mês",
+                        x=0.5, y=0.5, showarrow=False,
+                        font=dict(size=14, color="#263238")
+                    )
+                    fig_comp_rx.update_layout(
+                        height=330,
+                        margin=dict(l=20, r=20, t=10, b=10),
+                        showlegend=False,
+                        paper_bgcolor="rgba(0,0,0,0)"
+                    )
+                    st.plotly_chart(fig_comp_rx, use_container_width=True, config={"displayModeBar": False})
+                else:
+                    st.info("Sem gastos de manutenção ou combustível no mês selecionado.")
+
+                st.markdown("---")
+                st.markdown(f"#### 🚘 Detalhamento Mensal para o Gestor | {base_raiox}")
+                st.caption(
+                    "Relatório preparado para acompanhamento do missionário: veículos físicos, KM, manutenção e combustível da unidade."
+                )
+
+                # Veículos físicos apenas
+                df_veic_mes = df_rx_mes[
+                    df_rx_mes["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+                ].copy()
+
+                if not df_veic_mes.empty:
+                    df_rel_veic = (
+                        df_veic_mes.groupby("Placa", as_index=False)
+                        .agg({
+                            "Quilometragem": "sum",
+                            "Custo de manutenção": "sum"
+                        })
+                        .rename(columns={
+                            "Quilometragem": "KM no Mês",
+                            "Custo de manutenção": "Manutenção no Mês"
+                        })
+                        .sort_values("Manutenção no Mês", ascending=False)
+                    )
+                else:
+                    df_rel_veic = pd.DataFrame(
+                        columns=["Placa", "KM no Mês", "Manutenção no Mês"]
+                    )
+
+                # Combustível permanece separado: não é rateado artificialmente por veículo.
+                linha_comb = pd.DataFrame([{
+                    "Placa": "⛽ COMBUSTÍVEL DA UNIDADE",
+                    "KM no Mês": 0,
+                    "Manutenção no Mês": 0,
+                    "Combustível da Unidade": comb_mes
+                }])
+
+                if "Combustível da Unidade" not in df_rel_veic.columns:
+                    df_rel_veic["Combustível da Unidade"] = 0.0
+
+                df_rel_missionario = pd.concat(
+                    [df_rel_veic, linha_comb],
+                    ignore_index=True
+                )
+
+                linha_total = pd.DataFrame([{
+                    "Placa": "💰 TOTAL ACOMPANHADO",
+                    "KM no Mês": df_rel_veic["KM no Mês"].sum() if not df_rel_veic.empty else 0,
+                    "Manutenção no Mês": manut_mes,
+                    "Combustível da Unidade": comb_mes
+                }])
+                df_rel_missionario = pd.concat(
+                    [df_rel_missionario, linha_total],
+                    ignore_index=True
+                )
+
+                def highlight_rx_rows(row):
+                    placa = str(row["Placa"])
                     if "⛽" in placa:
-                        return ['background-color: #FFF3E0; font-weight: bold; color: #E65100'] * len(row)
-                    elif "💰" in placa:
-                        return ['background-color: #1A237E; font-weight: bold; color: white'] * len(row)
-                    return [''] * len(row)
-                
-                df_styled_placas = df_placas.style.apply(highlight_special_rows, axis=1)
-                
-                config_cols_dinamicas = {"Placa": st.column_config.TextColumn("Placa", width="medium")}
-                for m in meses_ordem:
-                    config_cols_dinamicas[f"KM ({m})"] = st.column_config.NumberColumn(f"KM ({m})", format="%.0f")
-                    config_cols_dinamicas[f"Custo Manutenção ({m})"] = st.column_config.NumberColumn(f"Custo Manutenção ({m})", format="R$ %.2f")
-                
-                # Configurando o formato visual das novas colunas
-                config_cols_dinamicas["KM Total Acumulado"] = st.column_config.NumberColumn("KM Total Acumulado", format="%.0f")
-                config_cols_dinamicas["Custo Total Acumulado"] = st.column_config.NumberColumn("Custo Total Acumulado", format="R$ %.2f")
-                
+                        return ["background-color:#E3F2FD;font-weight:bold;color:#01579B"] * len(row)
+                    if "💰" in placa:
+                        return ["background-color:#1A237E;font-weight:bold;color:white"] * len(row)
+                    return [""] * len(row)
+
                 st.dataframe(
-                    df_styled_placas, 
-                    use_container_width=True, 
+                    df_rel_missionario.style.apply(highlight_rx_rows, axis=1),
+                    use_container_width=True,
                     hide_index=True,
-                    column_config=config_cols_dinamicas
+                    column_config={
+                        "Placa": st.column_config.TextColumn("Placa / Item", width="medium"),
+                        "KM no Mês": st.column_config.NumberColumn("KM no Mês", format="%.0f"),
+                        "Manutenção no Mês": st.column_config.NumberColumn("Manutenção no Mês", format="R$ %.2f"),
+                        "Combustível da Unidade": st.column_config.NumberColumn("Combustível da Unidade", format="R$ %.2f")
+                    }
+                )
+
+                csv_missionario = df_rel_missionario.to_csv(
+                    index=False, sep=";", decimal=","
+                ).encode("utf-8-sig")
+
+                st.download_button(
+                    label="📥 Baixar Resumo Mensal para o Missionário",
+                    data=csv_missionario,
+                    file_name=(
+                        f"Resumo_Mensal_{str(base_raiox).replace(' ', '_')}_"
+                        f"{mes_sel}_{ano_sel}.csv"
+                    ),
+                    mime="text/csv",
+                    use_container_width=False,
+                    key="btn_rx_missionario"
+                )
+
+                st.caption(
+                    "Seguro e rastreador não entram neste resumo, pois são despesas fixas administradas internamente."
                 )
 
         with tab_km:
