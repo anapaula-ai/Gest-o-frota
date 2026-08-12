@@ -2002,6 +2002,7 @@ else:
                 df_resumo_mensal_rx = pd.DataFrame(resumo_mensal_rx)
 
                 # Variação do total em relação ao mês anterior.
+                # Redução de gasto = verde; aumento de gasto = vermelho.
                 if not df_resumo_mensal_rx.empty:
                     variacoes = []
                     anterior = None
@@ -2017,8 +2018,21 @@ else:
 
                 st.markdown("##### 1. Evolução Mensal da Unidade")
 
+                def cor_variacao_rx(valor):
+                    valor_txt = str(valor).strip()
+                    if valor_txt.startswith("▲"):
+                        return "color:#C62828;font-weight:700;"
+                    if valor_txt.startswith("▼"):
+                        return "color:#2E7D32;font-weight:700;"
+                    return "color:#607D8B;font-weight:600;"
+
+                resumo_mensal_styled = df_resumo_mensal_rx.style.map(
+                    cor_variacao_rx,
+                    subset=["Vs mês anterior"]
+                )
+
                 st.dataframe(
-                    df_resumo_mensal_rx,
+                    resumo_mensal_styled,
                     use_container_width=True,
                     hide_index=True,
                     column_config={
