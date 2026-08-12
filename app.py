@@ -1093,7 +1093,7 @@ else:
             df_top10 = df_filtrado_mes_manut[mask_veiculos_reais]
 
             with g1:
-                st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
+                st.markdown('<div class="chart-title">Top 10 veículos | Maior Quilometragem no Mês</div>', unsafe_allow_html=True)
                 top10_km = df_top10[df_top10['Quilometragem'] > 0].nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
                 
                 if not top10_km.empty:
@@ -1107,7 +1107,7 @@ else:
                     st.info("Nenhum dado para exibir neste mês.")
                 
             with g2:
-                st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção</div>', unsafe_allow_html=True)
+                st.markdown('<div class="chart-title">Top 10 veículos | Maior Custo de Manutenção no Mês</div>', unsafe_allow_html=True)
                 top10_custo = df_top10[df_top10['Custo de manutenção'] > 0].nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
                 
                 if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
@@ -1186,24 +1186,111 @@ else:
             
             st.markdown("---")
             
-            st.markdown('<div class="chart-title">Evolução Mensal do Custo de Manutenção</div>', unsafe_allow_html=True)
-            evol_inst = df_acumulado_ate_mes_manut.groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção'].sum().reset_index().sort_values('Mes_Num')
-            
-            if not evol_inst.empty:
-                fig_evol = px.bar(evol_inst, x='Mes_Nome', y='Custo de manutenção', color='Instituição', 
-                                  barmode='group', text='Custo de manutenção',
-                                  color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"})
-                
-                fig_evol.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-                max_c_evol = evol_inst['Custo de manutenção'].max() if not evol_inst.empty else 1
-                
-                fig_evol.update_layout(height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                                       margin=dict(r=10, l=10, t=20, b=10),
-                                       yaxis=dict(title="Custo no Mês (R$)", showgrid=True, gridcolor='#E0E0E0', range=[0, max_c_evol * 1.25]),
-                                       xaxis=dict(title=""),
-                                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
-                                       separators=',.')
+            st.markdown(
+                f'<div class="chart-title">Evolução Mensal do Custo de Manutenção | {ano_sel}</div>',
+                unsafe_allow_html=True
+            )
+
+            evol_inst = (
+                df_acumulado_ate_mes_manut
+                .groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção']
+                .sum().reset_index().sort_values('Mes_Num')
+            )
+
+            evol_total = (
+                df_acumulado_ate_mes_manut
+                .groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção']
+                .sum().reset_index().sort_values('Mes_Num')
+            )
+
+            if not evol_inst.empty and not evol_total.empty:
+                media_mensal = evol_total['Custo de manutenção'].mean()
+
+                # Mantém a separação AMES/IAV quando ambas estiverem selecionadas,
+                # mas em linha para enfatizar a evolução temporal.
+                fig_evol = px.line(
+                    evol_inst,
+                    x='Mes_Nome',
+                    y='Custo de manutenção',
+                    color='Instituição',
+                    markers=True,
+                    text='Custo de manutenção',
+                    color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
+                )
+
+                fig_evol.update_traces(
+                    texttemplate='<b>R$ %{text:,.0f}</b>',
+                    textposition='top center',
+                    textfont=dict(size=11),
+                    line=dict(width=3),
+                    marker=dict(size=8)
+                )
+
+                fig_evol.add_hline(
+                    y=media_mensal,
+                    line_dash='dash',
+                    line_color='#78909C',
+                    line_width=1.5,
+                    annotation_text=f"Média mensal total: {fmt_br(media_mensal, True)}",
+                    annotation_position='bottom right',
+                    annotation_font=dict(size=11, color='#546E7A')
+                )
+
+                max_c_evol = max(
+                    evol_inst['Custo de manutenção'].max(),
+                    media_mensal
+                ) if not evol_inst.empty else 1
+
+                fig_evol.update_layout(
+                    height=430,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    margin=dict(r=20, l=10, t=35, b=10),
+                    yaxis=dict(
+                        title="Custo no Mês (R$)",
+                        showgrid=True,
+                        gridcolor='#E0E0E0',
+                        range=[0, max_c_evol * 1.30]
+                    ),
+                    xaxis=dict(title=""),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1,
+                        title=""
+                    ),
+                    separators=',.'
+                )
                 st.plotly_chart(fig_evol, use_container_width=True, config={'displayModeBar': False})
+
+                # Variação consolidada do último mês contra o mês anterior.
+                if len(evol_total) >= 2:
+                    atual = float(evol_total.iloc[-1]['Custo de manutenção'])
+                    anterior = float(evol_total.iloc[-2]['Custo de manutenção'])
+                    mes_atual = str(evol_total.iloc[-1]['Mes_Nome'])
+                    mes_anterior = str(evol_total.iloc[-2]['Mes_Nome'])
+
+                    if anterior > 0:
+                        variacao_ev = ((atual - anterior) / anterior) * 100
+
+                        if variacao_ev > 0:
+                            classe_ev, icone_ev = "vs-alta", "▲"
+                        elif variacao_ev < 0:
+                            classe_ev, icone_ev = "vs-baixa", "▼"
+                        else:
+                            classe_ev, icone_ev = "vs-neutro", "●"
+
+                        st.markdown(
+                            f'<div style="font-size:12.5px;color:#455A64;margin-top:-8px;">'
+                            f'{mes_atual} vs {mes_anterior}: '
+                            f'<span class="{classe_ev}">{icone_ev} {abs(variacao_ev):.1f}%</span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+            else:
+                st.info("Sem dados mensais de manutenção para a seleção atual.")
 
             st.markdown("---")
             st.markdown('<div class="chart-title">Top 10 bases | Maior Custo de Manutenção Acumulado</div>', unsafe_allow_html=True)
