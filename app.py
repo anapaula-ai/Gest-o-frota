@@ -256,6 +256,11 @@ st.markdown("""
         box-shadow:0 3px 10px rgba(26,35,126,.04);
         color:#263238 !important;font-size:13px;line-height:1.45;
     }
+
+    .vs-alta { color:#D32F2F !important; font-weight:800 !important; }
+    .vs-baixa { color:#2E7D32 !important; font-weight:800 !important; }
+    .vs-neutro { color:#607D8B !important; font-weight:800 !important; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -999,18 +1004,18 @@ else:
             with m1:
                 if custo_a > 0:
                     if trend_c > 0:
-                        cor_vs = "#D32F2F"
+                        classe_vs = "vs-alta"
                         icone_vs = "▲"
                     elif trend_c < 0:
-                        cor_vs = "#2E7D32"
+                        classe_vs = "vs-baixa"
                         icone_vs = "▼"
                     else:
-                        cor_vs = "#607D8B"
+                        classe_vs = "vs-neutro"
                         icone_vs = "●"
 
                     texto_vs = (
                         f'Vs mês anterior: '
-                        f'<span style="color:{cor_vs};font-weight:800;">'
+                        f'<span class="{classe_vs}">'
                         f'{icone_vs} {abs(trend_c):.1f}%</span>'
                     )
                 else:
