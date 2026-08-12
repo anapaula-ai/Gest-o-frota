@@ -2327,6 +2327,31 @@ else:
                         return ['background-color: #1A237E; color: white; font-weight: bold'] * len(row)
                     return [''] * len(row)
                 
+                # Insere linhas separadoras entre uma Base/Centro de Custo e outra
+                # para melhorar a leitura visual da matriz.
+                if "Base" in df_km_subtotals.columns:
+                    linhas_com_espaco = []
+                    base_anterior = None
+                    for _, linha in df_km_subtotals.iterrows():
+                        base_atual = str(linha.get("Base", "")).strip()
+                        if (
+                            base_anterior is not None
+                            and base_atual
+                            and base_atual != base_anterior
+                            and "SUBTOTAL" not in str(linha.get("Placa", "")).upper()
+                            and "TOTAL" not in str(linha.get("Placa", "")).upper()
+                        ):
+                            separador = {col: "" for col in df_km_subtotals.columns}
+                            separador["Placa"] = " "
+                            linhas_com_espaco.append(separador)
+
+                        linhas_com_espaco.append(linha.to_dict())
+
+                        if base_atual:
+                            base_anterior = base_atual
+
+                    df_km_subtotals = pd.DataFrame(linhas_com_espaco)
+
                 def format_br_int(val):
                     try:
                         num = int(val)
@@ -2347,7 +2372,7 @@ else:
                         placa = str(df_km_subtotals.loc[idx, 'Placa']).upper()
 
                         # Subtotais e totais mantêm a identidade visual própria.
-                        if 'SUBTOTAL' in placa or 'TOTAL' in placa or valor <= 0 or maximo <= 0:
+                        if placa.strip() == '' or 'SUBTOTAL' in placa or 'TOTAL' in placa or valor <= 0 or maximo <= 0:
                             estilos.append("")
                         else:
                             intensidade = valor / maximo
@@ -2361,10 +2386,19 @@ else:
                                 estilos.append("background-color:#F5FAFF;color:#455A64;")
                     return estilos
 
+                def highlight_separator(row):
+                    placa = str(row.get("Placa", "")).strip()
+                    if placa == "":
+                        return [
+                            "background-color:#FFFFFF;border-top:8px solid #FFFFFF;"
+                        ] * len(row)
+                    return [""] * len(row)
+
                 df_styled = (
                     df_km_subtotals.style
                     .apply(heatmap_km, subset=cols_valores_km, axis=0)
                     .apply(highlight_subtotals, axis=1)
+                    .apply(highlight_separator, axis=1)
                     .format(format_dict)
                     .set_properties(
                         subset=['TOTAL'],
@@ -2463,7 +2497,7 @@ else:
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                st.dataframe(df_styled, use_container_width=True, hide_index=True)
+                st.dataframe(df_styled, use_container_width=True, hide_index=True, height=560)
                 st.info(f"Total de registros na frota (excluindo cabeçalhos): **{len(df_frota_unica)}**")
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
