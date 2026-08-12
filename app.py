@@ -1498,14 +1498,13 @@ else:
             unidades_gasto_mes = df_comb_mes.loc[
                 df_comb_mes["Custo de combustível"] > 0, "Unidade_Comb"
             ].nunique()
-            media_unidade_comb = custo_comb_mes / unidades_gasto_mes if unidades_gasto_mes > 0 else 0
 
             orc_comb_aba = sum(
                 ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas
             ) if ano_sel == 2026 else 0
             perc_comb_aba = (custo_comb_acum / orc_comb_aba * 100) if orc_comb_aba > 0 else 0
 
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3, c4 = st.columns(4)
             with c1:
                 if custo_comb_ant > 0:
                     if var_comb > 0:
@@ -1538,13 +1537,6 @@ else:
                 )
 
             with c4:
-                draw_card(
-                    "📊 MÉDIA POR UNIDADE",
-                    fmt_br(media_unidade_comb, True),
-                    "Entre unidades com gasto no mês"
-                )
-
-            with c5:
                 if ano_sel == 2026 and orc_comb_aba > 0:
                     draw_card(
                         "🎯 ORÇAMENTO CONSUMIDO",
@@ -1576,6 +1568,7 @@ else:
                     f'<div class="chart-title">Top 10 {rotulo_comb} | Maior Custo de Combustível no Mês</div>',
                     unsafe_allow_html=True
                 )
+                st.caption(f"Competência: {mes_sel}/{ano_sel} · ranking do custo de combustível no mês.")
                 rank_mes = (
                     df_comb_mes.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
                     .sum()
@@ -1601,7 +1594,7 @@ else:
                     )
                     max_cm = rank_mes["Custo de combustível"].max()
                     fig_cm.update_layout(
-                        height=430, separators=",.",
+                        height=455, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
                         margin=dict(r=115, l=10, t=10, b=10),
@@ -1654,7 +1647,7 @@ else:
                     ))
                     max_ca = rank_ac["Custo de combustível"].max()
                     fig_ca.update_layout(
-                        height=430, separators=",.",
+                        height=455, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
                         margin=dict(r=165, l=10, t=10, b=10),
