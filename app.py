@@ -252,14 +252,17 @@ st.markdown("""
 
     .manut-attention{
         background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F57C00;
-        border-radius:10px;padding:12px 14px;margin-bottom:8px;
+        border-radius:10px;padding:14px 16px;margin-bottom:9px;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
-        color:#263238 !important;font-size:13px;line-height:1.45;
+        color:#263238 !important;font-size:14.5px;line-height:1.55;
     }
 
     .vs-alta { color:#D32F2F !important; font-weight:800 !important; }
     .vs-baixa { color:#2E7D32 !important; font-weight:800 !important; }
     .vs-neutro { color:#607D8B !important; font-weight:800 !important; }
+
+
+    .manut-attention b { font-size:15px !important; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -1227,7 +1230,7 @@ else:
                             f'Manutenção: <b>{fmt_br(r["Custo de manutenção"], True)}</b> · '
                             f'KM: {fmt_br(r["Quilometragem"])} · '
                             f'Custo manut./KM: <b>{fmt_br(r["Custo/KM Manut."], True)}/km</b><br>'
-                            f'<span style="font-size:11.5px;color:#607D8B;">'
+                            f'<span style="font-size:13px;color:#607D8B;">'
                             f'Motivos: {motivos_txt}</span>'
                             f'</div>',
                             unsafe_allow_html=True
