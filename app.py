@@ -276,6 +276,60 @@ st.markdown("""
     .km-table-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;}
     .km-table-base{color:#263238 !important;font-size:12px;font-weight:650;}
 
+    /* Relação da Frota — padrão visual executivo */
+    .frota-table-list{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .frota-table-scroll{max-height:560px;overflow-y:auto;}
+    .frota-table-header, .frota-table-row{
+        display:grid;
+        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr;
+        align-items:center;
+        gap:10px;
+        padding:9px 12px;
+    }
+    .frota-table-header{
+        background:#1A237E;
+        color:#FFFFFF !important;
+        font-size:10.5px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:.3px;
+        position:sticky;
+        top:0;
+        z-index:3;
+    }
+    .frota-table-header div{color:#FFFFFF !important;}
+    .frota-table-row{
+        border-bottom:1px solid #EEF2F6;
+        background:#FFFFFF;
+        min-height:35px;
+    }
+    .frota-table-row:last-child{border-bottom:none;}
+    .frota-table-row:hover{background:#FAFCFF;}
+    .frota-table-placa{color:#17206A !important;font-size:11.5px;font-weight:800;}
+    .frota-table-inst{color:#455A64 !important;font-size:11px;font-weight:750;}
+    .frota-table-base{color:#455A64 !important;font-size:11px;font-weight:650;}
+    .frota-table-modelo{color:#263238 !important;font-size:11px;font-weight:650;}
+    .frota-table-motorista{color:#263238 !important;font-size:11px;font-weight:650;}
+    .frota-table-category{
+        display:grid;
+        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr;
+        align-items:center;
+        gap:10px;
+        padding:8px 12px;
+        background:#F2F5FA;
+        border-top:1px solid #DCE4EC;
+        border-bottom:1px solid #DCE4EC;
+    }
+    .frota-table-category:first-child{border-top:none;}
+    .frota-table-category-name{color:#14206F !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
+    .frota-table-category-inst{color:#607D8B !important;font-size:10.5px;font-weight:800;}
+
     .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 14px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
     .odonto-kpi-label{color:#60758A !important;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:28px}
@@ -2586,7 +2640,52 @@ else:
                 )
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                st.dataframe(df_styled, use_container_width=True, hide_index=True, height=560)
+                # Tabela visual padronizada no mesmo DNA das abas executivas
+                linhas_frota_html = []
+                for _, row in df_apresentacao.iterrows():
+                    placa_txt = str(row.get('Placa', ''))
+                    inst_txt = str(row.get('Instituição', ''))
+                    base_txt = str(row.get(col_cc, ''))
+                    modelo_txt = str(row.get('Modelo', ''))
+                    motorista_txt = str(row.get('Motorista', ''))
+
+                    if placa_txt.startswith('🔸'):
+                        categoria_txt = placa_txt.replace('🔸', '').strip()
+                        linhas_frota_html.append(
+                            '<div class="frota-table-category">'
+                            f'<div class="frota-table-category-name">◆ {categoria_txt}</div>'
+                            f'<div class="frota-table-category-inst">{inst_txt}</div>'
+                            '<div></div><div></div><div></div>'
+                            '</div>'
+                        )
+                    else:
+                        linhas_frota_html.append(
+                            '<div class="frota-table-row">'
+                            f'<div class="frota-table-placa">{placa_txt}</div>'
+                            f'<div class="frota-table-inst">{inst_txt}</div>'
+                            f'<div class="frota-table-base">{base_txt}</div>'
+                            f'<div class="frota-table-modelo">{modelo_txt}</div>'
+                            f'<div class="frota-table-motorista">{motorista_txt}</div>'
+                            '</div>'
+                        )
+
+                cabecalho_frota = (
+                    '<div class="frota-table-header">'
+                    '<div>🚘 Placa</div>'
+                    '<div>🏢 Instituição</div>'
+                    f'<div>📍 {"Base" if col_cc == "Base" else "Centro de Custo"}</div>'
+                    '<div>🚙 Modelo</div>'
+                    '<div>👤 Motorista</div>'
+                    '</div>'
+                )
+
+                st.markdown(
+                    '<div class="frota-table-list">'
+                    + cabecalho_frota
+                    + '<div class="frota-table-scroll">' + ''.join(linhas_frota_html) + '</div>'
+                    + '</div>',
+                    unsafe_allow_html=True
+                )
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
