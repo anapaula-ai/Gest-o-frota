@@ -2595,8 +2595,10 @@ else:
                 tabela_km_html = df_styled.to_html(index=False)
                 st.markdown(
                     f'''
-                    <div style="height:600px; overflow:auto; background:#FFFFFF; border:1px solid #DCE4EC; border-radius:9px;">
-                        {tabela_km_html}
+                    <div style="height:600px; width:100%; overflow:auto; background:#FFFFFF; border:1px solid #DCE4EC; border-radius:9px;">
+                        <div style="min-width:100%; width:max-content;">
+                            {tabela_km_html}
+                        </div>
                     </div>
                     ''',
                     unsafe_allow_html=True
