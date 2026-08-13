@@ -338,6 +338,20 @@ st.markdown("""
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
 
+    /* Tabela executiva de IPVA */
+    .ipva-table-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);margin-top:6px}
+    .ipva-table-header,.ipva-table-row{display:grid;grid-template-columns:.8fr .72fr .72fr 2fr .9fr 1fr .7fr .95fr;align-items:center}
+    .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:11.5px;font-weight:800;letter-spacing:.15px}
+    .ipva-table-header>div{padding:12px 10px;border-right:1px solid rgba(255,255,255,.28);color:#FFFFFF !important}
+    .ipva-table-header>div:last-child{border-right:none;text-align:right}
+    .ipva-table-scroll{max-height:470px;overflow-y:auto;overflow-x:auto}
+    .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:11.5px}
+    .ipva-table-row:last-child{border-bottom:none}.ipva-table-row:hover{background:#FAFCFF}
+    .ipva-table-row>div{padding:10px 10px;border-right:1px solid #EEF2F6;color:#263238 !important}
+    .ipva-table-row>div:last-child{border-right:none}
+    .ipva-center{text-align:center}.ipva-money{text-align:right;color:#14206F !important;font-weight:800}.ipva-placa{font-weight:800;color:#14206F !important}
+
+
 
     .manut-attention{
         background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F57C00;
@@ -2749,8 +2763,74 @@ else:
                     )
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                
-                st.dataframe(df_ipva_filtrado, use_container_width=True, hide_index=True, column_config=config_cols_ipva)
+
+                # Tabela de IPVA padronizada no mesmo visual executivo do dashboard
+                def _ipva_txt(v):
+                    if pd.isna(v):
+                        return "-"
+                    txt = str(v).strip()
+                    return "-" if txt.lower() in ("nan", "none", "") else txt
+
+                def _ipva_int(v):
+                    try:
+                        return str(int(float(v)))
+                    except:
+                        return _ipva_txt(v)
+
+                linhas_ipva_html = []
+                for _, row in df_ipva_filtrado.iterrows():
+                    inst_v = _ipva_txt(row.get('Instituição', '-'))
+                    ano_base_v = _ipva_int(row.get('Ano base', '-'))
+                    placa_v = _ipva_txt(row.get('Placa', '-'))
+                    veiculo_v = _ipva_txt(row.get('Veículo', row.get('Modelo', '-')))
+                    ano_veic_v = _ipva_int(row.get('Ano do veículo', '-'))
+                    tipo_v = _ipva_txt(row.get('Tipo', '-'))
+                    aliquota_raw = row.get('Alíquota', row.get('Aliquota', '-'))
+                    aliquota_v = _ipva_txt(aliquota_raw)
+                    if aliquota_v not in ('-', '') and '%' not in aliquota_v:
+                        try:
+                            n = float(str(aliquota_v).replace(',', '.'))
+                            aliquota_v = f"{n:g}%"
+                        except:
+                            pass
+                    ipva_v = row.get('Ipva estimado', 0)
+                    try:
+                        ipva_fmt = fmt_br(float(ipva_v), True)
+                    except:
+                        ipva_fmt = _ipva_txt(ipva_v)
+
+                    linhas_ipva_html.append(
+                        '<div class="ipva-table-row">'
+                        f'<div>{inst_v}</div>'
+                        f'<div class="ipva-center">{ano_base_v}</div>'
+                        f'<div class="ipva-placa">{placa_v}</div>'
+                        f'<div>{veiculo_v}</div>'
+                        f'<div class="ipva-center">{ano_veic_v}</div>'
+                        f'<div class="ipva-center">{tipo_v}</div>'
+                        f'<div class="ipva-center">{aliquota_v}</div>'
+                        f'<div class="ipva-money">{ipva_fmt}</div>'
+                        '</div>'
+                    )
+
+                cabecalho_ipva = (
+                    '<div class="ipva-table-header">'
+                    '<div>🏢 Instituição</div>'
+                    '<div>📅 Ano base</div>'
+                    '<div>🚘 Placa</div>'
+                    '<div>🚙 Veículo</div>'
+                    '<div>📅 Ano do veículo</div>'
+                    '<div>🏷️ Tipo</div>'
+                    '<div>% &nbsp;Alíquota</div>'
+                    '<div>💲 IPVA estimado</div>'
+                    '</div>'
+                )
+
+                st.markdown(
+                    '<div class="ipva-table-list">' + cabecalho_ipva
+                    + '<div class="ipva-table-scroll">' + ''.join(linhas_ipva_html) + '</div>'
+                    + '</div>',
+                    unsafe_allow_html=True
+                )
             else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
