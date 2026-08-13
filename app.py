@@ -2595,10 +2595,38 @@ else:
                 tabela_km_html = df_styled.to_html(index=False)
                 st.markdown(
                     f'''
-                    <div style="height:600px; width:100%; overflow:auto; background:#FFFFFF; border:1px solid #DCE4EC; border-radius:9px;">
-                        <div style="min-width:100%; width:max-content;">
-                            {tabela_km_html}
-                        </div>
+                    <style>
+                    .mapa-km-wrap {{
+                        height: 600px;
+                        width: 100%;
+                        overflow: auto;
+                        background: #FFFFFF;
+                        border: 1px solid #DCE4EC;
+                        border-radius: 9px;
+                    }}
+                    .mapa-km-wrap table {{
+                        width: 100% !important;
+                        min-width: 100% !important;
+                        table-layout: fixed !important;
+                        border-collapse: collapse !important;
+                    }}
+                    .mapa-km-wrap th, .mapa-km-wrap td {{
+                        box-sizing: border-box;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }}
+                    /* Distribui a largura para ocupar todo o card sem alterar a fonte. */
+                    .mapa-km-wrap th:nth-child(1), .mapa-km-wrap td:nth-child(1) {{ width: 4%; }}
+                    .mapa-km-wrap th:nth-child(2), .mapa-km-wrap td:nth-child(2) {{ width: 10%; }}
+                    .mapa-km-wrap th:nth-child(3), .mapa-km-wrap td:nth-child(3) {{ width: 17%; }}
+                    .mapa-km-wrap th:nth-child(4), .mapa-km-wrap td:nth-child(4) {{ width: 11%; }}
+                    .mapa-km-wrap th:nth-child(n+5):nth-child(-n+11),
+                    .mapa-km-wrap td:nth-child(n+5):nth-child(-n+11) {{ width: 7%; }}
+                    .mapa-km-wrap th:nth-child(12), .mapa-km-wrap td:nth-child(12) {{ width: 9%; }}
+                    </style>
+                    <div class="mapa-km-wrap">
+                        {tabela_km_html}
                     </div>
                     ''',
                     unsafe_allow_html=True
