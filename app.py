@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go  # Adicionado para o gráfico de rosca
 import time  # Adicionado para forçar atualização do cache do Google
 import re
+import html
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -366,6 +367,77 @@ st.markdown("""
 
 
     .manut-attention b { font-size:15px !important; }
+
+    /* ==========================================
+       TABELAS RAIO-X DA BASE - PADRÃO EXECUTIVO
+       ========================================== */
+    .rx-table-card{
+        width:100%;
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:10px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .rx-table-scroll{width:100%;overflow-x:auto;overflow-y:auto;}
+    .rx-table{
+        width:100%;
+        border-collapse:collapse;
+        table-layout:auto;
+        background:#FFFFFF;
+        color:#263238;
+        font-size:13px;
+    }
+    .rx-table th{
+        background:#1A237E;
+        color:#FFFFFF !important;
+        font-size:13px;
+        font-weight:800;
+        padding:10px 12px;
+        border-right:1px solid rgba(255,255,255,.28);
+        text-align:left;
+        white-space:nowrap;
+        position:sticky;
+        top:0;
+        z-index:2;
+    }
+    .rx-table th:last-child{border-right:none;}
+    .rx-table td{
+        color:#263238 !important;
+        font-size:13px;
+        font-weight:500;
+        padding:9px 12px;
+        border-right:1px solid #E7EDF3;
+        border-bottom:1px solid #E7EDF3;
+        white-space:nowrap;
+        vertical-align:middle;
+    }
+    .rx-table tr:last-child td{border-bottom:none;}
+    .rx-table td:last-child{border-right:none;}
+    .rx-table tbody tr:hover td{background:#FAFCFF;}
+    .rx-table .rx-left{text-align:left;}
+    .rx-table .rx-num{text-align:right;}
+    .rx-table .rx-total{color:#14206F !important;font-weight:800;}
+    .rx-table .rx-placa{font-weight:750;color:#14206F !important;}
+    .rx-table .rx-var{text-align:center;font-weight:800;}
+    .rx-table .rx-var-alta{color:#C62828 !important;}
+    .rx-table .rx-var-baixa{color:#2E7D32 !important;}
+    .rx-table .rx-var-neutra{color:#607D8B !important;}
+    .rx-table-resumo{min-width:850px;}
+    .rx-detail-scroll{max-height:455px;}
+    .rx-table-detalhe{min-width:max-content;}
+    .rx-table-detalhe th:first-child,
+    .rx-table-detalhe td:first-child{
+        position:sticky;
+        left:0;
+        z-index:1;
+        background:#FFFFFF;
+        box-shadow:1px 0 0 #DCE4EC;
+    }
+    .rx-table-detalhe thead th:first-child{
+        z-index:3;
+        background:#1A237E;
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -2121,32 +2193,50 @@ else:
 
                 st.markdown("##### 1. Evolução Mensal da Unidade")
 
-                def cor_variacao_rx(valor):
-                    valor_txt = str(valor).strip()
-                    if valor_txt.startswith("▲"):
-                        return "color:#C62828;font-weight:700;"
-                    if valor_txt.startswith("▼"):
-                        return "color:#2E7D32;font-weight:700;"
-                    return "color:#607D8B;font-weight:600;"
+                # Tabela padronizada no mesmo visual executivo do dashboard.
+                # Mantém fonte confortável (13px) e os destaques de variação.
+                if not df_resumo_mensal_rx.empty:
+                    linhas_resumo_html = []
+                    for _, r in df_resumo_mensal_rx.iterrows():
+                        var_txt = str(r["Vs mês anterior"]).strip()
+                        if var_txt.startswith("▲"):
+                            classe_var = "rx-var-alta"
+                        elif var_txt.startswith("▼"):
+                            classe_var = "rx-var-baixa"
+                        else:
+                            classe_var = "rx-var-neutra"
 
-                resumo_mensal_styled = df_resumo_mensal_rx.style.map(
-                    cor_variacao_rx,
-                    subset=["Vs mês anterior"]
-                )
+                        linhas_resumo_html.append(
+                            "<tr>"
+                            f"<td class='rx-left'>{html.escape(str(r['Mês']))}</td>"
+                            f"<td class='rx-num'>{fmt_br(r['KM Total'])}</td>"
+                            f"<td class='rx-num'>{fmt_br(r['Manutenção'], True)}</td>"
+                            f"<td class='rx-num'>{fmt_br(r['Combustível'], True)}</td>"
+                            f"<td class='rx-num rx-total'>{fmt_br(r['Total do Mês'], True)}</td>"
+                            f"<td class='rx-var {classe_var}'>{html.escape(var_txt)}</td>"
+                            "</tr>"
+                        )
 
-                st.dataframe(
-                    resumo_mensal_styled,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Mês": st.column_config.TextColumn("Mês", width="small"),
-                        "KM Total": st.column_config.NumberColumn("KM Total", format="%.0f"),
-                        "Manutenção": st.column_config.NumberColumn("Manutenção", format="R$ %.2f"),
-                        "Combustível": st.column_config.NumberColumn("Combustível", format="R$ %.2f"),
-                        "Total do Mês": st.column_config.NumberColumn("Total do Mês", format="R$ %.2f"),
-                        "Vs mês anterior": st.column_config.TextColumn("Vs mês anterior", width="small")
-                    }
-                )
+                    resumo_html = f"""
+                    <div class="rx-table-card">
+                        <div class="rx-table-scroll">
+                            <table class="rx-table rx-table-resumo">
+                                <thead>
+                                    <tr>
+                                        <th>Mês</th>
+                                        <th>KM Total</th>
+                                        <th>Manutenção</th>
+                                        <th>Combustível</th>
+                                        <th>Total do Mês</th>
+                                        <th>Vs mês anterior</th>
+                                    </tr>
+                                </thead>
+                                <tbody>{''.join(linhas_resumo_html)}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(resumo_html, unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2209,30 +2299,41 @@ else:
                         "Manutenção Total", ascending=False
                     )
 
-                config_placas_rx = {
-                    "Placa": st.column_config.TextColumn("Placa", width="medium")
-                }
-                for m in meses_ordem_rx:
-                    config_placas_rx[f"KM | {m}"] = st.column_config.NumberColumn(
-                        f"KM | {m}", format="%.0f"
-                    )
-                    config_placas_rx[f"Manutenção | {m}"] = st.column_config.NumberColumn(
-                        f"Manutenção | {m}", format="R$ %.2f"
+                # Detalhamento padronizado com cabeçalho azul e rolagem horizontal.
+                # A fonte permanece em 13px para não perder legibilidade.
+                if not df_placas_rx.empty:
+                    cabecalhos_placas = ["Placa"]
+                    for m in meses_ordem_rx:
+                        cabecalhos_placas.extend([f"KM | {m}", f"Manutenção | {m}"])
+                    cabecalhos_placas.extend(["KM Total", "Manutenção Total"])
+
+                    th_placas = "".join(
+                        f"<th>{html.escape(str(col))}</th>" for col in cabecalhos_placas
                     )
 
-                config_placas_rx["KM Total"] = st.column_config.NumberColumn(
-                    "KM Total", format="%.0f"
-                )
-                config_placas_rx["Manutenção Total"] = st.column_config.NumberColumn(
-                    "Manutenção Total", format="R$ %.2f"
-                )
+                    linhas_placas_html = []
+                    for _, r in df_placas_rx.iterrows():
+                        celulas = [f"<td class='rx-left rx-placa'>{html.escape(str(r['Placa']))}</td>"]
+                        for m in meses_ordem_rx:
+                            celulas.append(f"<td class='rx-num'>{fmt_br(r[f'KM | {m}'])}</td>")
+                            celulas.append(f"<td class='rx-num'>{fmt_br(r[f'Manutenção | {m}'], True)}</td>")
+                        celulas.append(f"<td class='rx-num rx-total'>{fmt_br(r['KM Total'])}</td>")
+                        celulas.append(f"<td class='rx-num rx-total'>{fmt_br(r['Manutenção Total'], True)}</td>")
+                        linhas_placas_html.append("<tr>" + "".join(celulas) + "</tr>")
 
-                st.dataframe(
-                    df_placas_rx,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config=config_placas_rx
-                )
+                    placas_html = f"""
+                    <div class="rx-table-card rx-detail-card">
+                        <div class="rx-table-scroll rx-detail-scroll">
+                            <table class="rx-table rx-table-detalhe">
+                                <thead><tr>{th_placas}</tr></thead>
+                                <tbody>{''.join(linhas_placas_html)}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(placas_html, unsafe_allow_html=True)
+                else:
+                    st.info("Sem placas físicas para detalhar nesta seleção.")
 
                 # ============================================================
                 # DOWNLOAD ÚNICO: duas seções no mesmo CSV
