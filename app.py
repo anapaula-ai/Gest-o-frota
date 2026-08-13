@@ -241,6 +241,41 @@ st.markdown("""
     .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
+    /* Tabela executiva da aba Gestão de Quilometragem */
+    .km-table-list{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .km-table-scroll{max-height:550px;overflow-y:auto;}
+    .km-table-header, .km-table-row{
+        display:grid;
+        grid-template-columns:.78fr 1.05fr 1.35fr;
+        align-items:center;
+        gap:10px;
+        padding:10px 12px;
+    }
+    .km-table-header{
+        background:#1A237E;
+        color:#FFFFFF !important;
+        font-size:11px;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:.3px;
+        position:sticky;
+        top:0;
+        z-index:2;
+    }
+    .km-table-header div{color:#FFFFFF !important;}
+    .km-table-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}
+    .km-table-row:last-child{border-bottom:none;}
+    .km-table-row:hover{background:#FAFCFF;}
+    .km-table-placa{color:#17206A !important;font-size:12.5px;font-weight:800;}
+    .km-table-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;}
+    .km-table-base{color:#263238 !important;font-size:12px;font-weight:650;}
+
     .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 14px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
     .odonto-kpi-label{color:#60758A !important;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:28px}
@@ -2240,12 +2275,48 @@ else:
                     
                     with c_tabela:
                         st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
-                        tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False)
-                        st.dataframe(
-                            tabela_top15, 
-                            use_container_width=True, 
-                            hide_index=True,
-                            column_config={col_km: st.column_config.NumberColumn("Quilometragem", format="%d")}
+                        tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False).copy()
+
+                        # Mantém a tabela com o mesmo padrão visual executivo do dashboard.
+                        col_base_top = None
+                        for col in tabela_top15.columns:
+                            if str(col).strip().upper() in ["BASE", "CENTRO DE CUSTO", "CENTRO DE CUSTO / BASE"]:
+                                col_base_top = col
+                                break
+                        if col_base_top is None:
+                            colunas_aux = [c for c in tabela_top15.columns if c not in [col_placa, col_km, "KM_Formatado"]]
+                            col_base_top = colunas_aux[0] if colunas_aux else None
+
+                        linhas_km = []
+                        for _, r in tabela_top15.iterrows():
+                            placa_txt = str(r[col_placa])
+                            km_txt = fmt_br(r[col_km]) + " km"
+                            base_txt = str(r[col_base_top]) if col_base_top is not None else "-"
+                            if base_txt.strip().upper() in ["NAN", "NONE", "0", "0.0", ""]:
+                                base_txt = "-"
+
+                            linhas_km.append(
+                                '<div class="km-table-row">'
+                                f'<div class="km-table-placa">{placa_txt}</div>'
+                                f'<div class="km-table-km">{km_txt}</div>'
+                                f'<div class="km-table-base">{base_txt}</div>'
+                                '</div>'
+                            )
+
+                        cabecalho_km = (
+                            '<div class="km-table-header">'
+                            '<div>🚙 Placa</div>'
+                            '<div style="text-align:right">🛣️ Quilometragem</div>'
+                            '<div>🏢 Base</div>'
+                            '</div>'
+                        )
+
+                        st.markdown(
+                            '<div class="km-table-list">'
+                            + cabecalho_km
+                            + '<div class="km-table-scroll">' + "".join(linhas_km) + '</div>'
+                            + '</div>',
+                            unsafe_allow_html=True
                         )
                 else:
                     st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
