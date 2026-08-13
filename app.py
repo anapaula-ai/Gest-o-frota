@@ -2557,7 +2557,50 @@ else:
                         key="btn_download_km"
                     )
                 
-                st.dataframe(df_styled, use_container_width=True, height=600, hide_index=True)
+                # Tabela do Mapa de Quilometragem com cabeçalho azul no padrão executivo.
+                # Mantém o mesmo tamanho de fonte dos dados e os destaques já existentes.
+                df_styled = df_styled.set_table_styles([
+                    {
+                        'selector': 'thead th',
+                        'props': [
+                            ('background-color', '#1A237E'),
+                            ('color', '#FFFFFF'),
+                            ('font-weight', '700'),
+                            ('font-size', '12px'),
+                            ('text-align', 'left'),
+                            ('border', '1px solid #D7E0EA'),
+                            ('padding', '7px 8px'),
+                            ('position', 'sticky'),
+                            ('top', '0'),
+                            ('z-index', '3')
+                        ]
+                    },
+                    {
+                        'selector': 'tbody td',
+                        'props': [
+                            ('font-size', '12px'),
+                            ('padding', '6px 8px'),
+                            ('border', '1px solid #E2E8F0')
+                        ]
+                    },
+                    {
+                        'selector': 'table',
+                        'props': [
+                            ('border-collapse', 'collapse'),
+                            ('width', '100%')
+                        ]
+                    }
+                ])
+
+                tabela_km_html = df_styled.to_html(index=False)
+                st.markdown(
+                    f'''
+                    <div style="height:600px; overflow:auto; background:#FFFFFF; border:1px solid #DCE4EC; border-radius:9px;">
+                        {tabela_km_html}
+                    </div>
+                    ''',
+                    unsafe_allow_html=True
+                )
                 
             else:
                 st.warning("Nenhum dado de quilometragem encontrado para esta seleção.")
