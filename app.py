@@ -183,9 +183,9 @@ st.markdown("""
         border: 1px solid #DCE4EC !important;
         border-radius: 12px !important;
         box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05) !important;
-        padding: 10px 12px 6px 12px !important;
+        padding: 12px 14px 12px 14px !important;
         margin: 4px 0 18px 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
     }
     div[data-testid="stPlotlyChart"] > div,
@@ -197,6 +197,13 @@ st.markdown("""
     div[data-testid="stPlotlyChart"] .modebar {
         right: 8px !important;
         top: 6px !important;
+    }
+    /* Evita corte de legendas, rótulos e anotações nos limites do card */
+    div[data-testid="stPlotlyChart"] .svg-container,
+    div[data-testid="stPlotlyChart"] .main-svg,
+    div[data-testid="stPlotlyChart"] .plot-container,
+    div[data-testid="stPlotlyChart"] .plotly {
+        overflow: visible !important;
     }
 
     /* Padronização fina — Visão Executiva */
