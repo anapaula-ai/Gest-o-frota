@@ -120,7 +120,7 @@ st.markdown("""
         display:grid;
         grid-template-columns:repeat(5,minmax(0,1fr));
         gap:10px;
-        margin:2px 0 18px 0;
+        margin:2px 0 16px 0;
     }
     .semaforo-card{
         background:#FFFFFF;
@@ -147,18 +147,8 @@ st.markdown("""
     .semaforo-detail{color:#607D8B !important;font-size:11.5px;font-weight:550;line-height:1.35;margin-top:5px;}
     @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
-    /* Pontos que Exigem Decisão — Visão Executiva */
-    .decision-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 18px 0;}
-    .decision-card{background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F9A825;border-radius:10px;padding:12px 14px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:82px;}
-    .decision-card.critical{border-left-color:#D32F2F;}
-    .decision-card.warning{border-left-color:#F9A825;}
-    .decision-card.ok{border-left-color:#2E7D32;}
-    .decision-title{color:#17206A !important;font-size:13px;font-weight:850;margin-bottom:5px;}
-    .decision-text{color:#455A64 !important;font-size:12px;font-weight:550;line-height:1.4;}
-    @media (max-width:1000px){.decision-wrap{grid-template-columns:1fr;}}
-
     /* Reincidência de Manutenção — Visão Executiva */
-    .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 28px 0;}
+    .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 26px 0;}
     .rec-card{background:#FFFFFF;border:1px solid #E3EAF1;border-left:4px solid #F57C00;border-radius:9px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
     .rec-placa{font-size:14px;font-weight:800;color:#163A5F;margin-bottom:4px;}
     .rec-meses{font-size:13px;font-weight:700;color:#D66A00;margin-bottom:8px;}
@@ -166,20 +156,28 @@ st.markdown("""
     .rec-label{font-size:11.5px;color:#78909C;margin-top:3px;}
     @media(max-width:1000px){.rec-wrap{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
-    /* Custo/KM Comparativo — Visão Executiva */
-    .cpk-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:4px 0 18px 0;}
-    .cpk-panel{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:10px;padding:13px 14px;box-shadow:0 3px 10px rgba(26,35,126,.04);}
-    .cpk-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px;}
-    .cpk-title{color:#17206A !important;font-size:13px;font-weight:850;}
-    .cpk-avg{color:#607D8B !important;font-size:11.5px;font-weight:650;}
-    .cpk-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #EEF2F6;}
-    .cpk-name{color:#263238 !important;font-size:12px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .cpk-value{color:#17206A !important;font-size:12px;font-weight:850;}
-    .cpk-delta{font-size:11px;font-weight:850;border-radius:999px;padding:3px 7px;background:#FFF3E0;color:#E65100 !important;}
-    .cpk-delta.ok{background:#E8F5E9;color:#2E7D32 !important;}
-    @media (max-width:1000px){.cpk-wrap{grid-template-columns:1fr;}}
-
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
+
+    /* Padronização fina — Visão Executiva */
+    .exec-section-title{
+        min-height:46px;
+        display:flex;
+        align-items:center;
+        font-size:18px;
+        font-weight:700;
+        color:#1A237E !important;
+        text-align:left;
+        margin:0 0 6px 0;
+    }
+    .exec-section-title.compact{min-height:auto;margin:0 0 3px 0;}
+    .exec-section-subtitle{
+        color:#607D8B !important;
+        font-size:12.5px;
+        font-weight:600;
+        line-height:1.4;
+        margin:0 0 12px 0;
+    }
+    .exec-divider{border-top:1px solid #DCE4EC;margin:8px 0 14px 0;}
 
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
@@ -924,7 +922,7 @@ else:
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 12px'>", unsafe_allow_html=True)
 
             # ---------- Semáforo Gerencial ----------
-            st.markdown('<div class="chart-title">🚦 Semáforo Gerencial</div>', unsafe_allow_html=True)
+            st.markdown('<div class="exec-section-title">🚦 Semáforo Gerencial</div>', unsafe_allow_html=True)
 
             # O semáforo compara o percentual do orçamento anual já consumido
             # com o percentual do ano transcorrido até o mês selecionado.
@@ -996,7 +994,7 @@ else:
                 unsafe_allow_html=True
             )
             # ---------- Reincidência de Manutenção ----------
-            st.markdown('<div class="chart-title">🔧 Reincidência de Manutenção</div>', unsafe_allow_html=True)
+            st.markdown('<div class="exec-section-title">🔧 Reincidência de Manutenção</div>', unsafe_allow_html=True)
             mask_fisica_rec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
             df_rec = df_fin_exec[mask_fisica_rec & (df_fin_exec["Custo de manutenção"] > 0)].copy()
 
@@ -1034,7 +1032,7 @@ else:
 
             # Linha de separação entre Reincidência de Manutenção e Composição dos Custos
             st.markdown(
-                '<div style="border-top:1px solid #DCE4EC; margin:2px 0 16px 0;"></div>',
+                '<div class="exec-divider"></div>',
                 unsafe_allow_html=True
             )
 
@@ -1042,7 +1040,7 @@ else:
             col_recursos, col_orcado = st.columns([1, 1.45])
 
             with col_recursos:
-                st.markdown('<div class="chart-title">💰 Composição dos Custos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-title">💰 Composição dos Custos</div>', unsafe_allow_html=True)
                 df_composicao = pd.DataFrame({
                     "Categoria": ["Manutenção", "Combustível", "Seguro", "Rastreador"],
                     "Valor": [gasto_manut_acum, gasto_comb_acum, gasto_seguro_acum, gasto_rastreador_acum]
@@ -1072,7 +1070,7 @@ else:
                     st.info("Sem custos para exibir nesta seleção.")
 
             with col_orcado:
-                st.markdown('<div class="chart-title">🎯 Real x Orçado por Categoria</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-title">🎯 Real x Orçado por Categoria</div>', unsafe_allow_html=True)
                 if ano_sel == 2026:
                     df_orcado = pd.DataFrame({
                         "Categoria": ["Manutenção", "Combustível", "Seguro", "Rastreador"],
@@ -1114,7 +1112,7 @@ else:
                 else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
 
-            st.markdown('<div class="chart-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
+            st.markdown('<div class="exec-section-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
             alertas = []
             if ano_sel == 2026 and orcamento_total_global > 0:
                 perc_tempo = (mes_num_atual / 12) * 100
@@ -1164,7 +1162,7 @@ else:
                             unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
                     titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
                     alertas.append(
-                        f"🔧 **{titulo_crit}** · Manutenção recorrente: manutenção em {meses_crit} meses · {fmt_br(valor_crit, True)} acumulados"
+                        f"🔧 **{titulo_crit}** · Manutenção recorrente · {fmt_br(valor_crit, True)} acumulados"
                     )
 
             if alertas:
@@ -1179,9 +1177,9 @@ else:
             # ---------- Tendência dos últimos 12 meses ----------
             # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
             st.markdown("<div style='height:34px'></div>", unsafe_allow_html=True)
-            st.markdown('<div class="chart-title" style="height:auto; margin-bottom:2px;">📈 Tendência de Custos</div>', unsafe_allow_html=True)
+            st.markdown('<div class="exec-section-title compact">📈 Tendência de Custos</div>', unsafe_allow_html=True)
             st.markdown(
-                '<div style="color:#607D8B; font-size:12.5px; font-weight:600; margin-bottom:12px;">Manutenção + Combustível | Últimos 12 meses</div>',
+                '<div class="exec-section-subtitle">Manutenção + Combustível | Últimos 12 meses</div>',
                 unsafe_allow_html=True
             )
 
@@ -1269,7 +1267,7 @@ else:
 
             col_rank, col_top = st.columns([1.25, 1])
             with col_rank:
-                st.markdown(f'<div class="chart-title">{titulo_ranking_unidades}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="exec-section-title">{titulo_ranking_unidades}</div>', unsafe_allow_html=True)
                 top_unidades = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total").sort_values("Custo_Total")
                 if not top_unidades.empty:
                     fig_unid = px.bar(
@@ -1292,7 +1290,7 @@ else:
                     st.info("Sem custos para exibir nesta seleção.")
 
             with col_top:
-                st.markdown(f'<div class="chart-title">{titulo_raiox_unidades}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="exec-section-title">{titulo_raiox_unidades}</div>', unsafe_allow_html=True)
                 tabela_unid = df_unidades[df_unidades["Custo_Total"] > 0].nlargest(8, "Custo_Total")[
                     ["Instituição", "Unidade_Gestao", "Ativos", "Quilometragem", "Custo_Total", "Custo/KM"]
                 ].rename(columns={"Unidade_Gestao": nome_unidade})
@@ -1333,7 +1331,7 @@ else:
             ].copy()
             if not df_odonto.empty:
                 st.markdown("<hr>", unsafe_allow_html=True)
-                st.markdown('<div class="chart-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
 
                 od_custo = df_odonto["Custo_Total"].sum()
                 od_manut = df_odonto["Custo de manutenção"].sum()
@@ -1373,7 +1371,7 @@ else:
 
                 col_od_graf, col_od_tabela = st.columns([1, 1.4])
                 with col_od_graf:
-                    st.markdown('<div class="chart-title">📊 Custo Total por Odontovan</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="exec-section-title">📊 Custo Total por Odontovan</div>', unsafe_allow_html=True)
                     graf_od = tabela_odonto[tabela_odonto["Custo_Total"] > 0].sort_values("Custo_Total")
                     if not graf_od.empty:
                         fig_od = px.bar(
@@ -1392,7 +1390,7 @@ else:
                         st.plotly_chart(fig_od, use_container_width=True, config={"displayModeBar": False})
 
                 with col_od_tabela:
-                    st.markdown('<div class="chart-title">🔎 Comparativo Operacional</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="exec-section-title">🔎 Comparativo Operacional</div>', unsafe_allow_html=True)
                     linhas_od = []
                     mostrar_inst_od = inst_sel == "TODAS"
                     for _, r in tabela_odonto.iterrows():
