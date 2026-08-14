@@ -7,30 +7,6 @@ import time  # Adicionado para forçar atualização do cache do Google
 import re
 import html
 
-# Padronização global dos gráficos Plotly: reserva espaço para legendas e rótulos
-def ajustar_layout_grafico(fig):
-    """Evita corte de legendas, rótulos e títulos nos cards brancos."""
-    try:
-        fig.update_xaxes(automargin=True)
-        fig.update_yaxes(automargin=True)
-
-        m = fig.layout.margin
-        l = max(int(m.l or 0), 55)
-        r = max(int(m.r or 0), 105)
-        t = max(int(m.t or 0), 70)
-        b = max(int(m.b or 0), 85)
-        fig.update_layout(margin=dict(l=l, r=r, t=t, b=b, pad=6))
-
-        # Quando a legenda fica fora da área do gráfico, garante espaço no topo/direita.
-        if fig.layout.legend is not None:
-            fig.update_layout(legend=dict(
-                bgcolor='rgba(255,255,255,0)',
-                borderwidth=0
-            ))
-    except Exception:
-        pass
-    return fig
-
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA
 # ==========================================
@@ -200,35 +176,6 @@ st.markdown("""
     .manut-divider-tight{border-top:1px solid #DCE4EC;margin:6px 0 14px 0;}
 
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
-
-    /* Gráficos — card branco padronizado em todas as abas */
-    div[data-testid="stPlotlyChart"] {
-        background: #FFFFFF !important;
-        border: 1px solid #DCE4EC !important;
-        border-radius: 12px !important;
-        box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05) !important;
-        padding: 14px 18px 18px 18px !important;
-        margin: 6px 0 20px 0 !important;
-        overflow: visible !important;
-        box-sizing: border-box !important;
-    }
-    div[data-testid="stPlotlyChart"] > div,
-    div[data-testid="stPlotlyChart"] .js-plotly-plot,
-    div[data-testid="stPlotlyChart"] .plot-container {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    div[data-testid="stPlotlyChart"] .modebar {
-        right: 8px !important;
-        top: 6px !important;
-    }
-    /* Evita corte de legendas, rótulos e anotações nos limites do card */
-    div[data-testid="stPlotlyChart"] .svg-container,
-    div[data-testid="stPlotlyChart"] .main-svg,
-    div[data-testid="stPlotlyChart"] .plot-container,
-    div[data-testid="stPlotlyChart"] .plotly {
-        overflow: visible !important;
-    }
 
     /* Padronização fina — Visão Executiva */
     .exec-section-title{
@@ -1165,7 +1112,7 @@ else:
                         showlegend=True,
                         legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=12))
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_comp), use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
                 else:
                     st.info("Sem custos para exibir nesta seleção.")
 
@@ -1203,7 +1150,7 @@ else:
                         xaxis=dict(title="", tickfont=dict(size=12)),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_orcado), use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_orcado, use_container_width=True, config={"displayModeBar": False})
                     execucao_resumo = " · ".join(
                         f'{r["Categoria"]}: {r["Execução"]:.1f}%' if r["Orçamento anual"] > 0 else f'{r["Categoria"]}: sem orçamento'
                         for _, r in df_orcado.iterrows()
@@ -1338,7 +1285,7 @@ else:
                     xaxis=dict(title="", showgrid=False),
                     yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.20, 1)])
                 )
-                st.plotly_chart(ajustar_layout_grafico(fig_tend), use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(fig_tend, use_container_width=True, config={"displayModeBar": False})
             else:
                 st.info("Sem histórico de manutenção e combustível disponível para a janela dos últimos 12 meses.")
 
@@ -1385,7 +1332,7 @@ else:
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=13)),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_unid), use_container_width=True, config={'displayModeBar': False})
+                    st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Sem custos para exibir nesta seleção.")
 
@@ -1487,7 +1434,7 @@ else:
                             xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_od * 1.32]),
                             yaxis=dict(title="", automargin=True, tickfont=dict(size=12)), showlegend=False
                         )
-                        st.plotly_chart(ajustar_layout_grafico(fig_od), use_container_width=True, config={"displayModeBar": False})
+                        st.plotly_chart(fig_od, use_container_width=True, config={"displayModeBar": False})
 
                 with col_od_tabela:
                     st.markdown('<div class="exec-section-title">🔎 Comparativo Operacional</div>', unsafe_allow_html=True)
@@ -1611,7 +1558,7 @@ else:
                     fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
                     fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
                     fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
-                    st.plotly_chart(ajustar_layout_grafico(fig_raiox), use_container_width=True)
+                    st.plotly_chart(fig_raiox, use_container_width=True)
                 else:
                     st.warning("Nenhum dado financeiro ou de KM encontrado para esta Placa no período.")
                 st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
@@ -1638,7 +1585,7 @@ else:
                     fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                     max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
                     fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
-                    st.plotly_chart(ajustar_layout_grafico(fig_km), use_container_width=True, config={'displayModeBar': False})
+                    st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum dado para exibir neste mês.")
                 
@@ -1652,7 +1599,7 @@ else:
                     fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
                     max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
                     fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
-                    st.plotly_chart(ajustar_layout_grafico(fig_custo), use_container_width=True, config={'displayModeBar': False})
+                    st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum custo lançado neste mês.")
 
@@ -1878,7 +1825,7 @@ else:
                     ),
                     separators=',.'
                 )
-                st.plotly_chart(ajustar_layout_grafico(fig_evol), use_container_width=True, config={'displayModeBar': False})
+                st.plotly_chart(fig_evol, use_container_width=True, config={'displayModeBar': False})
 
                 # Variação consolidada do último mês contra o mês anterior.
                 if len(evol_total) >= 2:
@@ -2135,7 +2082,7 @@ else:
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.38]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_cm), use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_cm, use_container_width=True, config={"displayModeBar": False})
                 else:
                     st.info("Sem custo de combustível no mês para esta seleção.")
 
@@ -2188,7 +2135,7 @@ else:
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.62]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_ca), use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_ca, use_container_width=True, config={"displayModeBar": False})
                 else:
                     st.info("Sem custo acumulado de combustível para esta seleção.")
 
@@ -2253,7 +2200,7 @@ else:
                         xanchor="right", x=1, title=""
                     )
                 )
-                st.plotly_chart(ajustar_layout_grafico(fig_ec), use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(fig_ec, use_container_width=True, config={"displayModeBar": False})
 
                 if len(evol_comb_total) >= 2:
                     atual = float(evol_comb_total.iloc[-1]["Custo de combustível"])
@@ -2334,7 +2281,7 @@ else:
                                         separators=',.')
                 
                 fig_fixos.update_traces(texttemplate='<b>R$ %{y:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
-                st.plotly_chart(ajustar_layout_grafico(fig_fixos), use_container_width=True)
+                st.plotly_chart(fig_fixos, use_container_width=True)
             else:
                 st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
 
@@ -2512,7 +2459,7 @@ else:
                         showlegend=False,
                         paper_bgcolor="rgba(0,0,0,0)"
                     )
-                    st.plotly_chart(ajustar_layout_grafico(fig_comp_rx), use_container_width=True, config={"displayModeBar": False})
+                    st.plotly_chart(fig_comp_rx, use_container_width=True, config={"displayModeBar": False})
                 else:
                     st.info("Sem gastos de manutenção ou combustível no mês selecionado.")
 
@@ -2829,7 +2776,7 @@ else:
                             yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""),
                             coloraxis_showscale=False  # Oculta a barrinha lateral do degradê para ficar mais limpo
                         )
-                        st.plotly_chart(ajustar_layout_grafico(fig_top15), use_container_width=True, config={'displayModeBar': False})
+                        st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
                     
                     with c_tabela:
                         st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
