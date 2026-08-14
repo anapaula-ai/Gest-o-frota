@@ -2878,8 +2878,9 @@ else:
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.markdown("---")
+            # Linha de separação um pouco mais próxima da tabela da frota.
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin-top:0; margin-bottom:18px'>", unsafe_allow_html=True)
 
             # ================= VEÍCULOS & IPVA =================
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
