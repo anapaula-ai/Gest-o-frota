@@ -914,13 +914,13 @@ else:
 
                 if execucao > 100 or desvio > 15:
                     classe = "critical"
-                    status = "Crítico"
+                    status = "Acima do esperado"
                 elif desvio > 5:
                     classe = "warning"
-                    status = "Atenção"
+                    status = "Atenção orçamentária"
                 else:
                     classe = "ok"
-                    status = "Dentro do ritmo"
+                    status = "Execução esperada"
 
                 detalhe = f"{execucao:.1f}% usado · ritmo esperado {perc_tempo_semaforo:.1f}%"
                 return {
