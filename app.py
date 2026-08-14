@@ -1021,7 +1021,7 @@ else:
                         rec_cards.append(
                             '<div class="rec-card">'
                             f'<div class="rec-placa">{html.escape(str(r["Placa"]))}</div>'
-                            f'<div class="rec-meses">Manutenção em {meses_rec} meses</div>'
+                            '<div class="rec-meses">Manutenção recorrente</div>'
                             f'<div class="rec-valor">{fmt_br(r["Manutencao_Acumulada"], True)}</div>'
                             '<div class="rec-label">manutenção acumulada</div>'
                             '</div>'
