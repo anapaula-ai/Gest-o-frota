@@ -157,7 +157,7 @@ st.markdown("""
     @media (max-width:1000px){.decision-wrap{grid-template-columns:1fr;}}
 
     /* Reincidência de Manutenção — Visão Executiva */
-    .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 16px 0;}
+    .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 28px 0;}
     .rec-card{background:#FFFFFF;border:1px solid #E3EAF1;border-left:4px solid #F57C00;border-radius:9px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
     .rec-placa{font-size:14px;font-weight:800;color:#163A5F;margin-bottom:4px;}
     .rec-meses{font-size:13px;font-weight:700;color:#D66A00;margin-bottom:8px;}
@@ -996,11 +996,6 @@ else:
             )
             # ---------- Reincidência de Manutenção ----------
             st.markdown('<div class="chart-title">🔧 Reincidência de Manutenção</div>', unsafe_allow_html=True)
-            st.caption(
-                f"Veículos com manutenção registrada em 2 ou mais meses no acumulado até {mes_sel}. "
-                "A recorrência indica frequência de gastos e não, isoladamente, necessidade de substituição do veículo."
-            )
-
             mask_fisica_rec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
             df_rec = df_fin_exec[mask_fisica_rec & (df_fin_exec["Custo de manutenção"] > 0)].copy()
 
@@ -1035,8 +1030,6 @@ else:
                     st.success("Nenhum veículo apresenta manutenção recorrente em 2 ou mais meses na seleção atual.")
             else:
                 st.info("Sem registros de manutenção de veículos físicos na seleção atual.")
-
-            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
             # ---------- Leitura financeira executiva ----------
             col_recursos, col_orcado = st.columns([1, 1.45])
