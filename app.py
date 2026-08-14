@@ -342,11 +342,11 @@ st.markdown("""
     /* Tabela executiva de IPVA */
     .ipva-table-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);margin-top:6px}
     .ipva-table-header,.ipva-table-row{display:grid;grid-template-columns:.8fr .72fr .72fr 2fr .9fr 1fr .7fr .95fr;align-items:center}
-    .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:11.5px;font-weight:800;letter-spacing:.15px}
+    .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;letter-spacing:.15px}
     .ipva-table-header>div{padding:12px 10px;border-right:1px solid rgba(255,255,255,.28);color:#FFFFFF !important}
     .ipva-table-header>div:last-child{border-right:none;text-align:right}
     .ipva-table-scroll{max-height:470px;overflow-y:auto;overflow-x:auto}
-    .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:11.5px}
+    .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:12.5px}
     .ipva-table-row:last-child{border-bottom:none}.ipva-table-row:hover{background:#FAFCFF}
     .ipva-table-row>div{padding:10px 10px;border-right:1px solid #EEF2F6;color:#263238 !important}
     .ipva-table-row>div:last-child{border-right:none}
