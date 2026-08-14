@@ -1167,7 +1167,7 @@ else:
 
             # ---------- Tendência dos últimos 12 meses ----------
             # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
-            st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:34px'></div>", unsafe_allow_html=True)
             st.markdown('<div class="chart-title" style="height:auto; margin-bottom:2px;">📈 Tendência de Custos</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div style="color:#607D8B; font-size:12.5px; font-weight:600; margin-bottom:12px;">Manutenção + Combustível | Últimos 12 meses</div>',
@@ -1210,33 +1210,24 @@ else:
                 nomes_mes_curto = {1:"Jan",2:"Fev",3:"Mar",4:"Abr",5:"Mai",6:"Jun",7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"}
                 tend_mensal["Mês"] = tend_mensal["Periodo"].apply(lambda d: f"{nomes_mes_curto[d.month]}/{str(d.year)[2:]}")
 
-                tend_long = tend_mensal.melt(
-                    id_vars=["Periodo", "Mês"],
-                    value_vars=["Custo de manutenção", "Custo Combustível"],
-                    var_name="Categoria",
-                    value_name="Valor"
-                )
-                tend_long["Categoria"] = tend_long["Categoria"].replace({
-                    "Custo de manutenção": "Manutenção",
-                    "Custo Combustível": "Combustível"
-                })
+                tend_mensal["Custo Total"] = tend_mensal["Custo de manutenção"] + tend_mensal["Custo Combustível"]
+                tend_mensal["Valor_Label"] = tend_mensal["Custo Total"].apply(lambda v: fmt_br(v, True))
 
                 fig_tend = px.line(
-                    tend_long, x="Mês", y="Valor", color="Categoria", markers=True,
-                    color_discrete_map={"Manutenção": "#F57C00", "Combustível": "#0288D1"}
+                    tend_mensal, x="Mês", y="Custo Total", markers=True, text="Valor_Label"
                 )
                 fig_tend.update_traces(
-                    line=dict(width=3), marker=dict(size=7),
-                    hovertemplate="<b>%{x}</b><br>%{fullData.name}: R$ %{y:,.2f}<extra></extra>"
+                    line=dict(width=3, color="#F57C00"), marker=dict(size=7, color="#F57C00"),
+                    textposition="top center", textfont=dict(size=11),
+                    hovertemplate="<b>%{x}</b><br>Custo Total: R$ %{y:,.2f}<extra></extra>"
                 )
-                max_tend = tend_long["Valor"].max() if not tend_long.empty else 1
+                max_tend = tend_mensal["Custo Total"].max() if not tend_mensal.empty else 1
                 fig_tend.update_layout(
-                    height=330, separators=",.",
+                    height=330, separators=",.", showlegend=False,
                     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=5, r=10, t=10, b=10),
+                    margin=dict(l=5, r=10, t=28, b=10),
                     xaxis=dict(title="", showgrid=False),
-                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.12, 1)]),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
+                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.20, 1)])
                 )
                 st.plotly_chart(fig_tend, use_container_width=True, config={"displayModeBar": False})
             else:
