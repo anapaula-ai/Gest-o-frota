@@ -177,6 +177,28 @@ st.markdown("""
 
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
+    /* Gráficos — card branco padronizado em todas as abas */
+    div[data-testid="stPlotlyChart"] {
+        background: #FFFFFF !important;
+        border: 1px solid #DCE4EC !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 10px rgba(26, 35, 126, 0.05) !important;
+        padding: 10px 12px 6px 12px !important;
+        margin: 4px 0 18px 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    div[data-testid="stPlotlyChart"] > div,
+    div[data-testid="stPlotlyChart"] .js-plotly-plot,
+    div[data-testid="stPlotlyChart"] .plot-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    div[data-testid="stPlotlyChart"] .modebar {
+        right: 8px !important;
+        top: 6px !important;
+    }
+
     /* Padronização fina — Visão Executiva */
     .exec-section-title{
         min-height:46px;
