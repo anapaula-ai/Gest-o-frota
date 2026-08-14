@@ -985,53 +985,6 @@ else:
                 + ''.join(cards_semaforo) + '</div>',
                 unsafe_allow_html=True
             )
-            # ---------- Pontos que Exigem Decisão ----------
-            st.markdown('<div class="chart-title">🎯 Pontos que Exigem Decisão</div>', unsafe_allow_html=True)
-            decisoes = []
-
-            # 1) Pressão orçamentária: prioriza categorias em vermelho e amarelo.
-            for nome_sem, real_sem, orc_sem in itens_semaforo[1:]:
-                sem = classificar_semaforo(real_sem, orc_sem)
-                if sem["classe"] in ("critical", "warning"):
-                    excesso_pp = sem["execucao"] - perc_tempo_semaforo if sem["execucao"] is not None else 0
-                    nivel = "critical" if sem["classe"] == "critical" else "warning"
-                    decisoes.append((
-                        100 if nivel == "critical" else 80,
-                        nivel,
-                        f"{nome_sem} · pressão orçamentária",
-                        f"{sem['execucao']:.1f}% do orçamento anual executado, {abs(excesso_pp):.1f} p.p. acima do avanço esperado do ano."
-                    ))
-
-            # 2) Veículo com maior manutenção acumulada entre placas físicas.
-            mask_fisica_dec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_veic_dec = df_fin_exec[mask_fisica_dec].copy()
-            if not df_veic_dec.empty and df_veic_dec["Custo de manutenção"].sum() > 0:
-                manut_dec = df_veic_dec.groupby("Placa", as_index=False)["Custo de manutenção"].sum().sort_values("Custo de manutenção", ascending=False)
-                r_dec = manut_dec.iloc[0]
-                decisoes.append((
-                    70, "warning", f"{r_dec['Placa']} · manutenção em destaque",
-                    f"Maior manutenção acumulada entre os veículos: {fmt_br(r_dec['Custo de manutenção'], True)}. Recomenda-se verificar recorrência e natureza dos serviços."
-                ))
-
-            # Exibe somente os pontos mais relevantes, sem transformar a visão em uma lista extensa.
-            decisoes = sorted(decisoes, key=lambda x: x[0], reverse=True)[:4]
-            if decisoes:
-                cards_decisao = []
-                for _, classe_dec, titulo_dec, texto_dec in decisoes:
-                    cards_decisao.append(
-                        f'<div class="decision-card {classe_dec}">'
-                        f'<div class="decision-title">{html.escape(str(titulo_dec))}</div>'
-                        f'<div class="decision-text">{html.escape(str(texto_dec))}</div>'
-                        f'</div>'
-                    )
-                st.markdown('<div class="decision-wrap">' + ''.join(cards_decisao) + '</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    '<div class="decision-card ok"><div class="decision-title">Sem decisão crítica sinalizada</div>'
-                    '<div class="decision-text">Os critérios gerenciais não identificaram exceções relevantes para a seleção atual.</div></div>',
-                    unsafe_allow_html=True
-                )
-
             # ---------- Custo/KM Comparativo ----------
             st.markdown('<div class="chart-title">⚖️ Custo/KM Comparativo</div>', unsafe_allow_html=True)
 
@@ -1045,7 +998,7 @@ else:
             if not df_cpk_veic.empty:
                 df_cpk_veic["Custo/KM"] = df_cpk_veic["Custo_Total"] / df_cpk_veic["Quilometragem"]
                 df_cpk_veic["Delta"] = df_cpk_veic["Custo/KM"].apply(lambda x: ((x / media_cpk_veic) - 1) * 100 if media_cpk_veic > 0 else 0)
-                top_cpk_veic = df_cpk_veic.sort_values("Delta", ascending=False).head(3)
+                top_cpk_veic = df_cpk_veic[df_cpk_veic["Delta"] > 0].sort_values("Delta", ascending=False).head(3)
             else:
                 top_cpk_veic = pd.DataFrame()
 
@@ -1058,7 +1011,7 @@ else:
             if not df_cpk_unid.empty:
                 df_cpk_unid["Custo/KM"] = df_cpk_unid["Custo_Total"] / df_cpk_unid["Quilometragem"]
                 df_cpk_unid["Delta"] = df_cpk_unid["Custo/KM"].apply(lambda x: ((x / media_cpk_unid) - 1) * 100 if media_cpk_unid > 0 else 0)
-                top_cpk_unid = df_cpk_unid.sort_values("Delta", ascending=False).head(3)
+                top_cpk_unid = df_cpk_unid[df_cpk_unid["Delta"] > 0].sort_values("Delta", ascending=False).head(3)
             else:
                 top_cpk_unid = pd.DataFrame()
 
@@ -1072,7 +1025,7 @@ else:
                         linhas.append(
                             f'<div class="cpk-row"><div class="cpk-name">{html.escape(str(r[coluna_nome]))}</div>'
                             f'<div class="cpk-value">{fmt_br(r["Custo/KM"], True)}/km</div>'
-                            f'<div class="cpk-delta{classe}">{sinal}{delta:.0f}%</div></div>'
+                            f'<div class="cpk-delta{classe}">{delta:.0f}% acima</div></div>'
                         )
                 else:
                     linhas.append('<div class="cpk-row"><div class="cpk-name">Sem quilometragem suficiente para comparação.</div></div>')
@@ -1082,8 +1035,8 @@ else:
                 )
 
             titulo_unid_cpk = "Bases Sociais" if inst_sel == "AMES" else ("Centros de Custo" if inst_sel == "IAV" else "Unidades")
-            painel_veic = montar_painel_cpk("Veículos | maiores desvios", media_cpk_veic, top_cpk_veic, "Placa")
-            painel_unid = montar_painel_cpk(f"{titulo_unid_cpk} | maiores desvios", media_cpk_unid, top_cpk_unid, "Unidade_Gestao")
+            painel_veic = montar_painel_cpk("Veículos acima da média", media_cpk_veic, top_cpk_veic, "Placa")
+            painel_unid = montar_painel_cpk(f"{titulo_unid_cpk} acima da média", media_cpk_unid, top_cpk_unid, "Unidade_Gestao")
             st.markdown('<div class="cpk-wrap">' + painel_veic + painel_unid + '</div>', unsafe_allow_html=True)
 
             st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
