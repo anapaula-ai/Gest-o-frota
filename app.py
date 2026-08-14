@@ -947,6 +947,59 @@ else:
             km_total_global = df_fin_exec["Quilometragem"].sum()
             qtd_frota = df_frota_atual["Placa_Fisica"].nunique() if not df_frota_atual.empty else 0
 
+            # Indicadores médios da frota.
+            # Custo médio por veículo = custo acumulado da seleção / quantidade de ativos cadastrados.
+            custo_medio_veiculo = (custo_total_global / qtd_frota) if qtd_frota > 0 else 0
+
+            # Ano médio da frota: usa o cadastro de veículos/IPVA e, sempre que possível,
+            # cruza pelas placas físicas da frota atual para respeitar Instituição e Base/CC selecionados.
+            ano_medio_frota = None
+            try:
+                df_anos_frota = load_ipva_data().copy()
+                if not df_anos_frota.empty and "Ano do veículo" in df_anos_frota.columns:
+                    df_anos_frota["Ano do veículo"] = pd.to_numeric(df_anos_frota["Ano do veículo"], errors="coerce")
+                    df_anos_frota = df_anos_frota[
+                        df_anos_frota["Ano do veículo"].between(1950, 2100, inclusive="both")
+                    ].copy()
+
+                    # Normaliza a placa da base cadastral, quando disponível.
+                    col_placa_ipva = next(
+                        (c for c in ["Placa", "PLACA", "placa"] if c in df_anos_frota.columns),
+                        None
+                    )
+                    if col_placa_ipva and not df_frota_atual.empty:
+                        df_anos_frota["Placa_Normalizada"] = (
+                            df_anos_frota[col_placa_ipva]
+                            .astype(str).str.upper()
+                            .str.replace(r"[^A-Z0-9]", "", regex=True)
+                            .str.extract(r"([A-Z0-9]{7})", expand=False)
+                        )
+                        placas_selecao = set(
+                            df_frota_atual["Placa_Fisica"]
+                            .astype(str).str.upper()
+                            .str.replace(r"[^A-Z0-9]", "", regex=True)
+                            .str.extract(r"([A-Z0-9]{7})", expand=False)
+                            .dropna()
+                        )
+                        df_anos_frota = df_anos_frota[df_anos_frota["Placa_Normalizada"].isin(placas_selecao)].copy()
+                    elif "Instituição" in df_anos_frota.columns and inst_sel != "TODAS":
+                        df_anos_frota = df_anos_frota[
+                            df_anos_frota["Instituição"].astype(str).str.strip().str.upper() == inst_sel.upper()
+                        ].copy()
+
+                    # Evita duplicar o mesmo veículo caso haja mais de um ano-base de IPVA.
+                    if col_placa_ipva and "Placa_Normalizada" in df_anos_frota.columns:
+                        if "Ano base" in df_anos_frota.columns:
+                            df_anos_frota["Ano base"] = pd.to_numeric(df_anos_frota["Ano base"], errors="coerce")
+                            df_anos_frota = df_anos_frota.sort_values("Ano base").drop_duplicates("Placa_Normalizada", keep="last")
+                        else:
+                            df_anos_frota = df_anos_frota.drop_duplicates("Placa_Normalizada", keep="last")
+
+                    if not df_anos_frota.empty:
+                        ano_medio_frota = df_anos_frota["Ano do veículo"].mean()
+            except Exception:
+                ano_medio_frota = None
+
             orc_manut = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas)
             orc_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
             orc_seg = sum(ORCAMENTOS_SEGURO_2026.get(inst, 0) for inst in inst_ativas)
@@ -1002,6 +1055,23 @@ else:
                     "🚙 ATIVOS CADASTRADOS",
                     fmt_br(qtd_frota),
                     "Ativos no último vínculo conhecido do ano",
+                    is_lower_better=False
+                )
+
+            # Indicadores médios complementares da frota
+            m1, m2 = st.columns(2)
+            with m1:
+                draw_card(
+                    "💳 CUSTO MÉDIO POR VEÍCULO",
+                    fmt_br(custo_medio_veiculo, True) if qtd_frota > 0 else "—",
+                    f"Custo acumulado ÷ {fmt_br(qtd_frota)} ativos cadastrados" if qtd_frota > 0 else "Sem ativos cadastrados na seleção",
+                    is_lower_better=False
+                )
+            with m2:
+                draw_card(
+                    "📅 ANO MÉDIO DA FROTA",
+                    f"{ano_medio_frota:.0f}" if ano_medio_frota is not None and pd.notna(ano_medio_frota) else "—",
+                    "Média do ano dos veículos cadastrados na seleção" if ano_medio_frota is not None and pd.notna(ano_medio_frota) else "Ano dos veículos não disponível para a seleção",
                     is_lower_better=False
                 )
 
