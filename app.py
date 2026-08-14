@@ -1031,6 +1031,12 @@ else:
             else:
                 st.info("Sem registros de manutenção de veículos físicos na seleção atual.")
 
+            # Linha de separação entre Reincidência de Manutenção e Composição dos Custos
+            st.markdown(
+                '<div style="border-top:1px solid #DCE4EC; margin:2px 0 16px 0;"></div>',
+                unsafe_allow_html=True
+            )
+
             # ---------- Leitura financeira executiva ----------
             col_recursos, col_orcado = st.columns([1, 1.45])
 
