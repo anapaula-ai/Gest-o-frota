@@ -2220,6 +2220,26 @@ else:
                 )
                 qtd_veiculos_base = df_rx_acum.loc[mask_fisica_rx, "Placa"].nunique()
 
+                # Custo por ativo: total acumulado de Manutenção + Combustível
+                # dividido pela quantidade de placas físicas vinculadas à unidade.
+                custo_por_ativo = (total_acum / qtd_veiculos_base) if qtd_veiculos_base > 0 else 0
+
+                # Referência: média simples do custo por ativo das unidades da seleção atual.
+                df_rx_ref = df_base[df_base["Mes_Num"] <= mes_num_atual].copy()
+                mask_fisica_ref = df_rx_ref["Placa"].astype(str).str.fullmatch(
+                    r"[A-Z0-9]{7}", case=False, na=False
+                )
+                df_rx_ref_fisica = df_rx_ref.loc[mask_fisica_ref].copy()
+                custos_unidade = (
+                    df_rx_ref.groupby(col_cc)[["Custo de manutenção", "Custo Combustível"]]
+                    .sum()
+                    .sum(axis=1)
+                )
+                ativos_unidade = df_rx_ref_fisica.groupby(col_cc)["Placa"].nunique()
+                custo_ativo_unidade = (custos_unidade / ativos_unidade).replace([np.inf, -np.inf], np.nan).dropna()
+                custo_ativo_unidade = custo_ativo_unidade[custo_ativo_unidade >= 0]
+                media_custo_por_ativo = custo_ativo_unidade.mean() if not custo_ativo_unidade.empty else 0
+
                 st.markdown(
                     f'<div style="font-size:14px;color:#455A64;margin:4px 0 14px 0;">'
                     f'<b>{base_raiox}</b> · Resumo mensal para acompanhamento de Manutenção e Combustível'
@@ -2250,7 +2270,7 @@ else:
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                r4, r5, r6 = st.columns(3)
+                r4, r5, r6, r7 = st.columns(4)
                 with r4:
                     draw_card(
                         "🚘 VEÍCULOS DA UNIDADE",
@@ -2260,12 +2280,19 @@ else:
                     )
                 with r5:
                     draw_card(
+                        "💳 CUSTO POR ATIVO",
+                        fmt_br(custo_por_ativo, True),
+                        f"Média das unidades: <b>{fmt_br(media_custo_por_ativo, True)}</b>",
+                        is_lower_better=False
+                    )
+                with r6:
+                    draw_card(
                         "🛣️ KM RODADO NO MÊS",
                         fmt_br(km_mes),
                         f"Acumulado: <b>{fmt_br(km_acum)}</b>",
                         is_lower_better=False
                     )
-                with r6:
+                with r7:
                     draw_card(
                         "📅 TOTAL ACUMULADO",
                         fmt_br(total_acum, True),
