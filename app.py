@@ -156,6 +156,25 @@ st.markdown("""
     .rec-label{font-size:11.5px;color:#78909C;margin-top:3px;}
     @media(max-width:1000px){.rec-wrap{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
+    /* Padronização visual — aba Manutenção */
+    .manut-section-title{
+        color:#1A237E !important;
+        font-size:21px;
+        font-weight:800;
+        line-height:1.2;
+        margin:8px 0 16px 0;
+    }
+    .manut-subsection-title{
+        color:#1A237E !important;
+        font-size:17px;
+        font-weight:800;
+        line-height:1.25;
+        margin:8px 0 12px 0;
+    }
+    .manut-block-spacer{height:12px;}
+    .manut-divider{border-top:1px solid #DCE4EC;margin:12px 0 18px 0;}
+    .manut-divider-tight{border-top:1px solid #DCE4EC;margin:6px 0 14px 0;}
+
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* Padronização fina — Visão Executiva */
@@ -1441,7 +1460,7 @@ else:
 
         with tab_manut:
             # ================= VISÃO MENSAL =================
-            st.markdown(f"### 📊 Desempenho Mensal | {mes_sel}/{ano_sel}")
+            st.markdown(f'<div class="manut-section-title">📊 Desempenho Mensal | {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
 
             km_m = df_filtrado_mes_manut['Quilometragem'].sum()
             km_a = df_anterior_manut['Quilometragem'].sum()
@@ -1504,8 +1523,8 @@ else:
                     draw_card("🎯 ORÇAMENTO CONSUMIDO", "—", "Orçamento não cadastrado para o ano")
 
             if busca_placa:
-                st.markdown("---")
-                st.markdown(f"#### 🔍 Raio-X do Veículo: {busca_placa}")
+                st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="manut-subsection-title">🔍 Raio-X do Veículo: {busca_placa}</div>', unsafe_allow_html=True)
                 
                 df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
                 
@@ -1542,9 +1561,9 @@ else:
                     st.plotly_chart(fig_raiox, use_container_width=True)
                 else:
                     st.warning("Nenhum dado financeiro ou de KM encontrado para esta Placa no período.")
-                st.markdown("---")
+                st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
             
-            st.markdown('<div class="rx-block-spacer"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="manut-block-spacer"></div>', unsafe_allow_html=True)
             
             g1, g2 = st.columns(2)
             
@@ -1584,7 +1603,7 @@ else:
                 else:
                     st.info("Nenhum custo lançado neste mês.")
 
-            st.markdown('<div class="rx-block-spacer"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="manut-block-spacer"></div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>',
                 unsafe_allow_html=True
@@ -1703,12 +1722,11 @@ else:
             else:
                 st.info("Sem dados suficientes para análise de veículos em atenção.")
 
-            # Espaçamento reduzido entre o último card de Veículos em Atenção e a linha divisória.
-            st.markdown("<div style=\"height:10px;\"></div>", unsafe_allow_html=True)
-            st.markdown("---")
+            # Espaçamento controlado entre o último card de Veículos em Atenção e a linha divisória.
+            st.markdown('<div class="manut-divider-tight"></div>', unsafe_allow_html=True)
 
             # ================= VISÃO ACUMULADA =================
-            st.markdown(f"### 📈 Desempenho Acumulado | {ano_sel}")
+            st.markdown(f'<div class="manut-section-title">📈 Desempenho Acumulado | {ano_sel}</div>', unsafe_allow_html=True)
             
             ca1, ca2, ca3 = st.columns(3)
             with ca1:
@@ -1728,7 +1746,7 @@ else:
                 sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
                 draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
             
-            st.markdown("---")
+            st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
             
             st.markdown(
                 f'<div class="chart-title">Evolução Mensal do Custo de Manutenção | {ano_sel}</div>',
@@ -1836,7 +1854,7 @@ else:
             else:
                 st.info("Sem dados mensais de manutenção para a seleção atual.")
 
-            st.markdown("---")
+            st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
             if inst_sel == "AMES":
                 rotulo_unid_manut = "Bases Sociais"
             elif inst_sel == "IAV":
