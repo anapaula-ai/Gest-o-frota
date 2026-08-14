@@ -1166,7 +1166,13 @@ else:
                 st.markdown('<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>', unsafe_allow_html=True)
 
             # ---------- Tendência dos últimos 12 meses ----------
-            st.markdown('<div class="chart-title">📈 Tendência de Custos | Últimos 12 meses</div>', unsafe_allow_html=True)
+            # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
+            st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+            st.markdown('<div class="chart-title" style="height:auto; margin-bottom:2px;">📈 Tendência de Custos</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div style="color:#607D8B; font-size:12.5px; font-weight:600; margin-bottom:12px;">Manutenção + Combustível | Últimos 12 meses</div>',
+                unsafe_allow_html=True
+            )
 
             # Usa a base completa para permitir que a janela atravesse a virada do ano,
             # preservando os filtros atuais de Instituição e Unidade.
@@ -1180,12 +1186,6 @@ else:
                 cadastro_pattern, case=False, na=False, regex=True
             )
             df_tend = df_tend[~mask_cadastro_tend].copy()
-            df_tend["Custo_Total_Tend"] = (
-                df_tend["Custo de manutenção"]
-                + df_tend["Custo Combustível"]
-                + df_tend["Custo de seguro"]
-                + df_tend["Custo de Rastreador"]
-            )
 
             data_fim_tend = pd.Timestamp(year=int(ano_sel), month=int(mes_num_atual), day=1)
             data_ini_tend = data_fim_tend - pd.DateOffset(months=11)
@@ -1196,7 +1196,10 @@ else:
 
             if not df_tend.empty:
                 df_tend["Periodo"] = df_tend["Mês Referência"].dt.to_period("M").dt.to_timestamp()
-                tend_mensal = df_tend.groupby("Periodo", as_index=False)["Custo_Total_Tend"].sum()
+                tend_mensal = df_tend.groupby("Periodo", as_index=False).agg({
+                    "Custo de manutenção": "sum",
+                    "Custo Combustível": "sum"
+                })
                 meses_janela = pd.date_range(data_ini_tend, data_fim_tend, freq="MS")
                 tend_mensal = (
                     tend_mensal.set_index("Periodo")
@@ -1207,26 +1210,37 @@ else:
                 nomes_mes_curto = {1:"Jan",2:"Fev",3:"Mar",4:"Abr",5:"Mai",6:"Jun",7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"}
                 tend_mensal["Mês"] = tend_mensal["Periodo"].apply(lambda d: f"{nomes_mes_curto[d.month]}/{str(d.year)[2:]}")
 
+                tend_long = tend_mensal.melt(
+                    id_vars=["Periodo", "Mês"],
+                    value_vars=["Custo de manutenção", "Custo Combustível"],
+                    var_name="Categoria",
+                    value_name="Valor"
+                )
+                tend_long["Categoria"] = tend_long["Categoria"].replace({
+                    "Custo de manutenção": "Manutenção",
+                    "Custo Combustível": "Combustível"
+                })
+
                 fig_tend = px.line(
-                    tend_mensal, x="Mês", y="Custo_Total_Tend", markers=True, text="Custo_Total_Tend"
+                    tend_long, x="Mês", y="Valor", color="Categoria", markers=True,
+                    color_discrete_map={"Manutenção": "#F57C00", "Combustível": "#0288D1"}
                 )
                 fig_tend.update_traces(
-                    line=dict(width=3), marker=dict(size=8),
-                    texttemplate="R$ %{text:,.0f}", textposition="top center",
-                    hovertemplate="<b>%{x}</b><br>Custo total: R$ %{y:,.2f}<extra></extra>"
+                    line=dict(width=3), marker=dict(size=7),
+                    hovertemplate="<b>%{x}</b><br>%{fullData.name}: R$ %{y:,.2f}<extra></extra>"
                 )
-                max_tend = tend_mensal["Custo_Total_Tend"].max() if not tend_mensal.empty else 1
+                max_tend = tend_long["Valor"].max() if not tend_long.empty else 1
                 fig_tend.update_layout(
                     height=330, separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=5, r=10, t=20, b=10),
+                    margin=dict(l=5, r=10, t=10, b=10),
                     xaxis=dict(title="", showgrid=False),
-                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.22, 1)]),
-                    showlegend=False
+                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.12, 1)]),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                 )
                 st.plotly_chart(fig_tend, use_container_width=True, config={"displayModeBar": False})
             else:
-                st.info("Sem histórico de custos disponível para a janela dos últimos 12 meses.")
+                st.info("Sem histórico de manutenção e combustível disponível para a janela dos últimos 12 meses.")
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
