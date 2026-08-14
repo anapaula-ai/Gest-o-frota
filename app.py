@@ -298,8 +298,22 @@ st.markdown("""
     .raiox-label { color: #546E7A !important; font-size: 12px; font-weight: 700; text-transform: uppercase; }
     .raiox-value { color: #1A237E !important; font-size: 20px; font-weight: 800; margin-top: 5px; }
     
-    .stDownloadButton button { background-color: #F57C00 !important; color: white !important; font-weight: 600 !important; border-radius: 8px !important; }
-    .stDownloadButton button:hover { background-color: #E65100 !important; }
+    .stDownloadButton button {
+        background-color:#FFFFFF !important;
+        color:#1A237E !important;
+        font-weight:700 !important;
+        border:1px solid #D7DFE8 !important;
+        border-radius:8px !important;
+        min-height:38px !important;
+        box-shadow:0 2px 6px rgba(26,35,126,.04) !important;
+    }
+    .stDownloadButton button p,
+    .stDownloadButton button span { color:#1A237E !important; }
+    .stDownloadButton button:hover {
+        background-color:#F5F7FB !important;
+        border-color:#B8C5D3 !important;
+        color:#1A237E !important;
+    }
     
     .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:14px 16px;margin:8px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
     .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:9px}
@@ -352,6 +366,10 @@ st.markdown("""
     .rx-money{color:#14206F !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
     .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
+
+
+    /* Revisão final de consistência */
+    .final-download-gap{height:10px;}
 
     /* Acabamento visual — Gestão de Quilometragem */
     .km-section-subtitle{
@@ -2053,7 +2071,7 @@ else:
                         "Orçamento não cadastrado para o ano"
                     )
 
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
 
             if inst_sel == "AMES":
                 rotulo_comb = "Bases Sociais"
@@ -2411,7 +2429,7 @@ else:
                         variacao_rx(total_mes, total_ant)
                     )
 
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
 
                 r4, r5, r6, r7 = st.columns(4)
                 with r4:
@@ -2442,7 +2460,7 @@ else:
                         f"Manut.: <b>{fmt_br(manut_acum, True)}</b> · Comb.: <b>{fmt_br(comb_acum, True)}</b>"
                     )
 
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="rx-section-title">📊 Composição do Gasto Acompanhado | Mês</div>',
                     unsafe_allow_html=True
@@ -2592,7 +2610,7 @@ else:
                     """
                     st.markdown(resumo_html, unsafe_allow_html=True)
 
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
 
                 # ============================================================
                 # 2) DETALHAMENTO DAS PLACAS
@@ -3180,7 +3198,7 @@ else:
                     mime="text/csv",
                     key="btn_download_relacao"
                 )
-                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
 
                 # Tabela visual padronizada no mesmo DNA das abas executivas
                 linhas_frota_html = []
@@ -3291,7 +3309,7 @@ else:
                         use_container_width=True
                     )
                 
-                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
 
                 # Tabela de IPVA padronizada no mesmo visual executivo do dashboard
                 def _ipva_txt(v):
@@ -3376,7 +3394,7 @@ else:
                 mime="text/csv"
             )
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="final-download-gap"></div>', unsafe_allow_html=True)
             
             colunas_moeda = [c for c in ['Custo de manutenção', 'Custo Combustível', 'Custo de seguro', 'Custo de Rastreador'] if c in df_download.columns]
             config_cols = {col: st.column_config.NumberColumn(col, format="R$ %.2f") for col in colunas_moeda}
