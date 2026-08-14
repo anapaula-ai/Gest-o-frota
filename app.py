@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go  # Adicionado para o gráfico de rosca
 import time  # Adicionado para forçar atualização do cache do Google
