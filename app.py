@@ -1135,26 +1135,37 @@ else:
                     if perc_crit > perc_tempo + 10:
                         alertas.append(f"🎯 **{cat_crit}** · Maior pressão orçamentária: {perc_crit:.1f}% do orçamento anual já executado.")
 
+            # Alerta operacional: prioriza recorrência de manutenção, não apenas o maior valor isolado.
+            # A mesma regra do bloco de Reincidência é usada: veículo físico com manutenção em 2+ meses.
             mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_placas_exec = df_fin_exec[mask_placa_fisica].copy()
-            if not df_placas_exec.empty and df_placas_exec["Custo de manutenção"].sum() > 0:
-                resumo_placa = df_placas_exec.groupby("Placa", as_index=False).agg({
-                    "Custo de manutenção": "sum", "Custo_Total": "sum", "Quilometragem": "sum"
-                }).sort_values("Custo de manutenção", ascending=False)
-                placa_crit = resumo_placa.iloc[0]["Placa"]
-                valor_crit = resumo_placa.iloc[0]["Custo de manutenção"]
-                custo_total_crit = resumo_placa.iloc[0]["Custo_Total"]
-                km_crit = resumo_placa.iloc[0]["Quilometragem"]
-                cpk_crit = custo_total_crit / km_crit if km_crit > 0 else 0
-                unidade_crit = ""
-                if not df_frota_atual.empty:
-                    vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
-                    if not vinculo.empty:
-                        unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
-                titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
-                alertas.append(
-                    f"🔧 **{titulo_crit}** · Maior manutenção acumulada: {fmt_br(valor_crit, True)} · Custo/KM: {fmt_br(cpk_crit, True)}"
+            df_placas_exec = df_fin_exec[mask_placa_fisica & (df_fin_exec["Custo de manutenção"] > 0)].copy()
+            if not df_placas_exec.empty:
+                resumo_rec_radar = (
+                    df_placas_exec.groupby("Placa", as_index=False)
+                    .agg(
+                        Meses_com_Manutencao=("Mes_Num", "nunique"),
+                        Manutencao_Acumulada=("Custo de manutenção", "sum")
+                    )
                 )
+                resumo_rec_radar = (
+                    resumo_rec_radar[resumo_rec_radar["Meses_com_Manutencao"] >= 2]
+                    .sort_values(["Meses_com_Manutencao", "Manutencao_Acumulada"], ascending=[False, False])
+                )
+
+                if not resumo_rec_radar.empty:
+                    rec_crit = resumo_rec_radar.iloc[0]
+                    placa_crit = rec_crit["Placa"]
+                    meses_crit = int(rec_crit["Meses_com_Manutencao"])
+                    valor_crit = rec_crit["Manutencao_Acumulada"]
+                    unidade_crit = ""
+                    if not df_frota_atual.empty:
+                        vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
+                        if not vinculo.empty:
+                            unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
+                    titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
+                    alertas.append(
+                        f"🔧 **{titulo_crit}** · Manutenção recorrente: {meses_crit} meses com manutenção · {fmt_br(valor_crit, True)} acumulados"
+                    )
 
             if alertas:
                 radar_cols = st.columns(2)
