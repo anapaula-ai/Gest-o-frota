@@ -1021,7 +1021,7 @@ else:
                         rec_cards.append(
                             '<div class="rec-card">'
                             f'<div class="rec-placa">{html.escape(str(r["Placa"]))}</div>'
-                            f'<div class="rec-meses">{meses_rec} meses com manutenção</div>'
+                            f'<div class="rec-meses">Manutenção em {meses_rec} meses</div>'
                             f'<div class="rec-valor">{fmt_br(r["Manutencao_Acumulada"], True)}</div>'
                             '<div class="rec-label">manutenção acumulada</div>'
                             '</div>'
@@ -1164,7 +1164,7 @@ else:
                             unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
                     titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
                     alertas.append(
-                        f"🔧 **{titulo_crit}** · Manutenção recorrente: {meses_crit} meses com manutenção · {fmt_br(valor_crit, True)} acumulados"
+                        f"🔧 **{titulo_crit}** · Manutenção recorrente: manutenção em {meses_crit} meses · {fmt_br(valor_crit, True)} acumulados"
                     )
 
             if alertas:
@@ -1654,7 +1654,7 @@ else:
                             motivos.append("custo/KM acima da média")
                         if r["Sinal_Recorrencia"]:
                             motivos.append(
-                                f'{int(r["Meses com Manutenção"])} meses com manutenção'
+                                f'Manutenção em {int(r["Meses com Manutenção"])} meses'
                             )
 
                         motivos_txt = " · ".join(motivos)
