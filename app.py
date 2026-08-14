@@ -403,6 +403,12 @@ st.markdown("""
     .km-table-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;}
     .km-table-base{color:#263238 !important;font-size:12px;font-weight:650;}
 
+    /* Acabamento visual — Frota, IPVA & Doc */
+    .frota-subtitle{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.45;margin:-3px 0 16px 0;}
+    .frota-section-gap{height:10px;}
+    .frota-divider{border-top:1px solid #DCE4EC;margin:18px 0 18px 0;}
+    .ipva-resumo{color:#455A64 !important;font-size:12.5px;font-weight:600;line-height:1.45;margin:5px 0 12px 0;}
+
     /* Relação da Frota — padrão visual executivo */
     .frota-table-list{
         background:#FFFFFF;
@@ -3088,7 +3094,7 @@ else:
         with tab_frota:
             # ================= RELAÇÃO DA FROTA =================
             st.markdown(f'<div class="manut-section-title">📋 Relação da Frota | {ano_sel}</div>', unsafe_allow_html=True)
-            st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
+            st.markdown('<div class="frota-subtitle">Lista atualizada da frota vinculada às bases, segmentada por categoria em uma única relação.</div>', unsafe_allow_html=True)
             
             pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             mask_frota_aba = df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=False)
@@ -3126,9 +3132,8 @@ else:
                 with fc3:
                     draw_card("🚙 ALUGADOS", fmt_br(total_alugados), "Veículos locados", is_lower_better=False)
 
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('<div class="frota-section-gap"></div>', unsafe_allow_html=True)
 
-                
                 ordem_cat = {"Veículos Próprios": 1, "Alugados": 2, "Moto": 3, "Triciclo": 4, "Reboque": 5, "Sprinter": 6, "Kombi": 7, "Ônibus/Micro": 8}
                 df_frota_unica['Ordem_Cat'] = df_frota_unica['Categoria'].map(lambda x: ordem_cat.get(x, 99))
                 
@@ -3175,8 +3180,8 @@ else:
                     mime="text/csv",
                     key="btn_download_relacao"
                 )
-                st.markdown("<br>", unsafe_allow_html=True)
-                
+                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
                 # Tabela visual padronizada no mesmo DNA das abas executivas
                 linhas_frota_html = []
                 for _, row in df_apresentacao.iterrows():
@@ -3226,13 +3231,13 @@ else:
             else:
                 st.warning("Nenhum veículo encontrado para exibir nesta aba.")
 
-            # Linha de separação um pouco mais próxima da tabela da frota.
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            st.markdown("<hr style='margin-top:10px; margin-bottom:18px'>", unsafe_allow_html=True)
+            # Separação visual entre Relação da Frota e IPVA.
+            st.markdown('<div class="frota-divider"></div>', unsafe_allow_html=True)
 
             # ================= VEÍCULOS & IPVA =================
             st.markdown('<div class="manut-section-title">📅 Estimativas de IPVA e Dados de Veículos</div>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="frota-subtitle">Consulta histórica de estimativas de IPVA e dados cadastrais dos veículos.</div>', unsafe_allow_html=True)
+
             df_ipva = load_ipva_data()
             
             if "Aviso" in df_ipva.columns:
@@ -3270,8 +3275,9 @@ else:
 
                 # Relatório histórico de IPVA mantido apenas para consulta/registro.
                 st.markdown(
-                    f"**Total de veículos listados:** {len(df_ipva_filtrado)} | "
-                    f"**Valor Total Estimado:** {fmt_br(total_ipva, True)}"
+                    f'<div class="ipva-resumo"><strong>Total de veículos listados:</strong> {len(df_ipva_filtrado)} &nbsp;|&nbsp; '
+                    f'<strong>Valor Total Estimado:</strong> {fmt_br(total_ipva, True)}</div>',
+                    unsafe_allow_html=True
                 )
 
                 col_btn, col_esp = st.columns([1, 2])
@@ -3285,7 +3291,7 @@ else:
                         use_container_width=True
                     )
                 
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
 
                 # Tabela de IPVA padronizada no mesmo visual executivo do dashboard
                 def _ipva_txt(v):
