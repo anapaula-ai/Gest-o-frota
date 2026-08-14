@@ -2880,11 +2880,10 @@ else:
 
             # Linha de separação um pouco mais próxima da tabela da frota.
             st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            st.markdown("<hr style='margin-top:0; margin-bottom:18px'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin-top:10px; margin-bottom:18px'>", unsafe_allow_html=True)
 
             # ================= VEÍCULOS & IPVA =================
             st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
-            st.markdown("Base de consulta atualizada automaticamente via Google Sheets.")
             
             df_ipva = load_ipva_data()
             
