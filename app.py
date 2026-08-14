@@ -353,6 +353,21 @@ st.markdown("""
     .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
+    /* Acabamento visual — Gestão de Quilometragem */
+    .km-section-subtitle{
+        color:#607D8B !important;
+        font-size:13px;
+        font-weight:500;
+        margin-top:-5px;
+        margin-bottom:18px;
+    }
+    .km-divider{
+        height:1px;
+        background:#DCE4EC;
+        margin:20px 0 22px 0;
+    }
+    .km-map-download-space{height:6px;}
+
     /* Tabela executiva da aba Gestão de Quilometragem */
     .km-table-list{
         background:#FFFFFF;
@@ -2710,7 +2725,7 @@ else:
         with tab_km:
             # ================= TOP 15 KM =================
             st.markdown('<div class="manut-section-title">🚗 Top 15 Veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
-            st.markdown("Análise dos veículos mais rodados da frota")
+            st.markdown('<div class="km-section-subtitle">Análise dos veículos mais rodados da frota</div>', unsafe_allow_html=True)
             
             df_top_km = load_top_km_data()
             
@@ -2826,12 +2841,11 @@ else:
                 else:
                     st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("---")
+            st.markdown('<div class="km-divider"></div>', unsafe_allow_html=True)
 
             # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f'<div class="manut-section-title">🛣️ Mapa de Quilometragem | {ano_sel}</div>', unsafe_allow_html=True)
-            st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
+            st.markdown('<div class="km-section-subtitle">Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.</div>', unsafe_allow_html=True)
             
             padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             
@@ -2981,8 +2995,8 @@ else:
                     )
                 )
 
-                # Botão alinhado à direita e mais próximo da tabela, sem espaço vertical extra.
-                col_btn_km1, col_btn_km2 = st.columns([3.2, 1.35])
+                # Botão alinhado à direita, com respiro curto antes da tabela.
+                col_btn_km1, col_btn_km2 = st.columns([3.35, 1.25])
                 with col_btn_km2:
                     csv_km = df_km_subtotals.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                     st.download_button(
@@ -2993,6 +3007,8 @@ else:
                         key="btn_download_km",
                         use_container_width=True
                     )
+
+                st.markdown('<div class="km-map-download-space"></div>', unsafe_allow_html=True)
 
                 # Tabela do Mapa de Quilometragem com cabeçalho azul no padrão executivo.
                 # Mantém o mesmo tamanho de fonte dos dados e os destaques já existentes.
