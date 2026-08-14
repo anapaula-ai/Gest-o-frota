@@ -156,6 +156,15 @@ st.markdown("""
     .decision-text{color:#455A64 !important;font-size:12px;font-weight:550;line-height:1.4;}
     @media (max-width:1000px){.decision-wrap{grid-template-columns:1fr;}}
 
+    /* Reincidência de Manutenção — Visão Executiva */
+    .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 16px 0;}
+    .rec-card{background:#FFFFFF;border:1px solid #E3EAF1;border-left:4px solid #F57C00;border-radius:9px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+    .rec-placa{font-size:14px;font-weight:800;color:#163A5F;margin-bottom:4px;}
+    .rec-meses{font-size:13px;font-weight:700;color:#D66A00;margin-bottom:8px;}
+    .rec-valor{font-size:17px;font-weight:800;color:#263238;line-height:1.1;}
+    .rec-label{font-size:11.5px;color:#78909C;margin-top:3px;}
+    @media(max-width:1000px){.rec-wrap{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
     /* Custo/KM Comparativo — Visão Executiva */
     .cpk-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:4px 0 18px 0;}
     .cpk-panel{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:10px;padding:13px 14px;box-shadow:0 3px 10px rgba(26,35,126,.04);}
@@ -985,59 +994,47 @@ else:
                 + ''.join(cards_semaforo) + '</div>',
                 unsafe_allow_html=True
             )
-            # ---------- Custo/KM Comparativo ----------
-            st.markdown('<div class="chart-title">⚖️ Custo/KM Comparativo</div>', unsafe_allow_html=True)
+            # ---------- Reincidência de Manutenção ----------
+            st.markdown('<div class="chart-title">🔧 Reincidência de Manutenção</div>', unsafe_allow_html=True)
+            st.caption(
+                f"Veículos com manutenção registrada em 2 ou mais meses no acumulado até {mes_sel}. "
+                "A recorrência indica frequência de gastos e não, isoladamente, necessidade de substituição do veículo."
+            )
 
-            # Veículos físicos: compara cada placa com a média ponderada da frota selecionada.
-            mask_fisica_cpk = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_cpk_veic = df_fin_exec[mask_fisica_cpk].groupby("Placa", as_index=False).agg({
-                "Custo_Total": "sum", "Quilometragem": "sum"
-            })
-            df_cpk_veic = df_cpk_veic[df_cpk_veic["Quilometragem"] > 0].copy()
-            media_cpk_veic = (df_cpk_veic["Custo_Total"].sum() / df_cpk_veic["Quilometragem"].sum()) if not df_cpk_veic.empty and df_cpk_veic["Quilometragem"].sum() > 0 else 0
-            if not df_cpk_veic.empty:
-                df_cpk_veic["Custo/KM"] = df_cpk_veic["Custo_Total"] / df_cpk_veic["Quilometragem"]
-                df_cpk_veic["Delta"] = df_cpk_veic["Custo/KM"].apply(lambda x: ((x / media_cpk_veic) - 1) * 100 if media_cpk_veic > 0 else 0)
-                top_cpk_veic = df_cpk_veic[df_cpk_veic["Delta"] > 0].sort_values("Delta", ascending=False).head(3)
-            else:
-                top_cpk_veic = pd.DataFrame()
+            mask_fisica_rec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+            df_rec = df_fin_exec[mask_fisica_rec & (df_fin_exec["Custo de manutenção"] > 0)].copy()
 
-            # Unidades: comparação proporcional, evitando sinalizar uma Base apenas por ser maior.
-            df_cpk_unid = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False).agg({
-                "Custo_Total": "sum", "Quilometragem": "sum"
-            })
-            df_cpk_unid = df_cpk_unid[df_cpk_unid["Quilometragem"] > 0].copy()
-            media_cpk_unid = (df_cpk_unid["Custo_Total"].sum() / df_cpk_unid["Quilometragem"].sum()) if not df_cpk_unid.empty and df_cpk_unid["Quilometragem"].sum() > 0 else 0
-            if not df_cpk_unid.empty:
-                df_cpk_unid["Custo/KM"] = df_cpk_unid["Custo_Total"] / df_cpk_unid["Quilometragem"]
-                df_cpk_unid["Delta"] = df_cpk_unid["Custo/KM"].apply(lambda x: ((x / media_cpk_unid) - 1) * 100 if media_cpk_unid > 0 else 0)
-                top_cpk_unid = df_cpk_unid[df_cpk_unid["Delta"] > 0].sort_values("Delta", ascending=False).head(3)
-            else:
-                top_cpk_unid = pd.DataFrame()
-
-            def montar_painel_cpk(titulo, media, dados, coluna_nome):
-                linhas = []
-                if dados is not None and not dados.empty:
-                    for _, r in dados.iterrows():
-                        delta = float(r["Delta"])
-                        sinal = "+" if delta >= 0 else ""
-                        classe = "" if delta > 0 else " ok"
-                        linhas.append(
-                            f'<div class="cpk-row"><div class="cpk-name">{html.escape(str(r[coluna_nome]))}</div>'
-                            f'<div class="cpk-value">{fmt_br(r["Custo/KM"], True)}/km</div>'
-                            f'<div class="cpk-delta{classe}">{delta:.0f}% acima</div></div>'
-                        )
-                else:
-                    linhas.append('<div class="cpk-row"><div class="cpk-name">Sem quilometragem suficiente para comparação.</div></div>')
-                return (
-                    f'<div class="cpk-panel"><div class="cpk-head"><div class="cpk-title">{titulo}</div>'
-                    f'<div class="cpk-avg">Média: {fmt_br(media, True)}/km</div></div>' + ''.join(linhas) + '</div>'
+            if not df_rec.empty:
+                rec_resumo = (
+                    df_rec.groupby("Placa", as_index=False)
+                    .agg(
+                        Meses_com_Manutencao=("Mes_Num", "nunique"),
+                        Manutencao_Acumulada=("Custo de manutenção", "sum")
+                    )
+                )
+                rec_resumo = (
+                    rec_resumo[rec_resumo["Meses_com_Manutencao"] >= 2]
+                    .sort_values(["Meses_com_Manutencao", "Manutencao_Acumulada"], ascending=[False, False])
+                    .head(5)
                 )
 
-            titulo_unid_cpk = "Bases Sociais" if inst_sel == "AMES" else ("Centros de Custo" if inst_sel == "IAV" else "Unidades")
-            painel_veic = montar_painel_cpk("Veículos acima da média", media_cpk_veic, top_cpk_veic, "Placa")
-            painel_unid = montar_painel_cpk(f"{titulo_unid_cpk} acima da média", media_cpk_unid, top_cpk_unid, "Unidade_Gestao")
-            st.markdown('<div class="cpk-wrap">' + painel_veic + painel_unid + '</div>', unsafe_allow_html=True)
+                if not rec_resumo.empty:
+                    rec_cards = []
+                    for _, r in rec_resumo.iterrows():
+                        meses_rec = int(r["Meses_com_Manutencao"])
+                        rec_cards.append(
+                            '<div class="rec-card">'
+                            f'<div class="rec-placa">{html.escape(str(r["Placa"]))}</div>'
+                            f'<div class="rec-meses">{meses_rec} meses com manutenção</div>'
+                            f'<div class="rec-valor">{fmt_br(r["Manutencao_Acumulada"], True)}</div>'
+                            '<div class="rec-label">manutenção acumulada</div>'
+                            '</div>'
+                        )
+                    st.markdown('<div class="rec-wrap">' + ''.join(rec_cards) + '</div>', unsafe_allow_html=True)
+                else:
+                    st.success("Nenhum veículo apresenta manutenção recorrente em 2 ou mais meses na seleção atual.")
+            else:
+                st.info("Sem registros de manutenção de veículos físicos na seleção atual.")
 
             st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
