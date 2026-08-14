@@ -331,7 +331,7 @@ st.markdown("""
     .frota-table-category-name{color:#14206F !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
     .frota-table-category-inst{color:#607D8B !important;font-size:10.5px;font-weight:800;}
 
-    .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 14px 0}
+    .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 34px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
     .odonto-kpi-label{color:#60758A !important;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:28px}
     .odonto-kpi-value{color:#14206F !important;font-size:22px;font-weight:800;margin-top:7px;white-space:nowrap}
