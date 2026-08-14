@@ -146,6 +146,16 @@ st.markdown("""
     .semaforo-detail{color:#607D8B !important;font-size:11.5px;font-weight:550;line-height:1.35;margin-top:5px;}
     @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
+    /* Pontos que Exigem Decisão — Visão Executiva */
+    .decision-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 18px 0;}
+    .decision-card{background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F9A825;border-radius:10px;padding:12px 14px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:82px;}
+    .decision-card.critical{border-left-color:#D32F2F;}
+    .decision-card.warning{border-left-color:#F9A825;}
+    .decision-card.ok{border-left-color:#2E7D32;}
+    .decision-title{color:#17206A !important;font-size:13px;font-weight:850;margin-bottom:5px;}
+    .decision-text{color:#455A64 !important;font-size:12px;font-weight:550;line-height:1.4;}
+    @media (max-width:1000px){.decision-wrap{grid-template-columns:1fr;}}
+
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
@@ -935,8 +945,12 @@ else:
                 ("Manutenção", gasto_manut_acum, orc_manut),
                 ("Combustível", gasto_comb_acum, orc_comb),
                 ("Seguro", gasto_seguro_acum, orc_seg),
-                ("Rastreador", gasto_rastreador_acum, orc_rast),
             ]
+
+            # Rastreador não se aplica à AMES. No consolidado e no IAV,
+            # a categoria permanece visível, usando apenas o orçamento do IAV.
+            if inst_sel != "AMES":
+                itens_semaforo.append(("Rastreador", gasto_rastreador_acum, orc_rast))
 
             cards_semaforo = []
             for nome_sem, real_sem, orc_sem in itens_semaforo:
@@ -952,14 +966,76 @@ else:
                     f'</div>'
                 )
 
+            qtd_cards_semaforo = len(itens_semaforo)
             st.markdown(
-                '<div class="semaforo-wrap">' + ''.join(cards_semaforo) + '</div>',
+                f'<div class="semaforo-wrap" style="grid-template-columns:repeat({qtd_cards_semaforo},minmax(0,1fr));">'
+                + ''.join(cards_semaforo) + '</div>',
                 unsafe_allow_html=True
             )
-            st.caption(
-                "Critério: compara a execução do orçamento anual com o avanço do ano até o mês selecionado. "
-                "Verde = até 5 p.p. acima do ritmo; amarelo = 5 a 15 p.p.; vermelho = mais de 15 p.p. ou orçamento ultrapassado."
-            )
+            # ---------- Pontos que Exigem Decisão ----------
+            st.markdown('<div class="chart-title">🎯 Pontos que Exigem Decisão</div>', unsafe_allow_html=True)
+            decisoes = []
+
+            # 1) Pressão orçamentária: prioriza categorias em vermelho e amarelo.
+            for nome_sem, real_sem, orc_sem in itens_semaforo[1:]:
+                sem = classificar_semaforo(real_sem, orc_sem)
+                if sem["classe"] in ("critical", "warning"):
+                    excesso_pp = sem["execucao"] - perc_tempo_semaforo if sem["execucao"] is not None else 0
+                    nivel = "critical" if sem["classe"] == "critical" else "warning"
+                    decisoes.append((
+                        100 if nivel == "critical" else 80,
+                        nivel,
+                        f"{nome_sem} · pressão orçamentária",
+                        f"{sem['execucao']:.1f}% do orçamento anual executado, {abs(excesso_pp):.1f} p.p. acima do avanço esperado do ano."
+                    ))
+
+            # 2) Veículo com maior manutenção acumulada entre placas físicas.
+            mask_fisica_dec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+            df_veic_dec = df_fin_exec[mask_fisica_dec].copy()
+            if not df_veic_dec.empty and df_veic_dec["Custo de manutenção"].sum() > 0:
+                manut_dec = df_veic_dec.groupby("Placa", as_index=False)["Custo de manutenção"].sum().sort_values("Custo de manutenção", ascending=False)
+                r_dec = manut_dec.iloc[0]
+                decisoes.append((
+                    70, "warning", f"{r_dec['Placa']} · manutenção em destaque",
+                    f"Maior manutenção acumulada entre os veículos: {fmt_br(r_dec['Custo de manutenção'], True)}. Recomenda-se verificar recorrência e natureza dos serviços."
+                ))
+
+            # 3) Unidade com maior custo acumulado, contextualizada pelo tamanho da frota.
+            if not df_fin_exec.empty:
+                custo_unid_dec = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False)["Custo_Total"].sum()
+                custo_unid_dec = custo_unid_dec[custo_unid_dec["Custo_Total"] > 0].sort_values("Custo_Total", ascending=False)
+                if not custo_unid_dec.empty:
+                    r_unid = custo_unid_dec.iloc[0]
+                    qtd_unid = 0
+                    if not df_frota_atual.empty:
+                        qtd_unid = df_frota_atual[
+                            (df_frota_atual["Instituição"] == r_unid["Instituição"]) &
+                            (df_frota_atual["Unidade_Gestao"] == r_unid["Unidade_Gestao"])
+                        ]["Placa_Fisica"].nunique()
+                    complemento = f" · {qtd_unid} ativo(s) vinculado(s)" if qtd_unid > 0 else ""
+                    decisoes.append((
+                        60, "warning", f"{r_unid['Unidade_Gestao']} · maior custo entre as unidades",
+                        f"Custo acumulado de {fmt_br(r_unid['Custo_Total'], True)}{complemento}. Vale revisar a composição desse gasto."
+                    ))
+
+            # Exibe somente os pontos mais relevantes, sem transformar a visão em uma lista extensa.
+            decisoes = sorted(decisoes, key=lambda x: x[0], reverse=True)[:4]
+            if decisoes:
+                cards_decisao = []
+                for _, classe_dec, titulo_dec, texto_dec in decisoes:
+                    cards_decisao.append(
+                        f'<div class="decision-card {classe_dec}">'
+                        f'<div class="decision-title">{html.escape(str(titulo_dec))}</div>'
+                        f'<div class="decision-text">{html.escape(str(texto_dec))}</div>'
+                        f'</div>'
+                    )
+                st.markdown('<div class="decision-wrap">' + ''.join(cards_decisao) + '</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    '<div class="decision-card ok"><div class="decision-title">Sem decisão crítica sinalizada</div>'
+                    '<div class="decision-text">Os critérios gerenciais não identificaram exceções relevantes para a seleção atual.</div></div>',
+                    unsafe_allow_html=True
+                )
 
             st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
