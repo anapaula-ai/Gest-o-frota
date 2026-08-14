@@ -833,7 +833,7 @@ else:
             # ==========================================================
             # VISÃO EXECUTIVA 2.0 — GESTÃO, ORÇAMENTO E RASTREABILIDADE
             # ==========================================================
-            st.markdown(f"### 🌎 Painel Executivo de Logística | {ano_sel}")
+            st.markdown(f'<div class="manut-section-title">🌎 Painel Executivo de Logística | {ano_sel}</div>', unsafe_allow_html=True)
 
             if inst_sel == "AMES":
                 nome_unidade = "Base Social"
@@ -1954,7 +1954,7 @@ else:
                 st.info("Sem custo de manutenção acumulado para exibir nesta seleção.")
 
         with tab_comb:
-            st.markdown(f"### ⛽ Desempenho de Combustível | {mes_sel}/{ano_sel}")
+            st.markdown(f'<div class="manut-section-title">⛽ Desempenho de Combustível | {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
 
             # Combustível é controlado financeiramente pelas placas digitais.
             df_comb = df_base[df_base["Placa"].astype(str).str.contains("COMBUST", case=False, na=False)].copy()
@@ -2228,7 +2228,7 @@ else:
                 st.info("Sem dados mensais de combustível para a seleção atual.")
 
         with tab_seg:
-            st.markdown(f"### 🛡️ Seguro/Rastreadores | {ano_sel}")
+            st.markdown(f'<div class="manut-section-title">🛡️ Seguro/Rastreadores | {ano_sel}</div>', unsafe_allow_html=True)
             df_fixos_acum = df_base[df_base["Mes_Num"] <= mes_num_atual]
             
             gasto_seguro = df_fixos_acum["Custo de seguro"].sum()
@@ -2294,7 +2294,7 @@ else:
             else:
                 rotulo_rx = "Unidade"
 
-            st.markdown(f"### 📍 Raio-X da {rotulo_rx} | {mes_sel}/{ano_sel}")
+            st.markdown(f'<div class="manut-section-title">📍 Raio-X da {rotulo_rx} | {mes_sel}/{ano_sel}</div>', unsafe_allow_html=True)
 
             unidades_rx = sorted(df_base[col_cc].dropna().unique())
             base_raiox = st.selectbox(
@@ -2709,7 +2709,7 @@ else:
 
         with tab_km:
             # ================= TOP 15 KM =================
-            st.markdown(f"### 🚗 Top 15 Veículos | Maior Quilometragem")
+            st.markdown('<div class="manut-section-title">🚗 Top 15 Veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
             st.markdown("Análise dos veículos mais rodados da frota")
             
             df_top_km = load_top_km_data()
@@ -2830,7 +2830,7 @@ else:
             st.markdown("---")
 
             # ================= MAPA DE QUILOMETRAGEM =================
-            st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
+            st.markdown(f'<div class="manut-section-title">🛣️ Mapa de Quilometragem | {ano_sel}</div>', unsafe_allow_html=True)
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
             
             padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
@@ -3071,7 +3071,7 @@ else:
 
         with tab_frota:
             # ================= RELAÇÃO DA FROTA =================
-            st.markdown(f"### 📋 Relação da Frota | {ano_sel}")
+            st.markdown(f'<div class="manut-section-title">📋 Relação da Frota | {ano_sel}</div>', unsafe_allow_html=True)
             st.markdown("Lista atualizada da frota genérica vinculada às bases, segmentada por categoria em uma única planilha.")
             
             pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
@@ -3215,7 +3215,7 @@ else:
             st.markdown("<hr style='margin-top:10px; margin-bottom:18px'>", unsafe_allow_html=True)
 
             # ================= VEÍCULOS & IPVA =================
-            st.markdown(f"### 📅 Estimativas de IPVA e Dados de Veículos")
+            st.markdown('<div class="manut-section-title">📅 Estimativas de IPVA e Dados de Veículos</div>', unsafe_allow_html=True)
             
             df_ipva = load_ipva_data()
             
@@ -3342,7 +3342,7 @@ else:
                 st.warning("Nenhum dado de IPVA encontrado ou erro de carregamento.")
 
         with tab_detalhes:
-            st.markdown("### 📑 Detalhamento dos Dados")
+            st.markdown('<div class="manut-section-title">📑 Detalhamento dos Dados</div>', unsafe_allow_html=True)
             
             df_download = df_base_completa.drop(columns=['Mes_Num'], errors='ignore')
             
