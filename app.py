@@ -179,6 +179,34 @@ st.markdown("""
     }
     .exec-divider{border-top:1px solid #DCE4EC;margin:8px 0 14px 0;}
 
+    /* Padronização fina — Raio-X da Base */
+    .rx-page-subtitle{
+        color:#607D8B !important;
+        font-size:13px;
+        font-weight:600;
+        line-height:1.45;
+        margin:4px 0 16px 0;
+    }
+    .rx-section-title{
+        min-height:42px;
+        display:flex;
+        align-items:center;
+        font-size:18px;
+        font-weight:700;
+        color:#1A237E !important;
+        margin:0 0 5px 0;
+    }
+    .rx-section-note{
+        color:#607D8B !important;
+        font-size:12.5px;
+        font-weight:500;
+        line-height:1.45;
+        margin:0 0 12px 0;
+    }
+    .rx-divider{border-top:1px solid #DCE4EC;margin:18px 0 14px 0;}
+    .rx-block-spacer{height:18px;}
+    .rx-download-spacer{height:26px;}
+
     /* ==========================================
        ESTILO DAS ABAS (TABS COMO BOTÕES PROPORCIONAIS)
        ========================================== */
@@ -1516,7 +1544,7 @@ else:
                     st.warning("Nenhum dado financeiro ou de KM encontrado para esta Placa no período.")
                 st.markdown("---")
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="rx-block-spacer"></div>', unsafe_allow_html=True)
             
             g1, g2 = st.columns(2)
             
@@ -1556,7 +1584,7 @@ else:
                 else:
                     st.info("Nenhum custo lançado neste mês.")
 
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<div class="rx-block-spacer"></div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>',
                 unsafe_allow_html=True
@@ -2319,9 +2347,7 @@ else:
                 media_custo_por_ativo = custo_ativo_unidade.mean() if not custo_ativo_unidade.empty else 0
 
                 st.markdown(
-                    f'<div style="font-size:14px;color:#455A64;margin:4px 0 14px 0;">'
-                    f'<b>{base_raiox}</b> · Resumo mensal para acompanhamento de Manutenção e Combustível'
-                    f'</div>',
+                    f'<div class="rx-page-subtitle"><b>{base_raiox}</b> · Resumo mensal para acompanhamento de Manutenção e Combustível</div>',
                     unsafe_allow_html=True
                 )
 
@@ -2379,7 +2405,7 @@ else:
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(
-                    '<div class="chart-title">📊 Composição do Gasto Acompanhado | Mês</div>',
+                    '<div class="rx-section-title">📊 Composição do Gasto Acompanhado | Mês</div>',
                     unsafe_allow_html=True
                 )
 
@@ -2419,11 +2445,14 @@ else:
                 else:
                     st.info("Sem gastos de manutenção ou combustível no mês selecionado.")
 
-                st.markdown("---")
-                st.markdown(f"#### 📋 Detalhamento da {rotulo_rx} | {base_raiox}")
-                st.caption(
-                    f"Histórico de janeiro até {mes_sel}/{ano_sel}, organizado em duas leituras: "
-                    "evolução mensal da unidade e detalhamento das placas."
+                st.markdown('<div class="rx-divider"></div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div class="rx-section-title">📋 Detalhamento da {rotulo_rx} | {base_raiox}</div>',
+                    unsafe_allow_html=True
+                )
+                st.markdown(
+                    f'<div class="rx-section-note">Histórico de janeiro até {mes_sel}/{ano_sel}, organizado em duas leituras: evolução mensal da unidade e detalhamento das placas.</div>',
+                    unsafe_allow_html=True
                 )
 
                 meses_rx = (
@@ -2477,7 +2506,7 @@ else:
                         anterior = valor
                     df_resumo_mensal_rx["Vs mês anterior"] = variacoes
 
-                st.markdown("##### 1. Evolução Mensal da Unidade")
+                st.markdown('<div class="rx-section-title" style="font-size:16px;min-height:36px;">1. Evolução Mensal da Unidade</div>', unsafe_allow_html=True)
 
                 # Tabela padronizada no mesmo visual executivo do dashboard.
                 # Mantém fonte confortável (13px) e os destaques de variação.
@@ -2529,10 +2558,10 @@ else:
                 # ============================================================
                 # 2) DETALHAMENTO DAS PLACAS
                 # ============================================================
-                st.markdown("##### 2. Detalhamento dos Veículos")
-                st.caption(
-                    "KM e manutenção são apresentados por placa. O combustível permanece no resumo da unidade, "
-                    "pois não é rateado individualmente entre os veículos."
+                st.markdown('<div class="rx-section-title" style="font-size:16px;min-height:36px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
+                st.markdown(
+                    '<div class="rx-section-note">KM e manutenção são apresentados por placa. O combustível permanece no resumo da unidade, pois não é rateado individualmente entre os veículos.</div>',
+                    unsafe_allow_html=True
                 )
 
                 df_veic_acum_rx = df_rx_acum[
@@ -2622,7 +2651,7 @@ else:
                     st.info("Sem placas físicas para detalhar nesta seleção.")
 
                 # Espaço visual entre o detalhamento dos veículos e o botão de download.
-                st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="rx-download-spacer"></div>', unsafe_allow_html=True)
 
                 # ============================================================
                 # DOWNLOAD ÚNICO: duas seções no mesmo CSV
