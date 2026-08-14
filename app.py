@@ -156,6 +156,19 @@ st.markdown("""
     .decision-text{color:#455A64 !important;font-size:12px;font-weight:550;line-height:1.4;}
     @media (max-width:1000px){.decision-wrap{grid-template-columns:1fr;}}
 
+    /* Custo/KM Comparativo — Visão Executiva */
+    .cpk-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:4px 0 18px 0;}
+    .cpk-panel{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:10px;padding:13px 14px;box-shadow:0 3px 10px rgba(26,35,126,.04);}
+    .cpk-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px;}
+    .cpk-title{color:#17206A !important;font-size:13px;font-weight:850;}
+    .cpk-avg{color:#607D8B !important;font-size:11.5px;font-weight:650;}
+    .cpk-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #EEF2F6;}
+    .cpk-name{color:#263238 !important;font-size:12px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .cpk-value{color:#17206A !important;font-size:12px;font-weight:850;}
+    .cpk-delta{font-size:11px;font-weight:850;border-radius:999px;padding:3px 7px;background:#FFF3E0;color:#E65100 !important;}
+    .cpk-delta.ok{background:#E8F5E9;color:#2E7D32 !important;}
+    @media (max-width:1000px){.cpk-wrap{grid-template-columns:1fr;}}
+
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
@@ -1000,24 +1013,6 @@ else:
                     f"Maior manutenção acumulada entre os veículos: {fmt_br(r_dec['Custo de manutenção'], True)}. Recomenda-se verificar recorrência e natureza dos serviços."
                 ))
 
-            # 3) Unidade com maior custo acumulado, contextualizada pelo tamanho da frota.
-            if not df_fin_exec.empty:
-                custo_unid_dec = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False)["Custo_Total"].sum()
-                custo_unid_dec = custo_unid_dec[custo_unid_dec["Custo_Total"] > 0].sort_values("Custo_Total", ascending=False)
-                if not custo_unid_dec.empty:
-                    r_unid = custo_unid_dec.iloc[0]
-                    qtd_unid = 0
-                    if not df_frota_atual.empty:
-                        qtd_unid = df_frota_atual[
-                            (df_frota_atual["Instituição"] == r_unid["Instituição"]) &
-                            (df_frota_atual["Unidade_Gestao"] == r_unid["Unidade_Gestao"])
-                        ]["Placa_Fisica"].nunique()
-                    complemento = f" · {qtd_unid} ativo(s) vinculado(s)" if qtd_unid > 0 else ""
-                    decisoes.append((
-                        60, "warning", f"{r_unid['Unidade_Gestao']} · maior custo entre as unidades",
-                        f"Custo acumulado de {fmt_br(r_unid['Custo_Total'], True)}{complemento}. Vale revisar a composição desse gasto."
-                    ))
-
             # Exibe somente os pontos mais relevantes, sem transformar a visão em uma lista extensa.
             decisoes = sorted(decisoes, key=lambda x: x[0], reverse=True)[:4]
             if decisoes:
@@ -1036,6 +1031,60 @@ else:
                     '<div class="decision-text">Os critérios gerenciais não identificaram exceções relevantes para a seleção atual.</div></div>',
                     unsafe_allow_html=True
                 )
+
+            # ---------- Custo/KM Comparativo ----------
+            st.markdown('<div class="chart-title">⚖️ Custo/KM Comparativo</div>', unsafe_allow_html=True)
+
+            # Veículos físicos: compara cada placa com a média ponderada da frota selecionada.
+            mask_fisica_cpk = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+            df_cpk_veic = df_fin_exec[mask_fisica_cpk].groupby("Placa", as_index=False).agg({
+                "Custo_Total": "sum", "Quilometragem": "sum"
+            })
+            df_cpk_veic = df_cpk_veic[df_cpk_veic["Quilometragem"] > 0].copy()
+            media_cpk_veic = (df_cpk_veic["Custo_Total"].sum() / df_cpk_veic["Quilometragem"].sum()) if not df_cpk_veic.empty and df_cpk_veic["Quilometragem"].sum() > 0 else 0
+            if not df_cpk_veic.empty:
+                df_cpk_veic["Custo/KM"] = df_cpk_veic["Custo_Total"] / df_cpk_veic["Quilometragem"]
+                df_cpk_veic["Delta"] = df_cpk_veic["Custo/KM"].apply(lambda x: ((x / media_cpk_veic) - 1) * 100 if media_cpk_veic > 0 else 0)
+                top_cpk_veic = df_cpk_veic.sort_values("Delta", ascending=False).head(3)
+            else:
+                top_cpk_veic = pd.DataFrame()
+
+            # Unidades: comparação proporcional, evitando sinalizar uma Base apenas por ser maior.
+            df_cpk_unid = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False).agg({
+                "Custo_Total": "sum", "Quilometragem": "sum"
+            })
+            df_cpk_unid = df_cpk_unid[df_cpk_unid["Quilometragem"] > 0].copy()
+            media_cpk_unid = (df_cpk_unid["Custo_Total"].sum() / df_cpk_unid["Quilometragem"].sum()) if not df_cpk_unid.empty and df_cpk_unid["Quilometragem"].sum() > 0 else 0
+            if not df_cpk_unid.empty:
+                df_cpk_unid["Custo/KM"] = df_cpk_unid["Custo_Total"] / df_cpk_unid["Quilometragem"]
+                df_cpk_unid["Delta"] = df_cpk_unid["Custo/KM"].apply(lambda x: ((x / media_cpk_unid) - 1) * 100 if media_cpk_unid > 0 else 0)
+                top_cpk_unid = df_cpk_unid.sort_values("Delta", ascending=False).head(3)
+            else:
+                top_cpk_unid = pd.DataFrame()
+
+            def montar_painel_cpk(titulo, media, dados, coluna_nome):
+                linhas = []
+                if dados is not None and not dados.empty:
+                    for _, r in dados.iterrows():
+                        delta = float(r["Delta"])
+                        sinal = "+" if delta >= 0 else ""
+                        classe = "" if delta > 0 else " ok"
+                        linhas.append(
+                            f'<div class="cpk-row"><div class="cpk-name">{html.escape(str(r[coluna_nome]))}</div>'
+                            f'<div class="cpk-value">{fmt_br(r["Custo/KM"], True)}/km</div>'
+                            f'<div class="cpk-delta{classe}">{sinal}{delta:.0f}%</div></div>'
+                        )
+                else:
+                    linhas.append('<div class="cpk-row"><div class="cpk-name">Sem quilometragem suficiente para comparação.</div></div>')
+                return (
+                    f'<div class="cpk-panel"><div class="cpk-head"><div class="cpk-title">{titulo}</div>'
+                    f'<div class="cpk-avg">Média: {fmt_br(media, True)}/km</div></div>' + ''.join(linhas) + '</div>'
+                )
+
+            titulo_unid_cpk = "Bases Sociais" if inst_sel == "AMES" else ("Centros de Custo" if inst_sel == "IAV" else "Unidades")
+            painel_veic = montar_painel_cpk("Veículos | maiores desvios", media_cpk_veic, top_cpk_veic, "Placa")
+            painel_unid = montar_painel_cpk(f"{titulo_unid_cpk} | maiores desvios", media_cpk_unid, top_cpk_unid, "Unidade_Gestao")
+            st.markdown('<div class="cpk-wrap">' + painel_veic + painel_unid + '</div>', unsafe_allow_html=True)
 
             st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
