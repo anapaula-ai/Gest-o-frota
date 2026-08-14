@@ -1165,6 +1165,69 @@ else:
             else:
                 st.markdown('<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>', unsafe_allow_html=True)
 
+            # ---------- Tendência dos últimos 12 meses ----------
+            st.markdown('<div class="chart-title">📈 Tendência de Custos | Últimos 12 meses</div>', unsafe_allow_html=True)
+
+            # Usa a base completa para permitir que a janela atravesse a virada do ano,
+            # preservando os filtros atuais de Instituição e Unidade.
+            df_tend = df.copy()
+            if inst_sel != "TODAS":
+                df_tend = df_tend[df_tend["Instituição"] == inst_sel].copy()
+            if cc_sel != "TODOS":
+                df_tend = df_tend[df_tend[col_cc] == cc_sel].copy()
+
+            mask_cadastro_tend = df_tend["Placa"].astype(str).str.contains(
+                cadastro_pattern, case=False, na=False, regex=True
+            )
+            df_tend = df_tend[~mask_cadastro_tend].copy()
+            df_tend["Custo_Total_Tend"] = (
+                df_tend["Custo de manutenção"]
+                + df_tend["Custo Combustível"]
+                + df_tend["Custo de seguro"]
+                + df_tend["Custo de Rastreador"]
+            )
+
+            data_fim_tend = pd.Timestamp(year=int(ano_sel), month=int(mes_num_atual), day=1)
+            data_ini_tend = data_fim_tend - pd.DateOffset(months=11)
+            df_tend = df_tend[
+                (df_tend["Mês Referência"] >= data_ini_tend)
+                & (df_tend["Mês Referência"] < (data_fim_tend + pd.offsets.MonthBegin(1)))
+            ].copy()
+
+            if not df_tend.empty:
+                df_tend["Periodo"] = df_tend["Mês Referência"].dt.to_period("M").dt.to_timestamp()
+                tend_mensal = df_tend.groupby("Periodo", as_index=False)["Custo_Total_Tend"].sum()
+                meses_janela = pd.date_range(data_ini_tend, data_fim_tend, freq="MS")
+                tend_mensal = (
+                    tend_mensal.set_index("Periodo")
+                    .reindex(meses_janela, fill_value=0)
+                    .rename_axis("Periodo")
+                    .reset_index()
+                )
+                nomes_mes_curto = {1:"Jan",2:"Fev",3:"Mar",4:"Abr",5:"Mai",6:"Jun",7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"}
+                tend_mensal["Mês"] = tend_mensal["Periodo"].apply(lambda d: f"{nomes_mes_curto[d.month]}/{str(d.year)[2:]}")
+
+                fig_tend = px.line(
+                    tend_mensal, x="Mês", y="Custo_Total_Tend", markers=True, text="Custo_Total_Tend"
+                )
+                fig_tend.update_traces(
+                    line=dict(width=3), marker=dict(size=8),
+                    texttemplate="R$ %{text:,.0f}", textposition="top center",
+                    hovertemplate="<b>%{x}</b><br>Custo total: R$ %{y:,.2f}<extra></extra>"
+                )
+                max_tend = tend_mensal["Custo_Total_Tend"].max() if not tend_mensal.empty else 1
+                fig_tend.update_layout(
+                    height=330, separators=",.",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=5, r=10, t=20, b=10),
+                    xaxis=dict(title="", showgrid=False),
+                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.22, 1)]),
+                    showlegend=False
+                )
+                st.plotly_chart(fig_tend, use_container_width=True, config={"displayModeBar": False})
+            else:
+                st.info("Sem histórico de custos disponível para a janela dos últimos 12 meses.")
+
             st.markdown("<hr>", unsafe_allow_html=True)
 
             # ---------- Ranking de Bases Sociais / Centros de Custo ----------
@@ -2221,11 +2284,11 @@ else:
                 )
                 qtd_veiculos_base = df_rx_acum.loc[mask_fisica_rx, "Placa"].nunique()
 
-                # Custo por ativo: total acumulado de Manutenção + Combustível
+                # Custo por veículo: total acumulado de Manutenção + Combustível
                 # dividido pela quantidade de placas físicas vinculadas à unidade.
                 custo_por_ativo = (total_acum / qtd_veiculos_base) if qtd_veiculos_base > 0 else 0
 
-                # Referência: média simples do custo por ativo das unidades da seleção atual.
+                # Referência: média simples do custo por veículo das unidades da seleção atual.
                 df_rx_ref = df_base[df_base["Mes_Num"] <= mes_num_atual].copy()
                 mask_fisica_ref = df_rx_ref["Placa"].astype(str).str.fullmatch(
                     r"[A-Z0-9]{7}", case=False, na=False
@@ -2281,7 +2344,7 @@ else:
                     )
                 with r5:
                     draw_card(
-                        "💳 CUSTO POR ATIVO",
+                        "💳 CUSTO POR VEÍCULO",
                         fmt_br(custo_por_ativo, True),
                         f"Média das unidades: <b>{fmt_br(media_custo_por_ativo, True)}</b>",
                         is_lower_better=False
