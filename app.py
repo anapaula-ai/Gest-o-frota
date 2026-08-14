@@ -2494,13 +2494,12 @@ else:
                 else:
                     st.error("Não foi possível identificar as colunas de 'Placa' e 'KM' na sua nova planilha Top Km. Verifique os títulos das colunas.")
 
-            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("---")
 
             # ================= MAPA DE QUILOMETRAGEM =================
             st.markdown(f"### 🛣️ Mapa de Quilometragem | {ano_sel}")
             st.markdown("Visão em matriz da quilometragem rodada por veículo e por base, com totais consolidados ao longo dos meses.")
-            st.caption("A intensidade do azul destaca os maiores volumes de KM em cada coluna · células sem movimentação ficam em branco.")
             
             padrao_exclusao_km = "COMBUS|SEGUR|FINANC|CONSÓRC|RASTR|LOGIST|MANUT|MENSAL|TAXA|VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
             
@@ -2650,18 +2649,19 @@ else:
                     )
                 )
 
-                col_btn_km1, col_btn_km2 = st.columns([2, 1])
+                # Botão alinhado à direita e mais próximo da tabela, sem espaço vertical extra.
+                col_btn_km1, col_btn_km2 = st.columns([3.2, 1.35])
                 with col_btn_km2:
-                    st.markdown("<br>", unsafe_allow_html=True)
                     csv_km = df_km_subtotals.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
                     st.download_button(
                         label="📥 Baixar Mapa de KM em Excel/CSV",
                         data=csv_km,
                         file_name=f"Mapa_Quilometragem_Completo_{inst_sel}_{ano_sel}.csv",
                         mime="text/csv",
-                        key="btn_download_km"
+                        key="btn_download_km",
+                        use_container_width=True
                     )
-                
+
                 # Tabela do Mapa de Quilometragem com cabeçalho azul no padrão executivo.
                 # Mantém o mesmo tamanho de fonte dos dados e os destaques já existentes.
                 df_styled = df_styled.set_table_styles([
