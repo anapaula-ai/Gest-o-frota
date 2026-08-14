@@ -2335,6 +2335,9 @@ else:
                 else:
                     st.info("Sem placas físicas para detalhar nesta seleção.")
 
+                # Espaço visual entre o detalhamento dos veículos e o botão de download.
+                st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+
                 # ============================================================
                 # DOWNLOAD ÚNICO: duas seções no mesmo CSV
                 # ============================================================
