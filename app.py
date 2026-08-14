@@ -113,6 +113,39 @@ st.markdown("""
     .radar-card.warning { border-left-color: #F57C00; }
     .radar-card.critical { border-left-color: #D32F2F; }
     .radar-card.ok { border-left-color: #2E7D32; }
+
+    /* Semáforo Gerencial — Visão Executiva */
+    .semaforo-wrap{
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:10px;
+        margin:2px 0 18px 0;
+    }
+    .semaforo-card{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:11px;
+        padding:12px 13px;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+        min-height:112px;
+        position:relative;
+        overflow:hidden;
+    }
+    .semaforo-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#90A4AE;}
+    .semaforo-card.ok::before{background:#2E7D32;}
+    .semaforo-card.warning::before{background:#F9A825;}
+    .semaforo-card.critical::before{background:#D32F2F;}
+    .semaforo-card.na::before{background:#90A4AE;}
+    .semaforo-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .semaforo-label{color:#455A64 !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
+    .semaforo-dot{width:12px;height:12px;border-radius:50%;background:#90A4AE;box-shadow:0 0 0 3px rgba(144,164,174,.14);flex:0 0 auto;}
+    .semaforo-card.ok .semaforo-dot{background:#2E7D32;box-shadow:0 0 0 3px rgba(46,125,50,.13);}
+    .semaforo-card.warning .semaforo-dot{background:#F9A825;box-shadow:0 0 0 3px rgba(249,168,37,.14);}
+    .semaforo-card.critical .semaforo-dot{background:#D32F2F;box-shadow:0 0 0 3px rgba(211,47,47,.12);}
+    .semaforo-status{color:#14206F !important;font-size:15px;font-weight:850;margin-top:10px;}
+    .semaforo-detail{color:#607D8B !important;font-size:11.5px;font-weight:550;line-height:1.35;margin-top:5px;}
+    @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
     .chart-title { height: 50px; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: #1A237E !important; text-align: left; margin-bottom: 5px; }
 
     /* ==========================================
@@ -855,7 +888,80 @@ else:
                     is_lower_better=False
                 )
 
-            st.markdown("<hr style='margin-top: 5px; margin-bottom: 18px'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin-top: 5px; margin-bottom: 12px'>", unsafe_allow_html=True)
+
+            # ---------- Semáforo Gerencial ----------
+            st.markdown('<div class="chart-title">🚦 Semáforo Gerencial</div>', unsafe_allow_html=True)
+
+            # O semáforo compara o percentual do orçamento anual já consumido
+            # com o percentual do ano transcorrido até o mês selecionado.
+            # Verde: até 5 p.p. acima do ritmo esperado
+            # Amarelo: entre 5 e 15 p.p. acima
+            # Vermelho: mais de 15 p.p. acima ou orçamento já ultrapassado
+            perc_tempo_semaforo = (mes_num_atual / 12) * 100 if mes_num_atual > 0 else 0
+
+            def classificar_semaforo(real, orcado):
+                if ano_sel != 2026 or orcado <= 0:
+                    return {
+                        "classe": "na",
+                        "status": "Sem referência",
+                        "execucao": None,
+                        "detalhe": "Orçamento anual não cadastrado"
+                    }
+
+                execucao = (real / orcado * 100) if orcado > 0 else 0
+                desvio = execucao - perc_tempo_semaforo
+
+                if execucao > 100 or desvio > 15:
+                    classe = "critical"
+                    status = "Crítico"
+                elif desvio > 5:
+                    classe = "warning"
+                    status = "Atenção"
+                else:
+                    classe = "ok"
+                    status = "Dentro do ritmo"
+
+                detalhe = f"{execucao:.1f}% usado · ritmo esperado {perc_tempo_semaforo:.1f}%"
+                return {
+                    "classe": classe,
+                    "status": status,
+                    "execucao": execucao,
+                    "detalhe": detalhe
+                }
+
+            itens_semaforo = [
+                ("Total", custo_total_global, orcamento_total_global),
+                ("Manutenção", gasto_manut_acum, orc_manut),
+                ("Combustível", gasto_comb_acum, orc_comb),
+                ("Seguro", gasto_seguro_acum, orc_seg),
+                ("Rastreador", gasto_rastreador_acum, orc_rast),
+            ]
+
+            cards_semaforo = []
+            for nome_sem, real_sem, orc_sem in itens_semaforo:
+                sem = classificar_semaforo(real_sem, orc_sem)
+                cards_semaforo.append(
+                    f'<div class="semaforo-card {sem["classe"]}">'
+                    f'<div class="semaforo-top">'
+                    f'<div class="semaforo-label">{nome_sem}</div>'
+                    f'<div class="semaforo-dot"></div>'
+                    f'</div>'
+                    f'<div class="semaforo-status">{sem["status"]}</div>'
+                    f'<div class="semaforo-detail">{sem["detalhe"]}</div>'
+                    f'</div>'
+                )
+
+            st.markdown(
+                '<div class="semaforo-wrap">' + ''.join(cards_semaforo) + '</div>',
+                unsafe_allow_html=True
+            )
+            st.caption(
+                "Critério: compara a execução do orçamento anual com o avanço do ano até o mês selecionado. "
+                "Verde = até 5 p.p. acima do ritmo; amarelo = 5 a 15 p.p.; vermelho = mais de 15 p.p. ou orçamento ultrapassado."
+            )
+
+            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
             # ---------- Leitura financeira executiva ----------
             col_recursos, col_orcado = st.columns([1, 1.45])
