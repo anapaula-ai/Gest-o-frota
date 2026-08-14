@@ -1417,7 +1417,8 @@ else:
             else:
                 st.info("Sem dados suficientes para análise de veículos em atenção.")
 
-            st.markdown("<br><br>", unsafe_allow_html=True)
+            # Espaçamento reduzido entre o último card de Veículos em Atenção e a linha divisória.
+            st.markdown("<div style=\"height:10px;\"></div>", unsafe_allow_html=True)
             st.markdown("---")
 
             # ================= VISÃO ACUMULADA =================
