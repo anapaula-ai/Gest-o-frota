@@ -1399,13 +1399,11 @@ else:
                         linhas_km = ['<div class="exec-list">']
                         for pos, (_, row) in enumerate(rank_km.iterrows(), start=1):
                             linhas_km.append(
-                                f"""
-                                <div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">
-                                    <div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>
-                                    <div class="exec-name">{row["Placa_Normalizada"]}</div>
-                                    <div class="exec-money">{fmt_br(row["Quilometragem"])} km</div>
-                                </div>
-                                """
+                                f'<div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">'
+                                f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
+                                f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
+                                f'<div class="exec-money">{fmt_br(row["Quilometragem"])} km</div>'
+                                f'</div>'
                             )
                         linhas_km.append("</div>")
                         st.markdown("".join(linhas_km), unsafe_allow_html=True)
@@ -1431,13 +1429,11 @@ else:
                         linhas_manut = ['<div class="exec-list">']
                         for pos, (_, row) in enumerate(rank_manut.iterrows(), start=1):
                             linhas_manut.append(
-                                f"""
-                                <div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">
-                                    <div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>
-                                    <div class="exec-name">{row["Placa_Normalizada"]}</div>
-                                    <div class="exec-money">{fmt_br(row["Custo de manutenção"], True)}</div>
-                                </div>
-                                """
+                                f'<div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">'
+                                f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
+                                f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
+                                f'<div class="exec-money">{fmt_br(row["Custo de manutenção"], True)}</div>'
+                                f'</div>'
                             )
                         linhas_manut.append("</div>")
                         st.markdown("".join(linhas_manut), unsafe_allow_html=True)
