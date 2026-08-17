@@ -120,7 +120,7 @@ st.markdown("""
         display:grid;
         grid-template-columns:repeat(5,minmax(0,1fr));
         gap:10px;
-        margin:4px 0 20px 0;
+        margin:4px 0 34px 0;
     }
     .semaforo-card{
         background:#FFFFFF;
@@ -144,7 +144,7 @@ st.markdown("""
     .semaforo-card.warning .semaforo-dot{background:#F9A825;box-shadow:0 0 0 3px rgba(249,168,37,.14);}
     .semaforo-card.critical .semaforo-dot{background:#D32F2F;box-shadow:0 0 0 3px rgba(211,47,47,.12);}
     .semaforo-status{color:#14206F !important;font-size:15px;font-weight:850;margin-top:10px;}
-    .semaforo-detail{color:#607D8B !important;font-size:11.5px;font-weight:550;line-height:1.35;margin-top:5px;}
+    .semaforo-detail{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.4;margin-top:6px;}
     @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
     /* Reincidência de Manutenção — Visão Executiva */
@@ -1363,68 +1363,6 @@ else:
                     st.caption(f"Execução do orçamento anual · {execucao_resumo}")
                 else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
-
-            st.markdown('<div class="exec-section-title">🚨 Radar de Atenção</div>', unsafe_allow_html=True)
-            alertas = []
-            if ano_sel == 2026 and orcamento_total_global > 0:
-                perc_tempo = (mes_num_atual / 12) * 100
-                if projecao_anual > orcamento_total_global:
-                    alertas.append(f"⚠️ **Projeção acima do orçamento:** excesso estimado de {fmt_br(abs(diferenca_proj), True)}.")
-                elif perc_global > perc_tempo + 10:
-                    alertas.append(f"⚠️ **Ritmo de consumo elevado:** {perc_global:.1f}% do orçamento utilizado com {perc_tempo:.1f}% do ano transcorrido.")
-
-                exec_categorias = [
-                    ("Manutenção", gasto_manut_acum, orc_manut),
-                    ("Combustível", gasto_comb_acum, orc_comb),
-                    ("Seguro", gasto_seguro_acum, orc_seg),
-                    ("Rastreador", gasto_rastreador_acum, orc_rast)
-                ]
-                exec_validas = [(cat, real / orc * 100) for cat, real, orc in exec_categorias if orc > 0]
-                if exec_validas:
-                    cat_crit, perc_crit = max(exec_validas, key=lambda x: x[1])
-                    if perc_crit > perc_tempo + 10:
-                        alertas.append(f"🎯 **{cat_crit}** · Maior pressão orçamentária: {perc_crit:.1f}% do orçamento anual já executado.")
-
-            # Alerta operacional: prioriza recorrência de manutenção, não apenas o maior valor isolado.
-            # A mesma regra do bloco de Reincidência é usada: veículo físico com manutenção em 2+ meses.
-            mask_placa_fisica = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_placas_exec = df_fin_exec[mask_placa_fisica & (df_fin_exec["Custo de manutenção"] > 0)].copy()
-            if not df_placas_exec.empty:
-                resumo_rec_radar = (
-                    df_placas_exec.groupby("Placa", as_index=False)
-                    .agg(
-                        Meses_com_Manutencao=("Mes_Num", "nunique"),
-                        Manutencao_Acumulada=("Custo de manutenção", "sum")
-                    )
-                )
-                resumo_rec_radar = (
-                    resumo_rec_radar[resumo_rec_radar["Meses_com_Manutencao"] >= 2]
-                    .sort_values(["Meses_com_Manutencao", "Manutencao_Acumulada"], ascending=[False, False])
-                )
-
-                if not resumo_rec_radar.empty:
-                    rec_crit = resumo_rec_radar.iloc[0]
-                    placa_crit = rec_crit["Placa"]
-                    meses_crit = int(rec_crit["Meses_com_Manutencao"])
-                    valor_crit = rec_crit["Manutencao_Acumulada"]
-                    unidade_crit = ""
-                    if not df_frota_atual.empty:
-                        vinculo = df_frota_atual[df_frota_atual["Placa_Fisica"].astype(str).str.upper() == str(placa_crit).upper()]
-                        if not vinculo.empty:
-                            unidade_crit = str(vinculo.iloc[-1]["Unidade_Gestao"])
-                    titulo_crit = unidade_crit if "ODONTOVAN" in unidade_crit.upper() else placa_crit
-                    alertas.append(
-                        f"🔧 **{titulo_crit}** · Manutenção recorrente · {fmt_br(valor_crit, True)} acumulados"
-                    )
-
-            if alertas:
-                radar_cols = st.columns(2)
-                for idx, alerta in enumerate(alertas[:4]):
-                    classe = "critical" if ("acima do orçamento" in alerta.lower() or "ritmo de consumo elevado" in alerta.lower()) else "warning"
-                    with radar_cols[idx % 2]:
-                        st.markdown(f'<div class="radar-card {classe}">{alerta.replace("**", "")}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="radar-card ok">✅ Nenhum alerta financeiro crítico identificado para a seleção atual.</div>', unsafe_allow_html=True)
 
             # ---------- Tendência dos últimos 12 meses ----------
             # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
