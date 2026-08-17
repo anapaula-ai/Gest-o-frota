@@ -1012,13 +1012,49 @@ else:
             projecao_anual = (custo_total_global / mes_num_atual) * 12 if mes_num_atual > 0 else 0
             diferenca_proj = orcamento_total_global - projecao_anual
 
+            # Veículo de maior custo acumulado — considera somente placas físicas de 7 caracteres.
+            veiculo_maior_custo = "—"
+            valor_maior_custo = 0.0
+            perc_maior_custo = 0.0
+
+            if not df_fin_exec.empty:
+                df_veic_custo = df_fin_exec.copy()
+                df_veic_custo["Placa_Normalizada"] = (
+                    df_veic_custo["Placa"]
+                    .astype(str)
+                    .str.upper()
+                    .str.replace(r"[^A-Z0-9]", "", regex=True)
+                )
+                df_veic_custo = df_veic_custo[
+                    df_veic_custo["Placa_Normalizada"].str.fullmatch(r"[A-Z0-9]{7}", na=False)
+                ].copy()
+
+                if not df_veic_custo.empty:
+                    custo_por_veiculo = (
+                        df_veic_custo.groupby("Placa_Normalizada", as_index=False)["Custo_Total"]
+                        .sum()
+                        .sort_values("Custo_Total", ascending=False)
+                    )
+                    if not custo_por_veiculo.empty:
+                        veiculo_maior_custo = custo_por_veiculo.iloc[0]["Placa_Normalizada"]
+                        valor_maior_custo = float(custo_por_veiculo.iloc[0]["Custo_Total"])
+                        perc_maior_custo = (
+                            valor_maior_custo / custo_total_global * 100
+                            if custo_total_global > 0 else 0
+                        )
+
+            # ==========================================================
+            # LINHA 1 — PRINCIPAIS INDICADORES FINANCEIROS
+            # ==========================================================
             c1, c2, c3, c4, c5 = st.columns(5)
+
             with c1:
                 draw_card(
                     "💰 CUSTO ACUMULADO",
                     fmt_br(custo_total_global, True),
                     f"Até {mes_sel}/{ano_sel}"
                 )
+
             with c2:
                 if ano_sel == 2026 and orcamento_total_global > 0:
                     draw_card(
@@ -1029,28 +1065,60 @@ else:
                         progress_text=f"Saldo: {fmt_br(saldo_global, True)}"
                     )
                 else:
-                    draw_card("🎯 EXECUÇÃO ORÇAMENTÁRIA", "—", "Orçamento não cadastrado para o ano")
+                    draw_card(
+                        "🎯 EXECUÇÃO ORÇAMENTÁRIA",
+                        "—",
+                        "Orçamento não cadastrado para o ano"
+                    )
+
             with c3:
                 if ano_sel == 2026 and orcamento_total_global > 0:
                     if projecao_anual <= orcamento_total_global:
                         texto_proj = f"🟢 {fmt_br(diferenca_proj, True)} abaixo do orçamento"
                     else:
                         texto_proj = f"🔴 {fmt_br(abs(diferenca_proj), True)} acima do orçamento"
+
                     draw_card(
                         "📈 PREVISÃO DE GASTO ATÉ DEZ/26",
                         fmt_br(projecao_anual, True),
                         texto_proj
                     )
                 else:
-                    draw_card("📈 PREVISÃO DE GASTO ATÉ DEZ", fmt_br(projecao_anual, True), "Mantida a média atual de gastos")
+                    draw_card(
+                        "📈 PREVISÃO DE GASTO ATÉ DEZ",
+                        fmt_br(projecao_anual, True),
+                        "Mantida a média atual de gastos"
+                    )
+
             with c4:
+                if ano_sel == 2026 and orcamento_total_global > 0:
+                    saldo_status = "🟢 Saldo disponível" if saldo_global >= 0 else "🔴 Orçamento excedido"
+                    draw_card(
+                        "💼 SALDO ORÇAMENTÁRIO",
+                        fmt_br(saldo_global, True),
+                        saldo_status
+                    )
+                else:
+                    draw_card(
+                        "💼 SALDO ORÇAMENTÁRIO",
+                        "—",
+                        "Orçamento não cadastrado para o ano"
+                    )
+
+            with c5:
                 draw_card(
-                    "🛣️ KM ACUMULADOS",
-                    fmt_br(km_total_global),
-                    f"CPK global: <b>{fmt_br(cpk_global, True)}/km</b>",
+                    "💳 CUSTO MÉDIO POR VEÍCULO",
+                    fmt_br(custo_medio_veiculo, True) if qtd_frota > 0 else "—",
+                    f"Custo acumulado ÷ {fmt_br(qtd_frota)} ativos cadastrados" if qtd_frota > 0 else "Sem ativos cadastrados na seleção",
                     is_lower_better=False
                 )
-            with c5:
+
+            # ==========================================================
+            # LINHA 2 — INDICADORES DA FROTA E DESEMPENHO
+            # ==========================================================
+            f1, f2, f3, f4, f5 = st.columns(5)
+
+            with f1:
                 draw_card(
                     "🚙 ATIVOS CADASTRADOS",
                     fmt_br(qtd_frota),
@@ -1058,21 +1126,40 @@ else:
                     is_lower_better=False
                 )
 
-            # Indicadores médios complementares da frota
-            m1, m2 = st.columns(2)
-            with m1:
-                draw_card(
-                    "💳 CUSTO MÉDIO POR VEÍCULO",
-                    fmt_br(custo_medio_veiculo, True) if qtd_frota > 0 else "—",
-                    f"Custo acumulado ÷ {fmt_br(qtd_frota)} ativos cadastrados" if qtd_frota > 0 else "Sem ativos cadastrados na seleção",
-                    is_lower_better=False
-                )
-            with m2:
+            with f2:
                 draw_card(
                     "📅 ANO MÉDIO DA FROTA",
                     f"{ano_medio_frota:.0f}" if ano_medio_frota is not None and pd.notna(ano_medio_frota) else "—",
                     "Média do ano dos veículos cadastrados na seleção" if ano_medio_frota is not None and pd.notna(ano_medio_frota) else "Ano dos veículos não disponível para a seleção",
                     is_lower_better=False
+                )
+
+            with f3:
+                draw_card(
+                    "🛣️ KM ACUMULADOS",
+                    fmt_br(km_total_global),
+                    f"Até {mes_sel}/{ano_sel}",
+                    is_lower_better=False
+                )
+
+            with f4:
+                draw_card(
+                    "📊 CPK GLOBAL",
+                    f"{fmt_br(cpk_global, True)}/km" if km_total_global > 0 else "—",
+                    "Custo acumulado ÷ km acumulados" if km_total_global > 0 else "Sem quilometragem na seleção",
+                    is_lower_better=True
+                )
+
+            with f5:
+                draw_card(
+                    "🚘 VEÍCULO DE MAIOR CUSTO",
+                    veiculo_maior_custo,
+                    (
+                        f"{fmt_br(valor_maior_custo, True)} acumulados · {perc_maior_custo:.1f}% do custo total"
+                        if veiculo_maior_custo != "—"
+                        else "Sem placa física com custo na seleção"
+                    ),
+                    is_lower_better=True
                 )
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 12px'>", unsafe_allow_html=True)
