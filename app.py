@@ -1364,73 +1364,87 @@ else:
                 else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
 
-            # ---------- Tendência dos últimos 12 meses ----------
-            # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
+            # ---------- Rankings executivos por veículo ----------
             st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-            st.markdown('<div class="exec-section-title compact">📈 Tendência de Custos</div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="exec-section-subtitle">Manutenção + Combustível | Últimos 12 meses</div>',
-                unsafe_allow_html=True
+            st.markdown('<div class="exec-section-title compact">🚘 Destaques da Frota</div>', unsafe_allow_html=True)
+
+            # Considera somente placas físicas de 7 caracteres e o acumulado até o mês selecionado.
+            df_rank_veic = df_fin_exec.copy()
+            df_rank_veic["Placa_Normalizada"] = (
+                df_rank_veic["Placa"]
+                .astype(str)
+                .str.upper()
+                .str.replace(r"[^A-Z0-9]", "", regex=True)
             )
-
-            # Usa a base completa para permitir que a janela atravesse a virada do ano,
-            # preservando os filtros atuais de Instituição e Unidade.
-            df_tend = df.copy()
-            if inst_sel != "TODAS":
-                df_tend = df_tend[df_tend["Instituição"] == inst_sel].copy()
-            if cc_sel != "TODOS":
-                df_tend = df_tend[df_tend[col_cc] == cc_sel].copy()
-
-            mask_cadastro_tend = df_tend["Placa"].astype(str).str.contains(
-                cadastro_pattern, case=False, na=False, regex=True
-            )
-            df_tend = df_tend[~mask_cadastro_tend].copy()
-
-            data_fim_tend = pd.Timestamp(year=int(ano_sel), month=int(mes_num_atual), day=1)
-            data_ini_tend = data_fim_tend - pd.DateOffset(months=11)
-            df_tend = df_tend[
-                (df_tend["Mês Referência"] >= data_ini_tend)
-                & (df_tend["Mês Referência"] < (data_fim_tend + pd.offsets.MonthBegin(1)))
+            df_rank_veic = df_rank_veic[
+                df_rank_veic["Placa_Normalizada"].str.fullmatch(r"[A-Z0-9]{7}", na=False)
             ].copy()
 
-            if not df_tend.empty:
-                df_tend["Periodo"] = df_tend["Mês Referência"].dt.to_period("M").dt.to_timestamp()
-                tend_mensal = df_tend.groupby("Periodo", as_index=False).agg({
-                    "Custo de manutenção": "sum",
-                    "Custo Combustível": "sum"
-                })
-                meses_janela = pd.date_range(data_ini_tend, data_fim_tend, freq="MS")
-                tend_mensal = (
-                    tend_mensal.set_index("Periodo")
-                    .reindex(meses_janela, fill_value=0)
-                    .rename_axis("Periodo")
-                    .reset_index()
-                )
-                nomes_mes_curto = {1:"Jan",2:"Fev",3:"Mar",4:"Abr",5:"Mai",6:"Jun",7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"}
-                tend_mensal["Mês"] = tend_mensal["Periodo"].apply(lambda d: f"{nomes_mes_curto[d.month]}/{str(d.year)[2:]}")
+            col_km_rank, col_manut_rank = st.columns(2)
 
-                tend_mensal["Custo Total"] = tend_mensal["Custo de manutenção"] + tend_mensal["Custo Combustível"]
-                tend_mensal["Valor_Label"] = tend_mensal["Custo Total"].apply(lambda v: fmt_br(v, True))
+            with col_km_rank:
+                st.markdown(
+                    '<div class="exec-section-title compact" style="font-size:16px;">🛣️ Veículos com Maior KM</div>',
+                    unsafe_allow_html=True
+                )
 
-                fig_tend = px.line(
-                    tend_mensal, x="Mês", y="Custo Total", markers=True, text="Valor_Label"
+                if not df_rank_veic.empty:
+                    rank_km = (
+                        df_rank_veic.groupby("Placa_Normalizada", as_index=False)["Quilometragem"]
+                        .sum()
+                    )
+                    rank_km = rank_km[rank_km["Quilometragem"] > 0].nlargest(5, "Quilometragem")
+
+                    if not rank_km.empty:
+                        linhas_km = ['<div class="exec-list">']
+                        for pos, (_, row) in enumerate(rank_km.iterrows(), start=1):
+                            linhas_km.append(
+                                f"""
+                                <div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">
+                                    <div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>
+                                    <div class="exec-name">{row["Placa_Normalizada"]}</div>
+                                    <div class="exec-money">{fmt_br(row["Quilometragem"])} km</div>
+                                </div>
+                                """
+                            )
+                        linhas_km.append("</div>")
+                        st.markdown("".join(linhas_km), unsafe_allow_html=True)
+                    else:
+                        st.info("Sem quilometragem disponível para as placas físicas da seleção.")
+                else:
+                    st.info("Sem placas físicas disponíveis na seleção.")
+
+            with col_manut_rank:
+                st.markdown(
+                    '<div class="exec-section-title compact" style="font-size:16px;">🔧 Veículos com Maior Custo de Manutenção</div>',
+                    unsafe_allow_html=True
                 )
-                fig_tend.update_traces(
-                    line=dict(width=3, color="#F57C00"), marker=dict(size=7, color="#F57C00"),
-                    textposition="top center", textfont=dict(size=11),
-                    hovertemplate="<b>%{x}</b><br>Custo Total: R$ %{y:,.2f}<extra></extra>"
-                )
-                max_tend = tend_mensal["Custo Total"].max() if not tend_mensal.empty else 1
-                fig_tend.update_layout(
-                    height=330, separators=",.", showlegend=False,
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=5, r=10, t=28, b=10),
-                    xaxis=dict(title="", showgrid=False),
-                    yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max(max_tend * 1.20, 1)])
-                )
-                st.plotly_chart(fig_tend, use_container_width=True, config={"displayModeBar": False})
-            else:
-                st.info("Sem histórico de manutenção e combustível disponível para a janela dos últimos 12 meses.")
+
+                if not df_rank_veic.empty:
+                    rank_manut = (
+                        df_rank_veic.groupby("Placa_Normalizada", as_index=False)["Custo de manutenção"]
+                        .sum()
+                    )
+                    rank_manut = rank_manut[rank_manut["Custo de manutenção"] > 0].nlargest(5, "Custo de manutenção")
+
+                    if not rank_manut.empty:
+                        linhas_manut = ['<div class="exec-list">']
+                        for pos, (_, row) in enumerate(rank_manut.iterrows(), start=1):
+                            linhas_manut.append(
+                                f"""
+                                <div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">
+                                    <div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>
+                                    <div class="exec-name">{row["Placa_Normalizada"]}</div>
+                                    <div class="exec-money">{fmt_br(row["Custo de manutenção"], True)}</div>
+                                </div>
+                                """
+                            )
+                        linhas_manut.append("</div>")
+                        st.markdown("".join(linhas_manut), unsafe_allow_html=True)
+                    else:
+                        st.info("Sem custo de manutenção disponível para as placas físicas da seleção.")
+                else:
+                    st.info("Sem placas físicas disponíveis na seleção.")
 
             st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
