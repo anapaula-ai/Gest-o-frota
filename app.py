@@ -1164,6 +1164,64 @@ else:
 
             st.markdown("<hr style='margin-top: 5px; margin-bottom: 12px'>", unsafe_allow_html=True)
 
+            # ==========================================================
+            # COMPARATIVO INSTITUCIONAL — AMES × IAV
+            # Exibido somente na visão consolidada ("TODAS").
+            # ==========================================================
+            if inst_sel == "TODAS":
+                st.markdown('<div class="exec-section-title compact">🏢 Comparativo Institucional | AMES × IAV</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-subtitle">Leitura comparativa dos principais indicadores de gestão de cada instituição.</div>', unsafe_allow_html=True)
+
+                for inst_comp in ["AMES", "IAV"]:
+                    df_inst_fin = df_fin_exec[
+                        df_fin_exec["Instituição"].astype(str).str.strip().str.upper() == inst_comp
+                    ].copy()
+
+                    custo_inst = df_inst_fin["Custo_Total"].sum()
+                    km_inst = df_inst_fin["Quilometragem"].sum()
+                    cpk_inst = custo_inst / km_inst if km_inst > 0 else 0
+
+                    orc_inst = (
+                        ORCAMENTOS_MANUT_2026.get(inst_comp, 0)
+                        + ORCAMENTOS_COMB_2026.get(inst_comp, 0)
+                        + ORCAMENTOS_SEGURO_2026.get(inst_comp, 0)
+                        + ORCAMENTOS_RASTREADOR_2026.get(inst_comp, 0)
+                    )
+                    exec_inst = (custo_inst / orc_inst * 100) if orc_inst > 0 else 0
+                    saldo_inst = orc_inst - custo_inst
+
+                    df_inst_frota = df_frota_atual[
+                        df_frota_atual["Instituição"].astype(str).str.strip().str.upper() == inst_comp
+                    ].copy() if not df_frota_atual.empty else pd.DataFrame()
+
+                    qtd_inst = df_inst_frota["Placa_Fisica"].nunique() if not df_inst_frota.empty else 0
+                    custo_medio_inst = custo_inst / qtd_inst if qtd_inst > 0 else 0
+                    participacao_inst = (custo_inst / custo_total_global * 100) if custo_total_global > 0 else 0
+                    largura_barra = max(0, min(participacao_inst, 100))
+
+                    st.markdown(
+                        f"""
+                        <div class="inst-card">
+                            <div class="inst-name">{inst_comp}</div>
+                            <div class="inst-grid">
+                                <div><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(custo_inst, True)}</div></div>
+                                <div><div class="inst-lbl">Execução orçamentária</div><div class="inst-val">{exec_inst:.1f}%</div></div>
+                                <div><div class="inst-lbl">Saldo</div><div class="inst-val">{fmt_br(saldo_inst, True)}</div></div>
+                                <div><div class="inst-lbl">Custo médio / veículo</div><div class="inst-val">{fmt_br(custo_medio_inst, True) if qtd_inst > 0 else "—"}</div></div>
+                                <div><div class="inst-lbl">CPK</div><div class="inst-val">{fmt_br(cpk_inst, True)}/km</div></div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                                <div style="color:#607D8B;font-size:10.5px;font-weight:700;">{fmt_br(qtd_inst)} veículos cadastrados</div>
+                                <div style="color:#607D8B;font-size:10.5px;font-weight:700;">{participacao_inst:.1f}% do custo consolidado</div>
+                            </div>
+                            <div class="inst-progress"><div style="width:{largura_barra:.1f}%"></div></div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
+
             # ---------- Semáforo Gerencial ----------
             st.markdown('<div class="exec-section-title">🚦 Semáforo Gerencial</div>', unsafe_allow_html=True)
 
