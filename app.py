@@ -1287,48 +1287,6 @@ else:
                 + ''.join(cards_semaforo) + '</div>',
                 unsafe_allow_html=True
             )
-            # ---------- Reincidência de Manutenção ----------
-            st.markdown('<div class="exec-section-title">🔧 Reincidência de Manutenção</div>', unsafe_allow_html=True)
-            mask_fisica_rec = df_fin_exec["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_rec = df_fin_exec[mask_fisica_rec & (df_fin_exec["Custo de manutenção"] > 0)].copy()
-
-            if not df_rec.empty:
-                rec_resumo = (
-                    df_rec.groupby("Placa", as_index=False)
-                    .agg(
-                        Meses_com_Manutencao=("Mes_Num", "nunique"),
-                        Manutencao_Acumulada=("Custo de manutenção", "sum")
-                    )
-                )
-                rec_resumo = (
-                    rec_resumo[rec_resumo["Meses_com_Manutencao"] >= 2]
-                    .sort_values(["Meses_com_Manutencao", "Manutencao_Acumulada"], ascending=[False, False])
-                    .head(5)
-                )
-
-                if not rec_resumo.empty:
-                    rec_cards = []
-                    for _, r in rec_resumo.iterrows():
-                        meses_rec = int(r["Meses_com_Manutencao"])
-                        rec_cards.append(
-                            '<div class="rec-card">'
-                            f'<div class="rec-placa">{html.escape(str(r["Placa"]))}</div>'
-                            '<div class="rec-meses">Manutenção recorrente</div>'
-                            f'<div class="rec-valor">{fmt_br(r["Manutencao_Acumulada"], True)}</div>'
-                            '<div class="rec-label">manutenção acumulada</div>'
-                            '</div>'
-                        )
-                    st.markdown('<div class="rec-wrap">' + ''.join(rec_cards) + '</div>', unsafe_allow_html=True)
-                else:
-                    st.success("Nenhum veículo apresenta manutenção recorrente em 2 ou mais meses na seleção atual.")
-            else:
-                st.info("Sem registros de manutenção de veículos físicos na seleção atual.")
-
-            # Linha de separação entre Reincidência de Manutenção e Composição dos Custos
-            st.markdown(
-                '<div class="exec-divider"></div>',
-                unsafe_allow_html=True
-            )
 
             # ---------- Leitura financeira executiva ----------
             col_recursos, col_orcado = st.columns([1, 1.45])
