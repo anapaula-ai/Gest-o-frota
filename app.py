@@ -38,15 +38,15 @@ st.markdown("""
         position: relative;
         overflow: hidden;
         background: linear-gradient(180deg, #FFFFFF 0%, #FCFDFF 100%) !important;
-        padding: 21px 20px 18px 20px;
-        border-radius: 14px;
+        padding: 18px 17px 16px 17px;
+        border-radius: 13px;
         border: 1px solid #D7E0EA;
-        box-shadow: 0 5px 16px rgba(26, 35, 126, 0.07);
-        min-height: 185px;
+        box-shadow: 0 4px 13px rgba(26, 35, 126, 0.065);
+        min-height: 170px;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
 
     .metric-container::before {
@@ -61,20 +61,20 @@ st.markdown("""
 
     .metric-label {
         color: #60758A !important;
-        font-size: 11.5px;
-        letter-spacing: .28px;
+        font-size: 11px;
+        letter-spacing: .24px;
         font-weight: 750;
         text-transform: uppercase;
-        min-height: 34px;
+        min-height: 32px;
         display: flex;
         align-items: center;
     }
 
     .metric-value {
         color: #14206F !important;
-        font-size: 23px;
+        font-size: 22px;
         font-weight: 750;
-        min-height: 39px;
+        min-height: 36px;
         display: flex;
         align-items: center;
         letter-spacing: -.25px;
@@ -82,13 +82,13 @@ st.markdown("""
 
     .metric-subtext {
         color: #455A64 !important;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
-        min-height: 31px;
+        min-height: 29px;
         display: block;
-        line-height: 1.45;
-        margin-top: 7px;
-        padding-top: 8px;
+        line-height: 1.4;
+        margin-top: 6px;
+        padding-top: 7px;
         border-top: 1px solid #EEF2F6;
     }
 
@@ -120,15 +120,15 @@ st.markdown("""
         display:grid;
         grid-template-columns:repeat(5,minmax(0,1fr));
         gap:10px;
-        margin:2px 0 16px 0;
+        margin:4px 0 20px 0;
     }
     .semaforo-card{
         background:#FFFFFF;
         border:1px solid #DCE4EC;
         border-radius:11px;
-        padding:12px 13px;
+        padding:11px 13px;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
-        min-height:112px;
+        min-height:106px;
         position:relative;
         overflow:hidden;
     }
@@ -179,16 +179,16 @@ st.markdown("""
 
     /* Padronização fina — Visão Executiva */
     .exec-section-title{
-        min-height:46px;
+        min-height:42px;
         display:flex;
         align-items:center;
         font-size:18px;
-        font-weight:700;
+        font-weight:750;
         color:#1A237E !important;
         text-align:left;
-        margin:0 0 6px 0;
+        margin:0 0 5px 0;
     }
-    .exec-section-title.compact{min-height:auto;margin:0 0 3px 0;}
+    .exec-section-title.compact{min-height:auto;margin:0 0 6px 0;}
     .exec-section-subtitle{
         color:#607D8B !important;
         font-size:12.5px;
@@ -196,7 +196,7 @@ st.markdown("""
         line-height:1.4;
         margin:0 0 12px 0;
     }
-    .exec-divider{border-top:1px solid #DCE4EC;margin:8px 0 14px 0;}
+    .exec-divider{border-top:1px solid #DCE4EC;margin:22px 0 18px 0;}
 
     /* Padronização fina — Raio-X da Base */
     .rx-page-subtitle{
@@ -315,11 +315,11 @@ st.markdown("""
         color:#1A237E !important;
     }
     
-    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:14px 16px;margin:8px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
-    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:9px}
-    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-    .inst-lbl{color:#78909C;font-size:9px;font-weight:800;text-transform:uppercase}
-    .inst-val{color:#263238;font-size:13px;font-weight:750;margin-top:2px}
+    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:15px 17px;margin:9px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
+    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:10px}
+    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+    .inst-lbl{color:#78909C;font-size:10px;font-weight:800;text-transform:uppercase;line-height:1.25}
+    .inst-val{color:#263238;font-size:13.5px;font-weight:750;margin-top:3px}
     .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
     .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
     .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
@@ -481,10 +481,10 @@ st.markdown("""
     .frota-table-category-name{color:#14206F !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
     .frota-table-category-inst{color:#607D8B !important;font-size:10.5px;font-weight:800;}
 
-    .odonto-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:4px 0 34px 0}
-    .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 10px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:86px}
-    .odonto-kpi-label{color:#60758A !important;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:28px}
-    .odonto-kpi-value{color:#14206F !important;font-size:22px;font-weight:800;margin-top:7px;white-space:nowrap}
+    .odonto-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:6px 0 26px 0}
+    .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 11px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:88px}
+    .odonto-kpi-label{color:#60758A !important;font-size:11px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:27px}
+    .odonto-kpi-value{color:#14206F !important;font-size:21px;font-weight:800;margin-top:6px;white-space:nowrap}
     .odonto-kpi-sub{color:#607D8B !important;font-size:11.5px;margin-top:4px}
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
@@ -1162,7 +1162,7 @@ else:
                     is_lower_better=True
                 )
 
-            st.markdown("<hr style='margin-top: 5px; margin-bottom: 12px'>", unsafe_allow_html=True)
+            st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # ==========================================================
             # COMPARATIVO INSTITUCIONAL — AMES × IAV
@@ -1312,7 +1312,7 @@ else:
                         marker=dict(line=dict(color="#FFFFFF", width=2))
                     )
                     fig_comp.update_layout(
-                        height=360, separators=",.", paper_bgcolor="rgba(0,0,0,0)",
+                        height=350, separators=",.", paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=5, r=5, t=5, b=30),
                         showlegend=True,
                         legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=12))
@@ -1349,7 +1349,7 @@ else:
                     )
                     max_orcado = df_orcado_long["Valor"].max() if not df_orcado_long.empty else 1
                     fig_orcado.update_layout(
-                        height=360, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        height=350, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(l=5, r=10, t=5, b=20),
                         yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max_orcado * 1.22]),
                         xaxis=dict(title="", tickfont=dict(size=12)),
@@ -1428,7 +1428,7 @@ else:
 
             # ---------- Tendência dos últimos 12 meses ----------
             # Espaço extra após o Radar de Atenção para separar visualmente os blocos.
-            st.markdown("<div style='height:34px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
             st.markdown('<div class="exec-section-title compact">📈 Tendência de Custos</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="exec-section-subtitle">Manutenção + Combustível | Últimos 12 meses</div>',
@@ -1494,7 +1494,7 @@ else:
             else:
                 st.info("Sem histórico de manutenção e combustível disponível para a janela dos últimos 12 meses.")
 
-            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # ---------- Ranking de Bases Sociais / Centros de Custo ----------
             df_unidades = df_fin_exec.groupby(["Instituição", "Unidade_Gestao"], as_index=False).agg({
@@ -1582,7 +1582,7 @@ else:
                 & ~df_unidades["Unidade_Gestao"].astype(str).str.contains("CAFARNAUM", case=False, na=False)
             ].copy()
             if not df_odonto.empty:
-                st.markdown("<hr>", unsafe_allow_html=True)
+                st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
                 st.markdown('<div class="exec-section-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
 
                 od_custo = df_odonto["Custo_Total"].sum()
