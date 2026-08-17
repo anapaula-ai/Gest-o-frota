@@ -188,7 +188,7 @@ st.markdown("""
         text-align:left;
         margin:0 0 5px 0;
     }
-    .exec-section-title.compact{min-height:auto;margin:0 0 6px 0;}
+    .exec-section-title.compact{min-height:auto;margin:0 0 8px 0;}
     .exec-section-subtitle{
         color:#607D8B !important;
         font-size:12.5px;
@@ -197,6 +197,34 @@ st.markdown("""
         margin:0 0 12px 0;
     }
     .exec-divider{border-top:1px solid #DCE4EC;margin:22px 0 18px 0;}
+
+    /* Ajuste fino — Destaques da Frota / Visão Executiva */
+    .exec-list{
+        border-radius:12px;
+        overflow:hidden;
+    }
+    .exec-row{
+        min-height:44px;
+        padding:10px 13px;
+        align-items:center;
+        column-gap:10px;
+    }
+    .exec-name{
+        font-size:13px !important;
+        line-height:1.3;
+        font-weight:750;
+    }
+    .exec-money{
+        font-size:13px !important;
+        line-height:1.3;
+        font-weight:800;
+        white-space:nowrap;
+    }
+    .exec-muted{
+        font-size:12.5px !important;
+        line-height:1.3;
+    }
+
 
     /* Padronização fina — Raio-X da Base */
     .rx-page-subtitle{
@@ -1365,7 +1393,7 @@ else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
 
             # ---------- Rankings executivos por veículo ----------
-            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
             st.markdown('<div class="exec-section-title compact">🚘 Destaques da Frota</div>', unsafe_allow_html=True)
 
             # Considera somente placas físicas de 7 caracteres e o acumulado até o mês selecionado.
@@ -1380,11 +1408,11 @@ else:
                 df_rank_veic["Placa_Normalizada"].str.fullmatch(r"[A-Z0-9]{7}", na=False)
             ].copy()
 
-            col_km_rank, col_manut_rank = st.columns(2)
+            col_km_rank, col_manut_rank = st.columns([1, 1], gap="medium")
 
             with col_km_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="font-size:16px;">🛣️ Veículos com Maior KM</div>',
+                    '<div class="exec-section-title compact" style="font-size:17px;margin-bottom:9px;">🛣️ Veículos com Maior KM</div>',
                     unsafe_allow_html=True
                 )
 
@@ -1399,7 +1427,7 @@ else:
                         linhas_km = ['<div class="exec-list">']
                         for pos, (_, row) in enumerate(rank_km.iterrows(), start=1):
                             linhas_km.append(
-                                f'<div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">'
+                                f'<div class="exec-row" style="grid-template-columns:46px minmax(145px,1.45fr) minmax(120px,1fr);">'
                                 f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
                                 f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
                                 f'<div class="exec-money">{fmt_br(row["Quilometragem"])} km</div>'
@@ -1414,7 +1442,7 @@ else:
 
             with col_manut_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="font-size:16px;">🔧 Veículos com Maior Custo de Manutenção</div>',
+                    '<div class="exec-section-title compact" style="font-size:17px;margin-bottom:9px;">🔧 Veículos com Maior Custo de Manutenção</div>',
                     unsafe_allow_html=True
                 )
 
@@ -1429,7 +1457,7 @@ else:
                         linhas_manut = ['<div class="exec-list">']
                         for pos, (_, row) in enumerate(rank_manut.iterrows(), start=1):
                             linhas_manut.append(
-                                f'<div class="exec-row" style="grid-template-columns:42px minmax(130px,1.5fr) 1fr;">'
+                                f'<div class="exec-row" style="grid-template-columns:46px minmax(145px,1.45fr) minmax(120px,1fr);">'
                                 f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
                                 f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
                                 f'<div class="exec-money">{fmt_br(row["Custo de manutenção"], True)}</div>'
@@ -1442,6 +1470,7 @@ else:
                 else:
                     st.info("Sem placas físicas disponíveis na seleção.")
 
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
             st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # ---------- Ranking de Bases Sociais / Centros de Custo ----------
