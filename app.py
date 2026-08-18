@@ -2075,7 +2075,7 @@ else:
                         linhas_atencao.append(
                             f'<div class="attention-row">'
                             f'<div class="attention-rank">{pos}º</div>'
-                            f'<div class="attention-plate">{r["Placa"]}<br>{prioridade}</div>'
+                            f'<div class="attention-plate">{r["Placa"]}</div>'
                             f'<div class="attention-value">Manutenção<br><strong>{fmt_br(r["Custo de manutenção"], True)}</strong></div>'
                             f'<div class="attention-value attention-km-col">KM<br><strong>{fmt_br(r["Quilometragem"])}</strong></div>'
                             f'<div class="attention-value">Custo/KM<br><strong>{fmt_br(r["Custo/KM Manut."], True)}/km</strong></div>'
