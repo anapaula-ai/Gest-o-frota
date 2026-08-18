@@ -176,7 +176,7 @@ st.markdown("""
         font-weight:600;
         line-height:1.4;
     }
-    @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
+    @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
     /* Reincidência de Manutenção — Visão Executiva */
     .rec-wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:4px 0 26px 0;}
@@ -2043,7 +2043,6 @@ else:
 
                 if not criticos.empty:
                     qtd_criticos = len(criticos)
-                    qtd_3_sinais = int((criticos["Qtd_Sinais"] == 3).sum())
                     custo_criticos = criticos["Custo de manutenção"].sum()
 
                     st.markdown(
@@ -2052,10 +2051,6 @@ else:
                             <div class="attention-summary-card">
                                 <div class="attention-summary-label">Veículos em atenção</div>
                                 <div class="attention-summary-value">{qtd_criticos}</div>
-                            </div>
-                            <div class="attention-summary-card">
-                                <div class="attention-summary-label">Alta prioridade</div>
-                                <div class="attention-summary-value">{qtd_3_sinais}</div>
                             </div>
                             <div class="attention-summary-card">
                                 <div class="attention-summary-label">Custo acumulado</div>
@@ -2076,17 +2071,6 @@ else:
 
                         if r["Sinal_CPK"]:
                             badges.append('<span class="attention-badge cpk">Custo/KM acima da média</span>')
-
-                        if r["Sinal_Recorrencia"]:
-                            badges.append(
-                                f'<span class="attention-badge rec">{int(r["Meses com Manutenção"])} meses com manutenção</span>'
-                            )
-
-                        prioridade = (
-                            '<span class="attention-priority high">Alta</span>'
-                            if int(r["Qtd_Sinais"]) == 3
-                            else '<span class="attention-priority medium">Atenção</span>'
-                        )
 
                         linhas_atencao.append(
                             f'<div class="attention-row">'
