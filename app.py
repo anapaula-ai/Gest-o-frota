@@ -1878,45 +1878,6 @@ else:
                 else:
                     draw_card("🎯 ORÇAMENTO CONSUMIDO", "—", "Orçamento não cadastrado para o ano")
 
-                st.markdown(f'<div class="manut-subsection-title">🔍 Raio-X do Veículo: {busca_placa}</div>', unsafe_allow_html=True)
-                
-                df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
-                
-                if not df_veiculo.empty:
-                    v_gasto_total = df_veiculo['Custo de manutenção'].sum()
-                    v_km_total = df_veiculo['Quilometragem'].sum()
-                    v_custo_km = v_gasto_total / v_km_total if v_km_total > 0 else 0
-                    v_base = df_veiculo['Base'].iloc[-1]
-                    
-                    st.markdown(f"""
-                    <div class="raiox-container">
-                        <div class="raiox-item">
-                            <div class="raiox-label">📍 Base atual</div>
-                            <div class="raiox-value" style="font-size: 16px;">{v_base}</div>
-                        </div>
-                        <div class="raiox-item">
-                            <div class="raiox-label">💰 Gasto Total Ano</div>
-                            <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_gasto_total, True)}</div>
-                        </div>
-                        <div class="raiox-item">
-                            <div class="raiox-label">🛣️ KM Total Ano</div>
-                            <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_km_total)}</div>
-                        </div>
-                        <div class="raiox-item">
-                            <div class="raiox-label">📊 Custo por KM</div>
-                            <div class="raiox-value" style="font-size: 16px;">{fmt_br(v_custo_km, True)}/km</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    fig_raiox = px.line(df_veiculo, x='Mes_Nome', y='Custo de manutenção', markers=True, title="Histórico de Gastos (Manutenção)")
-                    fig_raiox.update_traces(line_color='#0288D1', marker=dict(size=10, color='#1A237E'))
-                    fig_raiox.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(t=30, b=0))
-                    st.plotly_chart(fig_raiox, use_container_width=True)
-                else:
-                    st.warning("Nenhum dado financeiro ou de KM encontrado para esta Placa no período.")
-                st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
-            
             st.markdown('<div class="manut-block-spacer"></div>', unsafe_allow_html=True)
             
             g1, g2 = st.columns(2)
