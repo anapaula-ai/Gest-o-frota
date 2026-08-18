@@ -612,15 +612,15 @@ st.markdown("""
         grid-template-columns:.78fr 1.05fr 1.35fr;
         align-items:center;
         gap:10px;
-        padding:10px 12px;
+        padding:12px 12px;
     }
     .km-table-header{
         background:#1A237E;
         color:#FFFFFF !important;
-        font-size:11px;
+        font-size:14px;
         font-weight:800;
         text-transform:uppercase;
-        letter-spacing:.3px;
+        letter-spacing:.25px;
         position:sticky;
         top:0;
         z-index:2;
@@ -629,9 +629,9 @@ st.markdown("""
     .km-table-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}
     .km-table-row:last-child{border-bottom:none;}
     .km-table-row:hover{background:#FAFCFF;}
-    .km-table-placa{color:#17206A !important;font-size:12.5px;font-weight:800;}
-    .km-table-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;}
-    .km-table-base{color:#263238 !important;font-size:12px;font-weight:650;}
+    .km-table-placa{color:#17206A !important;font-size:14px;font-weight:800;}
+    .km-table-km{color:#1976D2 !important;font-size:14px;font-weight:800;text-align:right;white-space:nowrap;}
+    .km-table-base{color:#263238 !important;font-size:14px;font-weight:650;}
 
     /* Acabamento visual — Frota, IPVA & Doc */
     .frota-subtitle{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.45;margin:-3px 0 16px 0;}
@@ -3362,10 +3362,10 @@ else:
                             ('background-color', '#1A237E'),
                             ('color', '#FFFFFF'),
                             ('font-weight', '700'),
-                            ('font-size', '12px'),
+                            ('font-size', '14px'),
                             ('text-align', 'left'),
                             ('border', '1px solid #D7E0EA'),
-                            ('padding', '7px 8px'),
+                            ('padding', '10px 9px'),
                             ('position', 'sticky'),
                             ('top', '0'),
                             ('z-index', '3')
@@ -3374,8 +3374,8 @@ else:
                     {
                         'selector': 'tbody td',
                         'props': [
-                            ('font-size', '12px'),
-                            ('padding', '6px 8px'),
+                            ('font-size', '14px'),
+                            ('padding', '9px 9px'),
                             ('border', '1px solid #E2E8F0')
                         ]
                     },
@@ -3413,6 +3413,16 @@ else:
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}}
+.mapa-km-wrap th {{
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    padding: 10px 9px !important;
+}}
+.mapa-km-wrap td {{
+    font-size: 14px !important;
+    font-weight: 550 !important;
+    padding: 9px 9px !important;
 }}
 .mapa-km-wrap th:nth-child(1), .mapa-km-wrap td:nth-child(1) {{ width: 4%; }}
 .mapa-km-wrap th:nth-child(2), .mapa-km-wrap td:nth-child(2) {{ width: 10%; }}
