@@ -909,6 +909,12 @@ else:
             # Estilo compacto exclusivo da ficha do veículo
             st.markdown("""
             <style>
+            /* Tipografia única em toda a ficha do veículo */
+            div[role="dialog"],
+            div[role="dialog"] * {
+                font-family: Arial, sans-serif !important;
+            }
+
             div[role="dialog"] .stMetric {
                 background: #FFFFFF;
                 border: 1px solid #E3EAF1;
