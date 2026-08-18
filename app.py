@@ -1274,7 +1274,6 @@ else:
                 }
 
             itens_semaforo = [
-                ("Total", custo_total_global, orcamento_total_global),
                 ("Manutenção", gasto_manut_acum, orc_manut),
                 ("Combustível", gasto_comb_acum, orc_comb),
                 ("Seguro", gasto_seguro_acum, orc_seg),
@@ -1288,6 +1287,7 @@ else:
             cards_semaforo = []
             for nome_sem, real_sem, orc_sem in itens_semaforo:
                 sem = classificar_semaforo(real_sem, orc_sem)
+                valor_gasto_sem = fmt_br(real_sem, True)
                 cards_semaforo.append(
                     f'<div class="semaforo-card {sem["classe"]}">'
                     f'<div class="semaforo-top">'
@@ -1295,7 +1295,7 @@ else:
                     f'<div class="semaforo-dot"></div>'
                     f'</div>'
                     f'<div class="semaforo-status">{sem["status"]}</div>'
-                    f'<div class="semaforo-detail">{sem["detalhe"]}</div>'
+                    f'<div class="semaforo-detail"><b>Gasto: {valor_gasto_sem}</b><br>{sem["detalhe"]}</div>'
                     f'</div>'
                 )
 
