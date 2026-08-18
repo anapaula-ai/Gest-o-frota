@@ -1185,38 +1185,90 @@ else:
     ORCAMENTOS_RASTREADOR_2026 = {"AMES": 0.00, "IAV": 10194.00} 
 
     if not df.empty:
-        ano_sel = st.sidebar.selectbox("Ano", options=sorted(df["Ano"].unique(), reverse=True))
+        # ==========================================================
+        # FILTROS GLOBAIS NO TOPO — VERSÃO DE TESTE
+        # ==========================================================
+        st.markdown(
+            '<div style="font-size:12px;font-weight:800;color:#60758A;'
+            'text-transform:uppercase;letter-spacing:.45px;margin:0 0 5px 1px;">'
+            'Filtros do painel</div>',
+            unsafe_allow_html=True
+        )
+
+        col_f_ano, col_f_inst, col_f_cc, col_f_mes = st.columns(
+            [0.75, 1.0, 1.65, 1.15], gap="small"
+        )
+
+        with col_f_ano:
+            ano_sel = st.selectbox(
+                "Ano",
+                options=sorted(df["Ano"].unique(), reverse=True),
+                key="filtro_topo_ano"
+            )
+
         df_ano = df[df["Ano"] == ano_sel]
-        opcoes_inst =["TODAS"] + sorted(df_ano["Instituição"].unique())
-        inst_sel = st.sidebar.selectbox("Instituição", options=opcoes_inst)
-        
+        opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].dropna().unique())
+
+        with col_f_inst:
+            inst_sel = st.selectbox(
+                "Instituição",
+                options=opcoes_inst,
+                key="filtro_topo_instituicao"
+            )
+
         if inst_sel == "TODAS":
             df_temp_inst = df_ano.copy()
             inst_ativas = df_ano["Instituição"].unique()
         else:
             df_temp_inst = df_ano[df_ano["Instituição"] == inst_sel]
             inst_ativas = [inst_sel]
-        
+
         col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
         opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
-        cc_sel = st.sidebar.selectbox("Centro de Custo / Base", options=opcoes_cc)
-        
-        df_base_completa = df_temp_inst.copy() if cc_sel == "TODOS" else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
-        
+
+        with col_f_cc:
+            cc_sel = st.selectbox(
+                "Centro de Custo / Base",
+                options=opcoes_cc,
+                key="filtro_topo_cc"
+            )
+
+        df_base_completa = (
+            df_temp_inst.copy()
+            if cc_sel == "TODOS"
+            else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
+        )
+
         pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-        
-        mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
+        mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(
+            pattern_digitais, case=False, na=True
+        )
         df_base = df_base_completa[mask_reais]
 
         df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
-        
         if df_meses_validos.empty:
             lista_meses = ["Nenhum Mês"]
         else:
-            df_meses_unicos = df_meses_validos[['Mes_Num', 'Mes_Nome']].drop_duplicates().sort_values('Mes_Num')
+            df_meses_unicos = (
+                df_meses_validos[['Mes_Num', 'Mes_Nome']]
+                .drop_duplicates()
+                .sort_values('Mes_Num')
+            )
             lista_meses = df_meses_unicos['Mes_Nome'].tolist()
-            
-        mes_sel = st.sidebar.selectbox("Mês Competência", options=lista_meses, index=len(lista_meses)-1)
+
+        with col_f_mes:
+            mes_sel = st.selectbox(
+                "Mês Competência",
+                options=lista_meses,
+                index=len(lista_meses)-1,
+                key="filtro_topo_mes"
+            )
+
+        st.markdown(
+            '<div style="height:3px;"></div>'
+            '<div style="border-top:1px solid #DCE4EC;margin:0 0 12px 0;"></div>',
+            unsafe_allow_html=True
+        )
 
         df_apenas_comb = df_base[df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
         df_apenas_manut = df_base[~df_base["Placa"].str.startswith("COMBUSTÍVEL", na=False)]
