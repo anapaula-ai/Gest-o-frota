@@ -126,9 +126,9 @@ st.markdown("""
         background:#FFFFFF;
         border:1px solid #DCE4EC;
         border-radius:11px;
-        padding:11px 13px;
+        padding:15px 17px;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
-        min-height:106px;
+        min-height:132px;
         position:relative;
         overflow:hidden;
     }
@@ -144,7 +144,15 @@ st.markdown("""
     .semaforo-card.warning .semaforo-dot{background:#F9A825;box-shadow:0 0 0 3px rgba(249,168,37,.14);}
     .semaforo-card.critical .semaforo-dot{background:#D32F2F;box-shadow:0 0 0 3px rgba(211,47,47,.12);}
     .semaforo-status{color:#14206F !important;font-size:15px;font-weight:850;margin-top:10px;}
-    .semaforo-detail{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.4;margin-top:6px;}
+    .semaforo-detail{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.45;margin-top:8px;}
+    .semaforo-cost{
+        color:#14206F !important;
+        font-size:16px;
+        font-weight:850;
+        line-height:1.25;
+        display:block;
+        margin-bottom:5px;
+    }
     @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
     /* Reincidência de Manutenção — Visão Executiva */
