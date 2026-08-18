@@ -454,8 +454,8 @@ st.markdown("""
     }
     .inst-grid{
         display:grid;
-        grid-template-columns:repeat(5,minmax(0,1fr));
-        gap:12px;
+        grid-template-columns:repeat(6,minmax(0,1fr));
+        gap:10px;
     }
     .inst-item{
         background:#FAFCFF;
@@ -479,7 +479,44 @@ st.markdown("""
         line-height:1.2;
         white-space:nowrap;
     }
-    .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
+    .inst-progress-wrap{
+        margin-top:13px;
+        padding-top:11px;
+        border-top:1px solid #EEF2F6;
+    }
+    .inst-progress-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom:7px;
+    }
+    .inst-progress-title{
+        color:#60758A !important;
+        font-size:11.5px;
+        font-weight:800;
+    }
+    .inst-progress-value{
+        color:#14206F !important;
+        font-size:13px;
+        font-weight:850;
+    }
+    .inst-progress{
+        height:8px;
+        background:#EDF1F5;
+        border-radius:10px;
+        overflow:hidden;
+    }
+    .inst-progress div{
+        height:100%;
+        border-radius:10px;
+    }
+    .inst-progress-caption{
+        color:#78909C !important;
+        font-size:10.5px;
+        font-weight:650;
+        margin-top:6px;
+    }
     @media(max-width:1100px){
         .inst-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
     }
@@ -1367,11 +1404,22 @@ else:
                                 <div class="inst-frota">🚙 {fmt_br(qtd_inst)} veículos cadastrados</div>
                             </div>
                             <div class="inst-grid">
+                                <div class="inst-item"><div class="inst-lbl">Orçamento anual</div><div class="inst-val">{fmt_br(orc_inst, True)}</div></div>
                                 <div class="inst-item"><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(custo_inst, True)}</div></div>
-                                <div class="inst-item"><div class="inst-lbl">Execução orçamentária</div><div class="inst-val">{exec_inst:.1f}%</div></div>
+                                <div class="inst-item"><div class="inst-lbl">Execução</div><div class="inst-val">{exec_inst:.1f}%</div></div>
                                 <div class="inst-item"><div class="inst-lbl">Saldo</div><div class="inst-val">{fmt_br(saldo_inst, True)}</div></div>
                                 <div class="inst-item"><div class="inst-lbl">Custo médio / veículo</div><div class="inst-val">{fmt_br(custo_medio_inst, True) if qtd_inst > 0 else "—"}</div></div>
                                 <div class="inst-item"><div class="inst-lbl">CPK</div><div class="inst-val">{fmt_br(cpk_inst, True)}/km</div></div>
+                            </div>
+                            <div class="inst-progress-wrap">
+                                <div class="inst-progress-head">
+                                    <div class="inst-progress-title">Execução do orçamento</div>
+                                    <div class="inst-progress-value">{exec_inst:.1f}%</div>
+                                </div>
+                                <div class="inst-progress">
+                                    <div style="width:{min(max(exec_inst, 0), 100):.1f}%;background:{'#C62828' if exec_inst >= 100 else '#F9A825' if exec_inst >= 85 else '#1A237E'};"></div>
+                                </div>
+                                <div class="inst-progress-caption">{fmt_br(custo_inst, True)} de {fmt_br(orc_inst, True)}</div>
                             </div>
                         </div>
                         """,
