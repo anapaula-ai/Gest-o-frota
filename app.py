@@ -716,19 +716,114 @@ st.markdown("""
 
 
 
-    .manut-attention{
-        background:#FFFFFF;border:1px solid #DCE4EC;border-left:4px solid #F57C00;
-        border-radius:10px;padding:14px 16px;margin-bottom:9px;
-        box-shadow:0 3px 10px rgba(26,35,126,.04);
-        color:#263238 !important;font-size:14.5px;line-height:1.55;
+    .attention-summary{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:10px;
+        margin:6px 0 14px 0;
     }
+    .attention-summary-card{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:10px;
+        padding:11px 13px;
+        box-shadow:0 2px 7px rgba(26,35,126,.035);
+    }
+    .attention-summary-label{
+        color:#60758A !important;
+        font-size:11px;
+        font-weight:800;
+        text-transform:uppercase;
+        margin-bottom:4px;
+    }
+    .attention-summary-value{
+        color:#14206F !important;
+        font-size:18px;
+        font-weight:850;
+    }
+
+    .attention-list{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .attention-row{
+        display:grid;
+        grid-template-columns:54px minmax(110px,.8fr) minmax(135px,1fr) minmax(120px,.9fr) minmax(110px,.8fr) minmax(230px,1.7fr);
+        align-items:center;
+        gap:10px;
+        padding:12px 14px;
+        border-bottom:1px solid #EEF2F6;
+        background:#FFFFFF;
+    }
+    .attention-row:last-child{border-bottom:none;}
+    .attention-row:hover{background:#FAFCFF;}
+
+    .attention-rank{
+        color:#78909C !important;
+        font-size:12px;
+        font-weight:850;
+    }
+    .attention-plate{
+        color:#14206F !important;
+        font-size:14px;
+        font-weight:850;
+    }
+    .attention-value{
+        color:#263238 !important;
+        font-size:12.5px;
+        font-weight:750;
+        white-space:nowrap;
+    }
+    .attention-value strong{
+        color:#14206F !important;
+        font-size:13.5px;
+        font-weight:850;
+    }
+    .attention-signals{
+        display:flex;
+        flex-wrap:wrap;
+        gap:5px;
+        align-items:center;
+    }
+    .attention-badge{
+        display:inline-block;
+        border-radius:999px;
+        padding:4px 7px;
+        font-size:10.5px;
+        font-weight:800;
+        line-height:1.1;
+        white-space:nowrap;
+        border:1px solid #E0E6EF;
+        background:#F5F7FA;
+        color:#455A64 !important;
+    }
+    .attention-badge.cost{background:#FFF3E0;border-color:#FFE0B2;color:#C05A00 !important;}
+    .attention-badge.cpk{background:#FCE8E8;border-color:#F7C5C5;color:#B3261E !important;}
+    .attention-badge.rec{background:#FFF8E1;border-color:#FFE7A3;color:#8A6500 !important;}
+    .attention-priority{
+        display:inline-block;
+        border-radius:999px;
+        padding:4px 8px;
+        font-size:10.5px;
+        font-weight:850;
+        white-space:nowrap;
+    }
+    .attention-priority.high{background:#FDECEC;color:#B3261E !important;}
+    .attention-priority.medium{background:#FFF4E5;color:#B85A00 !important;}
 
     .vs-alta { color:#D32F2F !important; font-weight:800 !important; }
     .vs-baixa { color:#2E7D32 !important; font-weight:800 !important; }
     .vs-neutro { color:#607D8B !important; font-weight:800 !important; }
 
-
-    .manut-attention b { font-size:15px !important; }
+    @media(max-width:1200px){
+        .attention-row{
+            grid-template-columns:46px minmax(100px,.8fr) minmax(125px,1fr) minmax(105px,.8fr) minmax(210px,1.5fr);
+        }
+        .attention-row .attention-km-col{display:none;}
+    }
 
     /* ==========================================
        TABELAS RAIO-X DA BASE - PADRÃO EXECUTIVO
@@ -1866,8 +1961,7 @@ else:
                 unsafe_allow_html=True
             )
             st.caption(
-                "Critério gerencial: veículos que apresentam pelo menos 2 sinais de atenção entre "
-                "custo acumulado acima da média, custo de manutenção por KM acima da média e recorrência de manutenção."
+                "Veículos com pelo menos 2 sinais de atenção: custo acumulado elevado, custo por KM elevado ou recorrência de manutenção."
             )
 
             mask_fisica_acum = df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
@@ -1948,30 +2042,65 @@ else:
                 )
 
                 if not criticos.empty:
-                    for _, r in criticos.iterrows():
-                        motivos = []
+                    qtd_criticos = len(criticos)
+                    qtd_3_sinais = int((criticos["Qtd_Sinais"] == 3).sum())
+                    custo_criticos = criticos["Custo de manutenção"].sum()
+
+                    st.markdown(
+                        f"""
+                        <div class="attention-summary">
+                            <div class="attention-summary-card">
+                                <div class="attention-summary-label">Veículos em atenção</div>
+                                <div class="attention-summary-value">{qtd_criticos}</div>
+                            </div>
+                            <div class="attention-summary-card">
+                                <div class="attention-summary-label">Alta prioridade</div>
+                                <div class="attention-summary-value">{qtd_3_sinais}</div>
+                            </div>
+                            <div class="attention-summary-card">
+                                <div class="attention-summary-label">Custo acumulado</div>
+                                <div class="attention-summary-value">{fmt_br(custo_criticos, True)}</div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    linhas_atencao = ['<div class="attention-list">']
+
+                    for pos, (_, r) in enumerate(criticos.iterrows(), start=1):
+                        badges = []
+
                         if r["Sinal_Custo"]:
-                            motivos.append("custo acima da média")
+                            badges.append('<span class="attention-badge cost">Custo acima da média</span>')
+
                         if r["Sinal_CPK"]:
-                            motivos.append("custo/KM acima da média")
+                            badges.append('<span class="attention-badge cpk">Custo/KM acima da média</span>')
+
                         if r["Sinal_Recorrencia"]:
-                            motivos.append(
-                                f'Manutenção em {int(r["Meses com Manutenção"])} meses'
+                            badges.append(
+                                f'<span class="attention-badge rec">{int(r["Meses com Manutenção"])} meses com manutenção</span>'
                             )
 
-                        motivos_txt = " · ".join(motivos)
-
-                        st.markdown(
-                            f'<div class="manut-attention">'
-                            f'<b>{r["Placa"]}</b> · '
-                            f'Manutenção: <b>{fmt_br(r["Custo de manutenção"], True)}</b> · '
-                            f'KM: {fmt_br(r["Quilometragem"])} · '
-                            f'Custo manut./KM: <b>{fmt_br(r["Custo/KM Manut."], True)}/km</b><br>'
-                            f'<span style="font-size:13px;color:#607D8B;">'
-                            f'Motivos: {motivos_txt}</span>'
-                            f'</div>',
-                            unsafe_allow_html=True
+                        prioridade = (
+                            '<span class="attention-priority high">Alta</span>'
+                            if int(r["Qtd_Sinais"]) == 3
+                            else '<span class="attention-priority medium">Atenção</span>'
                         )
+
+                        linhas_atencao.append(
+                            f'<div class="attention-row">'
+                            f'<div class="attention-rank">{pos}º</div>'
+                            f'<div class="attention-plate">{r["Placa"]}<br>{prioridade}</div>'
+                            f'<div class="attention-value">Manutenção<br><strong>{fmt_br(r["Custo de manutenção"], True)}</strong></div>'
+                            f'<div class="attention-value attention-km-col">KM<br><strong>{fmt_br(r["Quilometragem"])}</strong></div>'
+                            f'<div class="attention-value">Custo/KM<br><strong>{fmt_br(r["Custo/KM Manut."], True)}/km</strong></div>'
+                            f'<div class="attention-signals">{"".join(badges)}</div>'
+                            f'</div>'
+                        )
+
+                    linhas_atencao.append("</div>")
+                    st.markdown("".join(linhas_atencao), unsafe_allow_html=True)
                 else:
                     st.success(
                         "Nenhum veículo apresenta pelo menos 2 sinais de atenção na seleção atual."
