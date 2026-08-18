@@ -1748,7 +1748,7 @@ else:
                         margin=dict(l=5, r=10, t=5, b=20),
                         yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max_orcado * 1.22]),
                         xaxis=dict(title="", tickfont=dict(size=12)),
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
+                        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1, title="", font=dict(size=13))
                     )
                     st.plotly_chart(fig_orcado, use_container_width=True, config={"displayModeBar": False})
                     execucao_resumo = " · ".join(
@@ -1893,11 +1893,11 @@ else:
                         cliponaxis=False
                     )
                     fig_unid.update_layout(
-                        height=390, separators=',.',
+                        height=430, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=10, r=90, t=5, b=10),
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", automargin=True, tickfont=dict(size=14)),
+                        margin=dict(l=15, r=120, t=10, b=5),
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=14, color="#455A64", family="Arial, sans-serif")),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                     )
                     st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
@@ -2020,11 +2020,11 @@ else:
                 top10_km = df_top10[df_top10['Quilometragem'] > 0].nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
                 
                 if not top10_km.empty:
-                    top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_km['Base'] + "</span>"
+                    top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:11px; color:#60758A; font-weight:normal;'>" + top10_km['Base'] + "</span>"
                     fig_km = px.bar(top10_km, x='Quilometragem', y='Placa_Base', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
-                    fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                    fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=dict(size=13, color='#263238'), cliponaxis=False)
                     max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
-                    fig_km.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
+                    fig_km.update_layout(height=500, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=125, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_km * 1.34]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
                     st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum dado para exibir neste mês.")
@@ -2034,11 +2034,11 @@ else:
                 top10_custo = df_top10[df_top10['Custo de manutenção'] > 0].nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
                 
                 if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
-                    top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:9.5px; color:#888888; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
+                    top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:11px; color:#60758A; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
                     fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa_Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
-                    fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO, cliponaxis=False)
+                    fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=dict(size=13, color='#263238'), cliponaxis=False)
                     max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
-                    fig_custo.update_layout(height=450, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=150, l=10, t=10, b=10), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_c * 1.4]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""))
+                    fig_custo.update_layout(height=500, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=140, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_c * 1.38]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
                     st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum custo lançado neste mês.")
@@ -2373,7 +2373,7 @@ else:
                     marker_color="#F57C00",
                     text=custo_base_acum["Rotulo_Profissional"],
                     textposition="outside",
-                    textfont=dict(size=14, color="#37474F"),
+                    textfont=dict(size=13.5, color="#263238"),
                     cliponaxis=False,
                     customdata=custo_base_acum["Participação"],
                     hovertemplate=(
@@ -2387,22 +2387,22 @@ else:
 
                 max_cb = custo_base_acum["Custo de manutenção"].max()
                 fig_base_acum.update_layout(
-                    height=470,
+                    height=455,
                     separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(r=165, l=10, t=10, b=10),
+                    margin=dict(r=185, l=10, t=8, b=5),
                     showlegend=False,
                     xaxis=dict(
                         showticklabels=False,
                         showgrid=False,
                         zeroline=False,
-                        range=[0, max_cb * 1.52]
+                        range=[0, max_cb * 1.46]
                     ),
                     yaxis=dict(
                         title="",
                         automargin=True,
-                        tickfont=dict(size=12.5, color="#333333", family="Arial, sans-serif")
+                        tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif")
                     )
                 )
 
@@ -2530,7 +2530,7 @@ else:
                     fig_cm.update_traces(
                         texttemplate="<b>R$ %{text:,.2f}</b>",
                         textposition="outside",
-                        textfont=dict(size=12.5, color="#263238"),
+                        textfont=dict(size=13, color="#263238"),
                         cliponaxis=False
                     )
                     max_cm = rank_mes["Custo de combustível"].max()
@@ -2541,7 +2541,7 @@ else:
                         margin=dict(r=115, l=10, t=10, b=10),
                         showlegend=False,
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.38]),
-                        yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
                     )
                     st.plotly_chart(fig_cm, use_container_width=True, config={"displayModeBar": False})
                 else:
@@ -2578,7 +2578,7 @@ else:
                         marker_color="#0288D1",
                         text=rank_ac["Rotulo"],
                         textposition="outside",
-                        textfont=dict(size=12.5, color="#37474F"),
+                        textfont=dict(size=13, color="#263238"),
                         cliponaxis=False,
                         customdata=rank_ac["Participação"],
                         hovertemplate=(
@@ -2593,8 +2593,8 @@ else:
                         plot_bgcolor="rgba(0,0,0,0)",
                         margin=dict(r=165, l=10, t=10, b=10),
                         showlegend=False,
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.62]),
-                        yaxis=dict(title="", automargin=True, tickfont=dict(size=11.5))
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.50]),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
                     )
                     st.plotly_chart(fig_ca, use_container_width=True, config={"displayModeBar": False})
                 else:
