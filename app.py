@@ -658,7 +658,7 @@ st.markdown("""
     .frota-table-header{
         background:#1A237E;
         color:#FFFFFF !important;
-        font-size:10.5px;
+        font-size:13px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.3px;
@@ -670,15 +670,15 @@ st.markdown("""
     .frota-table-row{
         border-bottom:1px solid #EEF2F6;
         background:#FFFFFF;
-        min-height:35px;
+        min-height:41px;
     }
     .frota-table-row:last-child{border-bottom:none;}
     .frota-table-row:hover{background:#FAFCFF;}
-    .frota-table-placa{color:#17206A !important;font-size:11.5px;font-weight:800;}
-    .frota-table-inst{color:#455A64 !important;font-size:11px;font-weight:750;}
-    .frota-table-base{color:#455A64 !important;font-size:11px;font-weight:650;}
-    .frota-table-modelo{color:#263238 !important;font-size:11px;font-weight:650;}
-    .frota-table-motorista{color:#263238 !important;font-size:11px;font-weight:650;}
+    .frota-table-placa{color:#17206A !important;font-size:13.5px;font-weight:800;}
+    .frota-table-inst{color:#455A64 !important;font-size:13px;font-weight:750;}
+    .frota-table-base{color:#455A64 !important;font-size:13px;font-weight:650;}
+    .frota-table-modelo{color:#263238 !important;font-size:13px;font-weight:650;}
+    .frota-table-motorista{color:#263238 !important;font-size:13px;font-weight:650;}
     .frota-table-category{
         display:grid;
         grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr;
@@ -690,8 +690,8 @@ st.markdown("""
         border-bottom:1px solid #DCE4EC;
     }
     .frota-table-category:first-child{border-top:none;}
-    .frota-table-category-name{color:#14206F !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
-    .frota-table-category-inst{color:#607D8B !important;font-size:10.5px;font-weight:800;}
+    .frota-table-category-name{color:#14206F !important;font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
+    .frota-table-category-inst{color:#607D8B !important;font-size:12.5px;font-weight:800;}
 
     .odonto-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:6px 0 26px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 11px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:88px}
@@ -704,13 +704,13 @@ st.markdown("""
     /* Tabela executiva de IPVA */
     .ipva-table-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);margin-top:6px}
     .ipva-table-header,.ipva-table-row{display:grid;grid-template-columns:.8fr .72fr .72fr 2fr .9fr 1fr .7fr .95fr;align-items:center}
-    .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;letter-spacing:.15px}
-    .ipva-table-header>div{padding:12px 10px;border-right:1px solid rgba(255,255,255,.28);color:#FFFFFF !important}
+    .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:14px;font-weight:800;letter-spacing:.15px}
+    .ipva-table-header>div{padding:13px 10px;border-right:1px solid rgba(255,255,255,.28);color:#FFFFFF !important}
     .ipva-table-header>div:last-child{border-right:none;text-align:right}
     .ipva-table-scroll{max-height:470px;overflow-y:auto;overflow-x:auto}
-    .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:12.5px}
+    .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:14px}
     .ipva-table-row:last-child{border-bottom:none}.ipva-table-row:hover{background:#FAFCFF}
-    .ipva-table-row>div{padding:10px 10px;border-right:1px solid #EEF2F6;color:#263238 !important}
+    .ipva-table-row>div{padding:11px 10px;border-right:1px solid #EEF2F6;color:#263238 !important}
     .ipva-table-row>div:last-child{border-right:none}
     .ipva-center{text-align:center}.ipva-money{text-align:right;color:#14206F !important;font-weight:800}.ipva-placa{font-weight:800;color:#14206F !important}
 
