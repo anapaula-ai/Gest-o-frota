@@ -1875,7 +1875,7 @@ else:
 
             with col_manut_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🔧 Veículos com Maior Custo de Manutenção</div>',
+                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🔧 Veículos com Maior Custo de Manutenção | 2026</div>',
                     unsafe_allow_html=True
                 )
 
