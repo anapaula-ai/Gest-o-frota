@@ -257,6 +257,51 @@ st.markdown("""
     }
 
 
+    /* Destaques da Frota — cards executivos */
+    .fleet-highlight-list{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:12px;
+        overflow:hidden;
+        box-shadow:0 3px 10px rgba(26,35,126,.04);
+    }
+    .fleet-highlight-row{
+        display:grid;
+        grid-template-columns:42px minmax(150px,1.15fr) minmax(190px,1.55fr) minmax(120px,.9fr);
+        align-items:center;
+        gap:10px;
+        padding:12px 14px;
+        border-bottom:1px solid #EEF2F6;
+        background:#FFFFFF;
+    }
+    .fleet-highlight-row:last-child{border-bottom:none;}
+    .fleet-highlight-row:hover{background:#FAFCFF;}
+    .fleet-pos{
+        color:#78909C !important;
+        font-size:12.5px;
+        font-weight:850;
+    }
+    .fleet-plate{
+        color:#14206F !important;
+        font-size:14px;
+        font-weight:850;
+        letter-spacing:.15px;
+    }
+    .fleet-unit{
+        color:#607D8B !important;
+        font-size:12px;
+        font-weight:650;
+        line-height:1.3;
+        white-space:normal;
+    }
+    .fleet-value{
+        color:#14206F !important;
+        font-size:14px;
+        font-weight:850;
+        text-align:right;
+        white-space:nowrap;
+    }
+
     /* Padronização fina — Raio-X da Base */
     .rx-page-subtitle{
         color:#607D8B !important;
@@ -1504,6 +1549,14 @@ else:
                 df_rank_veic["Placa_Normalizada"].str.fullmatch(r"[A-Z0-9]{7}", na=False)
             ].copy()
 
+            # Unidade atual de cada placa para exibição nos rankings.
+            unidade_por_placa = (
+                df_rank_veic
+                .sort_values("Mes_Num")
+                .drop_duplicates(subset=["Placa_Normalizada"], keep="last")
+                [["Placa_Normalizada", "Unidade_Gestao"]]
+            )
+
             col_km_rank, col_manut_rank = st.columns([1, 1], gap="medium")
 
             with col_km_rank:
@@ -1517,16 +1570,19 @@ else:
                         df_rank_veic.groupby("Placa_Normalizada", as_index=False)["Quilometragem"]
                         .sum()
                     )
+                    rank_km = rank_km.merge(unidade_por_placa, on="Placa_Normalizada", how="left")
                     rank_km = rank_km[rank_km["Quilometragem"] > 0].nlargest(5, "Quilometragem")
 
                     if not rank_km.empty:
-                        linhas_km = ['<div class="exec-list">']
+                        linhas_km = ['<div class="fleet-highlight-list">']
                         for pos, (_, row) in enumerate(rank_km.iterrows(), start=1):
+                            unidade_rank = row["Unidade_Gestao"] if pd.notna(row["Unidade_Gestao"]) else "—"
                             linhas_km.append(
-                                f'<div class="exec-row" style="grid-template-columns:46px minmax(145px,1.45fr) minmax(120px,1fr);">'
-                                f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
-                                f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
-                                f'<div class="exec-money">{fmt_br(row["Quilometragem"])} km</div>'
+                                f'<div class="fleet-highlight-row">'
+                                f'<div class="fleet-pos">{pos}º</div>'
+                                f'<div class="fleet-plate">{row["Placa_Normalizada"]}</div>'
+                                f'<div class="fleet-unit">📍 {unidade_rank}</div>'
+                                f'<div class="fleet-value">{fmt_br(row["Quilometragem"])} km</div>'
                                 f'</div>'
                             )
                         linhas_km.append("</div>")
@@ -1547,16 +1603,19 @@ else:
                         df_rank_veic.groupby("Placa_Normalizada", as_index=False)["Custo de manutenção"]
                         .sum()
                     )
+                    rank_manut = rank_manut.merge(unidade_por_placa, on="Placa_Normalizada", how="left")
                     rank_manut = rank_manut[rank_manut["Custo de manutenção"] > 0].nlargest(5, "Custo de manutenção")
 
                     if not rank_manut.empty:
-                        linhas_manut = ['<div class="exec-list">']
+                        linhas_manut = ['<div class="fleet-highlight-list">']
                         for pos, (_, row) in enumerate(rank_manut.iterrows(), start=1):
+                            unidade_rank = row["Unidade_Gestao"] if pd.notna(row["Unidade_Gestao"]) else "—"
                             linhas_manut.append(
-                                f'<div class="exec-row" style="grid-template-columns:46px minmax(145px,1.45fr) minmax(120px,1fr);">'
-                                f'<div class="exec-muted" style="text-align:left;font-weight:800;">{pos}º</div>'
-                                f'<div class="exec-name">{row["Placa_Normalizada"]}</div>'
-                                f'<div class="exec-money">{fmt_br(row["Custo de manutenção"], True)}</div>'
+                                f'<div class="fleet-highlight-row">'
+                                f'<div class="fleet-pos">{pos}º</div>'
+                                f'<div class="fleet-plate">{row["Placa_Normalizada"]}</div>'
+                                f'<div class="fleet-unit">📍 {unidade_rank}</div>'
+                                f'<div class="fleet-value">{fmt_br(row["Custo de manutenção"], True)}</div>'
                                 f'</div>'
                             )
                         linhas_manut.append("</div>")
