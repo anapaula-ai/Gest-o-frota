@@ -909,119 +909,135 @@ else:
             # Estilo compacto exclusivo da ficha do veículo
             st.markdown("""
             <style>
-            /* ======================================================
-               PADRÃO TIPOGRÁFICO — FICHA DO VEÍCULO
-               ====================================================== */
             div[role="dialog"],
             div[role="dialog"] * {
                 font-family: Arial, sans-serif !important;
+                box-sizing: border-box;
             }
 
-            /* Texto normal e legendas */
+            div[role="dialog"] > div {
+                border-radius: 14px !important;
+            }
+
             div[role="dialog"] p,
             div[role="dialog"] span,
-            div[role="dialog"] label,
-            div[role="dialog"] [data-testid="stCaptionContainer"] {
-                font-family: Arial, sans-serif !important;
-                font-size: 11px !important;
-                line-height: 1.35 !important;
-            }
-
-            /* Títulos das seções */
-            div[role="dialog"] .veh-section-title {
-                font-family: Arial, sans-serif !important;
-                font-size: 13px !important;
-                line-height: 1.25 !important;
-                font-weight: 700 !important;
-                color: #37474F !important;
-                margin: 2px 0 8px 0 !important;
-            }
-
-            /* Cards de identificação */
-            div[role="dialog"] .veh-info-label {
-                font-family: Arial, sans-serif !important;
-                font-size: 10px !important;
-                line-height: 1.2 !important;
-                font-weight: 600 !important;
-                color: #455A64 !important;
-                text-transform: none !important;
-                letter-spacing: 0 !important;
-                margin-bottom: 4px !important;
-            }
-
-            div[role="dialog"] .veh-info-value {
-                font-family: Arial, sans-serif !important;
-                font-size: 12px !important;
-                line-height: 1.3 !important;
-                font-weight: 600 !important;
+            div[role="dialog"] label {
                 color: #263238 !important;
             }
 
-            /* Cabeçalho */
-            div[role="dialog"] .veh-header-plate {
-                font-family: Arial, sans-serif !important;
-                font-size: 18px !important;
-                line-height: 1.15 !important;
-                font-weight: 700 !important;
-                color: #14206F !important;
-            }
-
-            div[role="dialog"] .veh-header-sub {
-                font-family: Arial, sans-serif !important;
-                font-size: 11px !important;
-                line-height: 1.3 !important;
-                font-weight: 500 !important;
-                color: #455A64 !important;
-            }
-
-            div[role="dialog"] .veh-header-period {
-                font-family: Arial, sans-serif !important;
-                font-size: 10px !important;
-                line-height: 1.25 !important;
-                font-weight: 400 !important;
-                color: #78909C !important;
-            }
-
-            /* Métricas: mesma tipografia, com hierarquia apenas de tamanho */
-            div[role="dialog"] [data-testid="stMetricLabel"],
-            div[role="dialog"] [data-testid="stMetricLabel"] * {
-                font-family: Arial, sans-serif !important;
-                font-size: 10px !important;
-                line-height: 1.2 !important;
-                font-weight: 600 !important;
-                color: #455A64 !important;
-            }
-
-            div[role="dialog"] [data-testid="stMetricValue"],
-            div[role="dialog"] [data-testid="stMetricValue"] * {
-                font-family: Arial, sans-serif !important;
-                font-size: 20px !important;
-                line-height: 1.15 !important;
-                font-weight: 600 !important;
-                color: #1A237E !important;
-            }
-
-            div[role="dialog"] .stMetric {
-                background: #FFFFFF;
-                border: 1px solid #E3EAF1;
-                border-radius: 10px;
-                padding: 10px 12px;
-            }
             div[role="dialog"] hr {
-                margin: 12px 0 14px 0 !important;
+                margin: 14px 0 16px 0 !important;
+                border-color: #DCE4EC !important;
             }
-            div[role="dialog"] .veh-info-grid {
+
+            .veh-header {
+                background:#F7F9FC;
+                border:1px solid #D8E1EB;
+                border-radius:11px;
+                padding:14px 16px;
+                margin-bottom:14px;
+            }
+            .veh-header-plate {
+                color:#14206F !important;
+                font-size:20px;
+                font-weight:800;
+                line-height:1.1;
+            }
+            .veh-header-sub {
+                color:#455A64 !important;
+                font-size:11.5px;
+                font-weight:600;
+                margin-top:5px;
+                line-height:1.3;
+            }
+            .veh-header-period {
+                color:#78909C !important;
+                font-size:10.5px;
+                margin-top:4px;
+            }
+
+            .veh-section-title {
+                color:#1A237E !important;
+                font-size:14px;
+                font-weight:800;
+                margin:2px 0 10px 0;
+            }
+
+            .veh-info-grid {
                 display:grid;
-                grid-template-columns:1.15fr 1.15fr .75fr 1.45fr;
-                gap:8px;
+                grid-template-columns:repeat(4,minmax(0,1fr));
+                gap:10px;
                 margin-bottom:4px;
             }
-            div[role="dialog"] .veh-info-card {
+            .veh-info-item {
+                padding:2px 2px 6px 2px;
+            }
+            .veh-info-label {
+                color:#60758A !important;
+                font-size:10px;
+                font-weight:700;
+                line-height:1.2;
+                margin-bottom:5px;
+            }
+            .veh-info-value {
+                color:#263238 !important;
+                font-size:12px;
+                font-weight:700;
+                line-height:1.3;
+                white-space:normal;
+                overflow-wrap:anywhere;
+            }
+
+            .veh-kpi-grid-3 {
+                display:grid;
+                grid-template-columns:repeat(3,minmax(0,1fr));
+                gap:12px;
+                margin-bottom:10px;
+            }
+            .veh-kpi-grid-4 {
+                display:grid;
+                grid-template-columns:repeat(4,minmax(0,1fr));
+                gap:10px;
+                margin-bottom:4px;
+            }
+            .veh-kpi-card {
                 background:#FFFFFF;
-                border:1px solid #E3EAF1;
-                border-radius:9px;
-                padding:9px 10px;
-                min-height:58px;
+                border:1px solid #D8E1EB;
+                border-radius:11px;
+                padding:12px 14px;
+                min-height:82px;
+                box-shadow:0 2px 6px rgba(26,35,126,.035);
+            }
+            .veh-kpi-label {
+                color:#3156B3 !important;
+                font-size:10px;
+                font-weight:750;
+                line-height:1.2;
+                margin-bottom:7px;
+            }
+            .veh-kpi-value {
+                color:#14206F !important;
+                font-size:18px;
+                font-weight:800;
+                line-height:1.15;
+                white-space:nowrap;
+            }
+
+            .veh-note {
+                background:#F6F9FF;
+                border:1px solid #D8E3F2;
+                border-radius:10px;
+                padding:10px 12px;
+                color:#3156B3 !important;
+                font-size:10.5px;
+                line-height:1.45;
+                margin-top:8px;
+            }
+
+            @media(max-width:900px){
+                .veh-info-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+                .veh-kpi-grid-3{grid-template-columns:1fr;}
+                .veh-kpi-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));}
             }
             </style>
             """, unsafe_allow_html=True)
@@ -1083,10 +1099,9 @@ else:
 
             st.markdown(
                 f"""
-                <div style="background:#F7F9FC;border:1px solid #DCE4EC;border-radius:11px;
-                            padding:12px 14px;margin-bottom:12px;">
+                <div class="veh-header">
                     <div class="veh-header-plate">{placa}</div>
-                    <div class="veh-header-sub">{modelo} · {instituicao} · {unidade}</div>
+                    <div class="veh-header-sub">— · {instituicao} · {unidade}</div>
                     <div class="veh-header-period">Dados acumulados até {mes_sel}/{ano_sel}</div>
                 </div>
                 """,
@@ -1099,19 +1114,19 @@ else:
             st.markdown(
                 f"""
                 <div class="veh-info-grid">
-                    <div class="veh-info-card">
+                    <div class="veh-info-item">
                         <div class="veh-info-label">🚙 Modelo</div>
                         <div class="veh-info-value">{modelo}</div>
                     </div>
-                    <div class="veh-info-card">
+                    <div class="veh-info-item">
                         <div class="veh-info-label">👤 Motorista</div>
                         <div class="veh-info-value">{motorista}</div>
                     </div>
-                    <div class="veh-info-card">
+                    <div class="veh-info-item">
                         <div class="veh-info-label">🏢 Instituição</div>
                         <div class="veh-info-value">{instituicao}</div>
                     </div>
-                    <div class="veh-info-card">
+                    <div class="veh-info-item">
                         <div class="veh-info-label">📍 {rotulo_unidade}</div>
                         <div class="veh-info-value">{unidade}</div>
                     </div>
@@ -1122,16 +1137,47 @@ else:
 
             st.divider()
             st.markdown('<div class="veh-section-title">Indicadores acumulados</div>', unsafe_allow_html=True)
-            k1, k2, k3 = st.columns(3)
-            k1.metric("💰 Custo Total", fmt_br(custo_total, True))
-            k2.metric("🛣️ Quilometragem", f"{fmt_br(km_total)} km")
-            k3.metric("📊 Custo por KM", f"{fmt_br(custo_km, True)}/km")
 
-            k4, k5, k6, k7 = st.columns(4)
-            k4.metric("🔧 Manutenção", fmt_br(manut, True))
-            k5.metric("⛽ Combustível", fmt_br(comb, True))
-            k6.metric("🛡️ Seguro", fmt_br(seguro, True))
-            k7.metric("📡 Rastreador", fmt_br(rastreador, True))
+            st.markdown(
+                f"""
+                <div class="veh-kpi-grid-3">
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">💰 Custo Total</div>
+                        <div class="veh-kpi-value">{fmt_br(custo_total, True)}</div>
+                    </div>
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">🛣️ Quilometragem</div>
+                        <div class="veh-kpi-value">{fmt_br(km_total)} km</div>
+                    </div>
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">📊 Custo por KM</div>
+                        <div class="veh-kpi-value">{fmt_br(custo_km, True)}/km</div>
+                    </div>
+                </div>
+
+                <div class="veh-kpi-grid-4">
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">🔧 Manutenção</div>
+                        <div class="veh-kpi-value">{fmt_br(manut, True)}</div>
+                    </div>
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">⛽ Combustível</div>
+                        <div class="veh-kpi-value">{fmt_br(comb, True)}</div>
+                    </div>
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">🛡️ Seguro</div>
+                        <div class="veh-kpi-value">{fmt_br(seguro, True)}</div>
+                    </div>
+                    <div class="veh-kpi-card">
+                        <div class="veh-kpi-label">📡 Rastreador</div>
+                        <div class="veh-kpi-value">{fmt_br(rastreador, True)}</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.divider()
 
             if not df_veiculo.empty:
                 historico = (
@@ -1162,15 +1208,19 @@ else:
                         height=245, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                         margin=dict(l=10, r=20, t=15, b=10),
-                        xaxis=dict(title="", showgrid=False),
-                        yaxis=dict(title="", showgrid=True, gridcolor="#EEF2F6")
+                        xaxis=dict(title="", showgrid=False, tickfont=dict(size=10, color="#60758A")),
+                        yaxis=dict(title="", showgrid=True, gridcolor="#EEF2F6", tickfont=dict(size=9, color="#78909C"))
                     )
                     st.plotly_chart(fig_ficha, use_container_width=True, config={"displayModeBar": False})
 
-            st.caption(
-                "A ficha considera somente custos diretamente vinculados à placa física. "
-                "Custos lançados em placas digitais gerais da Base/Centro de Custo não são "
-                "rateados automaticamente para o veículo."
+            st.markdown(
+                """
+                <div class="veh-note">
+                    ℹ️ A ficha considera somente custos diretamente vinculados à placa física.<br>
+                    Custos lançados em placas digitais gerais da Base/Centro de Custo não são rateados automaticamente para o veículo.
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
         # Abre ao selecionar uma nova placa e evita reabrir em loop após fechar.
