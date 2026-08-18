@@ -1792,36 +1792,86 @@ else:
 
             with col_km_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🛣️ Veículos com Maior KM</div>',
+                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🛣️ Veículos com Maior Quilometragem Total</div>',
                     unsafe_allow_html=True
                 )
 
-                if not df_rank_veic.empty:
-                    rank_km = (
-                        df_rank_veic.groupby("Placa_Normalizada", as_index=False)["Quilometragem"]
-                        .sum()
-                    )
-                    rank_km = rank_km.merge(unidade_por_placa, on="Placa_Normalizada", how="left")
-                    rank_km = rank_km[rank_km["Quilometragem"] > 0].nlargest(5, "Quilometragem")
+                # Usa exatamente a mesma fonte de dados do Top 15 da aba Gestão de Quilometragem.
+                # Assim, os 5 primeiros da Visão Executiva são os mesmos 5 primeiros daquele ranking.
+                df_top_km_exec = load_top_km_data()
 
-                    if not rank_km.empty:
-                        linhas_km = ['<div class="fleet-highlight-list">']
-                        for pos, (_, row) in enumerate(rank_km.iterrows(), start=1):
-                            unidade_rank = row["Unidade_Gestao"] if pd.notna(row["Unidade_Gestao"]) else "—"
-                            linhas_km.append(
-                                f'<div class="fleet-highlight-row">'
-                                f'<div class="fleet-pos">{pos}º</div>'
-                                f'<div class="fleet-plate">{row["Placa_Normalizada"]}</div>'
-                                f'<div class="fleet-unit">📍 {unidade_rank}</div>'
-                                f'<div class="fleet-value">{fmt_br(row["Quilometragem"])} km</div>'
-                                f'</div>'
-                            )
-                        linhas_km.append("</div>")
-                        st.markdown("".join(linhas_km), unsafe_allow_html=True)
+                if not df_top_km_exec.empty:
+                    col_placa_exec = "Placa" if "Placa" in df_top_km_exec.columns else df_top_km_exec.columns[0]
+
+                    col_km_exec = None
+                    for col in df_top_km_exec.columns:
+                        if "KM" in str(col).upper() or "QUILOMETRAGEM" in str(col).upper():
+                            col_km_exec = col
+                            break
+
+                    if not col_km_exec and len(df_top_km_exec.columns) > 1:
+                        col_km_exec = df_top_km_exec.columns[1]
+
+                    if col_placa_exec and col_km_exec:
+                        df_top_km_exec[col_km_exec] = to_float(df_top_km_exec[col_km_exec])
+
+                        # Mantém a mesma correção usada na aba Gestão de Quilometragem.
+                        if df_top_km_exec[col_km_exec].max() > 0 and df_top_km_exec[col_km_exec].max() < 3000:
+                            df_top_km_exec[col_km_exec] = df_top_km_exec[col_km_exec] * 1000
+
+                        top5_km_exec = (
+                            df_top_km_exec
+                            .nlargest(5, col_km_exec)
+                            .sort_values(col_km_exec, ascending=False)
+                            .copy()
+                        )
+
+                        # Localiza a coluna de Base/Centro de Custo na mesma base do Top KM.
+                        col_base_exec = None
+                        for col in top5_km_exec.columns:
+                            if str(col).strip().upper() in [
+                                "BASE",
+                                "CENTRO DE CUSTO",
+                                "CENTRO DE CUSTO / BASE",
+                                "BASE / CENTRO DE CUSTO"
+                            ]:
+                                col_base_exec = col
+                                break
+
+                        if col_base_exec is None:
+                            colunas_aux_exec = [
+                                c for c in top5_km_exec.columns
+                                if c not in [col_placa_exec, col_km_exec, "KM_Formatado"]
+                            ]
+                            col_base_exec = colunas_aux_exec[0] if colunas_aux_exec else None
+
+                        if not top5_km_exec.empty:
+                            linhas_km = ['<div class="fleet-highlight-list">']
+
+                            for pos, (_, row) in enumerate(top5_km_exec.iterrows(), start=1):
+                                placa_exec = str(row[col_placa_exec]).strip().upper()
+                                unidade_exec = str(row[col_base_exec]).strip() if col_base_exec is not None else "—"
+
+                                if unidade_exec.upper() in ["NAN", "NONE", "0", "0.0", ""]:
+                                    unidade_exec = "—"
+
+                                linhas_km.append(
+                                    f'<div class="fleet-highlight-row">'
+                                    f'<div class="fleet-pos">{pos}º</div>'
+                                    f'<div class="fleet-plate">{placa_exec}</div>'
+                                    f'<div class="fleet-unit">📍 {unidade_exec}</div>'
+                                    f'<div class="fleet-value">{fmt_br(row[col_km_exec])} km</div>'
+                                    f'</div>'
+                                )
+
+                            linhas_km.append("</div>")
+                            st.markdown("".join(linhas_km), unsafe_allow_html=True)
+                        else:
+                            st.info("Sem quilometragem total disponível para exibição.")
                     else:
-                        st.info("Sem quilometragem disponível para as placas físicas da seleção.")
+                        st.info("Não foi possível identificar as colunas de placa e quilometragem.")
                 else:
-                    st.info("Sem placas físicas disponíveis na seleção.")
+                    st.info("Os dados de quilometragem total ainda não puderam ser carregados.")
 
             with col_manut_rank:
                 st.markdown(
