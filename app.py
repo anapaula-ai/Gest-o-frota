@@ -843,14 +843,14 @@ st.markdown("""
         table-layout:auto;
         background:#FFFFFF;
         color:#263238;
-        font-size:13px;
+        font-size:14px;
     }
     .rx-table th{
         background:#1A237E;
         color:#FFFFFF !important;
-        font-size:13px;
+        font-size:14px;
         font-weight:800;
-        padding:10px 12px;
+        padding:11px 12px;
         border-right:1px solid rgba(255,255,255,.28);
         text-align:left;
         white-space:nowrap;
@@ -861,9 +861,9 @@ st.markdown("""
     .rx-table th:last-child{border-right:none;}
     .rx-table td{
         color:#263238 !important;
-        font-size:13px;
-        font-weight:500;
-        padding:9px 12px;
+        font-size:14px;
+        font-weight:550;
+        padding:10px 12px;
         border-right:1px solid #E7EDF3;
         border-bottom:1px solid #E7EDF3;
         white-space:nowrap;
@@ -2887,7 +2887,7 @@ else:
                         anterior = valor
                     df_resumo_mensal_rx["Vs mês anterior"] = variacoes
 
-                st.markdown('<div class="rx-section-title" style="font-size:16px;min-height:36px;">1. Evolução Mensal da Unidade</div>', unsafe_allow_html=True)
+                st.markdown('<div class="rx-section-title" style="font-size:18px;min-height:40px;">1. Evolução Mensal da Unidade</div>', unsafe_allow_html=True)
 
                 # Tabela padronizada no mesmo visual executivo do dashboard.
                 # Mantém fonte confortável (13px) e os destaques de variação.
@@ -2939,7 +2939,7 @@ else:
                 # ============================================================
                 # 2) DETALHAMENTO DAS PLACAS
                 # ============================================================
-                st.markdown('<div class="rx-section-title" style="font-size:16px;min-height:36px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="rx-section-title" style="font-size:18px;min-height:40px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
                 st.markdown(
                     '<div class="rx-section-note">KM e manutenção são apresentados por placa. O combustível permanece no resumo da unidade, pois não é rateado individualmente entre os veículos.</div>',
                     unsafe_allow_html=True
