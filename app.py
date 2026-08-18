@@ -544,7 +544,7 @@ st.markdown("""
         background:#F9FBFD;
         border-bottom:1px solid #E7EDF3;
         color:#607D8B !important;
-        font-size:11px;
+        font-size:12.5px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.35px;
@@ -559,11 +559,11 @@ st.markdown("""
     }
     .rx-row:last-child{border-bottom:none}
     .rx-row:hover{background:#FAFCFF}
-    .rx-name{color:#17206A !important;font-size:13.5px;font-weight:800}
-    .rx-ativos{color:#2E7D32 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-km{color:#1976D2 !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-money{color:#14206F !important;font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap}
-    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
+    .rx-name{color:#17206A !important;font-size:14.5px;font-weight:800}
+    .rx-ativos{color:#2E7D32 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-km{color:#1976D2 !important;font-size:13.5px;font-weight:800;text-align:right;white-space:nowrap}
+    .rx-money{color:#14206F !important;font-size:13.5px;font-weight:850;text-align:right;white-space:nowrap}
+    .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:13px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
 
@@ -1803,13 +1803,18 @@ else:
                         text="Custo_Total", color="Instituição",
                         color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
                     )
-                    fig_unid.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
+                    fig_unid.update_traces(
+                        texttemplate='<b>R$ %{text:,.0f}</b>',
+                        textposition='outside',
+                        textfont=dict(size=14),
+                        cliponaxis=False
+                    )
                     fig_unid.update_layout(
                         height=390, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(l=10, r=90, t=5, b=10),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-                        yaxis=dict(title="", automargin=True, tickfont=dict(size=13)),
+                        yaxis=dict(title="", automargin=True, tickfont=dict(size=14)),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
                     )
                     st.plotly_chart(fig_unid, use_container_width=True, config={'displayModeBar': False})
