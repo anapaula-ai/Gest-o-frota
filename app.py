@@ -2421,15 +2421,13 @@ else:
                     rank_ac = rank_ac.nlargest(10, "Custo de combustível").sort_values(
                         "Custo de combustível", ascending=True
                     )
-                    rank_ac["Rotulo"] = rank_ac["Custo de combustível"].apply(
-                        lambda v: fmt_br(v, True)
-                    )
                     fig_ca = go.Figure(go.Bar(
                         x=rank_ac["Custo de combustível"],
                         y=rank_ac["Unidade_Comb"],
                         orientation="h",
                         marker_color="#0288D1",
-                        text=rank_ac["Rotulo"],
+                        text=rank_ac["Custo de combustível"],
+                        texttemplate="<b>R$ %{text:,.2f}</b>",
                         textposition="outside",
                         textfont=dict(size=13, color="#263238"),
                         cliponaxis=False,
