@@ -1023,15 +1023,60 @@ else:
             padding-right: 2rem !important;
             padding-top: 2.2rem !important;
         }
-        .topo-logistica {
-            font-family: Arial, sans-serif !important;
-            font-size: 26px !important;
-            line-height: 1.15 !important;
-            font-weight: 850 !important;
-            color: #1A237E !important;
-            letter-spacing: -0.20px;
-            padding: 4px 0 7px 0;
-            margin: 0;
+        .brand-wrap {
+            display:flex;
+            align-items:center;
+            gap:12px;
+            min-height:46px;
+            padding:1px 0 5px 0;
+        }
+        .brand-mark {
+            position:relative;
+            width:7px;
+            height:38px;
+            flex:0 0 7px;
+        }
+        .brand-mark-main {
+            position:absolute;
+            left:0;
+            top:0;
+            width:7px;
+            height:38px;
+            border-radius:6px;
+            background:#1A237E;
+        }
+        .brand-mark-accent {
+            position:absolute;
+            left:0;
+            bottom:0;
+            width:7px;
+            height:10px;
+            border-radius:0 0 6px 6px;
+            background:#F57C00;
+        }
+        .brand-text {
+            display:flex;
+            flex-direction:column;
+            justify-content:center;
+            gap:1px;
+        }
+        .brand-title {
+            font-family:Arial, sans-serif !important;
+            font-size:28px !important;
+            line-height:1.0 !important;
+            font-weight:900 !important;
+            color:#1A237E !important;
+            letter-spacing:-0.35px;
+            margin:0;
+        }
+        .brand-subtitle {
+            font-family:Arial, sans-serif !important;
+            font-size:12.5px !important;
+            line-height:1.2 !important;
+            font-weight:650 !important;
+            color:#60758A !important;
+            letter-spacing:.1px;
+            margin-top:3px;
         }
         .topo-saida-spacer {
             height: 0px;
@@ -1056,16 +1101,27 @@ else:
     topo_logo, topo_saida = st.columns([8.8, 1.2], gap="small")
     with topo_logo:
         st.markdown(
-            '<div class="topo-logistica">🏢 LOGÍSTICA</div>',
+            """
+            <div class="brand-wrap">
+                <div class="brand-mark">
+                    <div class="brand-mark-main"></div>
+                    <div class="brand-mark-accent"></div>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">LOGÍSTICA</div>
+                    <div class="brand-subtitle">Gestão de Frota e Custos</div>
+                </div>
+            </div>
+            """,
             unsafe_allow_html=True
         )
     with topo_saida:
-        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:5px;"></div>', unsafe_allow_html=True)
         if st.button("🔒 Sair", use_container_width=True):
             st.session_state["autenticado"] = False
             st.rerun()
 
-    st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:3px;"></div>', unsafe_allow_html=True)
 
     ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
 
