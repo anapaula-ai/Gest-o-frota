@@ -909,10 +909,96 @@ else:
             # Estilo compacto exclusivo da ficha do veículo
             st.markdown("""
             <style>
-            /* Tipografia única em toda a ficha do veículo */
+            /* ======================================================
+               PADRÃO TIPOGRÁFICO — FICHA DO VEÍCULO
+               ====================================================== */
             div[role="dialog"],
             div[role="dialog"] * {
                 font-family: Arial, sans-serif !important;
+            }
+
+            /* Texto normal e legendas */
+            div[role="dialog"] p,
+            div[role="dialog"] span,
+            div[role="dialog"] label,
+            div[role="dialog"] [data-testid="stCaptionContainer"] {
+                font-family: Arial, sans-serif !important;
+                font-size: 11px !important;
+                line-height: 1.35 !important;
+            }
+
+            /* Títulos das seções */
+            div[role="dialog"] .veh-section-title {
+                font-family: Arial, sans-serif !important;
+                font-size: 13px !important;
+                line-height: 1.25 !important;
+                font-weight: 700 !important;
+                color: #37474F !important;
+                margin: 2px 0 8px 0 !important;
+            }
+
+            /* Cards de identificação */
+            div[role="dialog"] .veh-info-label {
+                font-family: Arial, sans-serif !important;
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                font-weight: 600 !important;
+                color: #455A64 !important;
+                text-transform: none !important;
+                letter-spacing: 0 !important;
+                margin-bottom: 4px !important;
+            }
+
+            div[role="dialog"] .veh-info-value {
+                font-family: Arial, sans-serif !important;
+                font-size: 12px !important;
+                line-height: 1.3 !important;
+                font-weight: 600 !important;
+                color: #263238 !important;
+            }
+
+            /* Cabeçalho */
+            div[role="dialog"] .veh-header-plate {
+                font-family: Arial, sans-serif !important;
+                font-size: 18px !important;
+                line-height: 1.15 !important;
+                font-weight: 700 !important;
+                color: #14206F !important;
+            }
+
+            div[role="dialog"] .veh-header-sub {
+                font-family: Arial, sans-serif !important;
+                font-size: 11px !important;
+                line-height: 1.3 !important;
+                font-weight: 500 !important;
+                color: #455A64 !important;
+            }
+
+            div[role="dialog"] .veh-header-period {
+                font-family: Arial, sans-serif !important;
+                font-size: 10px !important;
+                line-height: 1.25 !important;
+                font-weight: 400 !important;
+                color: #78909C !important;
+            }
+
+            /* Métricas: mesma tipografia, com hierarquia apenas de tamanho */
+            div[role="dialog"] [data-testid="stMetricLabel"],
+            div[role="dialog"] [data-testid="stMetricLabel"] * {
+                font-family: Arial, sans-serif !important;
+                font-size: 10px !important;
+                line-height: 1.2 !important;
+                font-weight: 600 !important;
+                color: #455A64 !important;
+            }
+
+            div[role="dialog"] [data-testid="stMetricValue"],
+            div[role="dialog"] [data-testid="stMetricValue"] * {
+                font-family: Arial, sans-serif !important;
+                font-size: 20px !important;
+                line-height: 1.15 !important;
+                font-weight: 600 !important;
+                color: #1A237E !important;
             }
 
             div[role="dialog"] .stMetric {
@@ -921,24 +1007,8 @@ else:
                 border-radius: 10px;
                 padding: 10px 12px;
             }
-            div[role="dialog"] [data-testid="stMetricLabel"] {
-                font-size: 10px !important;
-                color: #60758A !important;
-                font-weight: 750 !important;
-            }
-            div[role="dialog"] [data-testid="stMetricValue"] {
-                font-size: 21px !important;
-                color: #14206F !important;
-                font-weight: 800 !important;
-            }
             div[role="dialog"] hr {
                 margin: 12px 0 14px 0 !important;
-            }
-            div[role="dialog"] .veh-section-title {
-                color:#1A237E !important;
-                font-size:14px;
-                font-weight:800;
-                margin:2px 0 8px 0;
             }
             div[role="dialog"] .veh-info-grid {
                 display:grid;
@@ -952,40 +1022,6 @@ else:
                 border-radius:9px;
                 padding:9px 10px;
                 min-height:58px;
-            }
-            div[role="dialog"] .veh-info-label {
-                color:#60758A !important;
-                font-size:9.5px;
-                font-weight:800;
-                text-transform:uppercase;
-                letter-spacing:.2px;
-                margin-bottom:4px;
-            }
-            div[role="dialog"] .veh-info-value {
-                color:#14206F !important;
-                font-size:13px;
-                font-weight:750;
-                line-height:1.25;
-                white-space:normal;
-                overflow-wrap:anywhere;
-            }
-            div[role="dialog"] .veh-header-plate {
-                color:#14206F !important;
-                font-size:21px;
-                font-weight:850;
-                line-height:1.1;
-            }
-            div[role="dialog"] .veh-header-sub {
-                color:#607D8B !important;
-                font-size:11px;
-                font-weight:600;
-                margin-top:4px;
-                line-height:1.3;
-            }
-            div[role="dialog"] .veh-header-period {
-                color:#78909C !important;
-                font-size:10px;
-                margin-top:3px;
             }
             </style>
             """, unsafe_allow_html=True)
