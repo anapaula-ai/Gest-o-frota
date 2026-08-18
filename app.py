@@ -61,8 +61,8 @@ st.markdown("""
 
     .metric-label {
         color: #60758A !important;
-        font-size: 11px;
-        letter-spacing: .24px;
+        font-size: 13px;
+        letter-spacing: .20px;
         font-weight: 750;
         text-transform: uppercase;
         min-height: 32px;
@@ -138,7 +138,7 @@ st.markdown("""
     .semaforo-card.critical::before{background:#D32F2F;}
     .semaforo-card.na::before{background:#90A4AE;}
     .semaforo-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-    .semaforo-label{color:#455A64 !important;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
+    .semaforo-label{color:#455A64 !important;font-size:13px;font-weight:850;text-transform:uppercase;letter-spacing:.25px;}
     .semaforo-dot{width:12px;height:12px;border-radius:50%;background:#90A4AE;box-shadow:0 0 0 3px rgba(144,164,174,.14);flex:0 0 auto;}
     .semaforo-card.ok .semaforo-dot{background:#2E7D32;box-shadow:0 0 0 3px rgba(46,125,50,.13);}
     .semaforo-card.warning .semaforo-dot{background:#F9A825;box-shadow:0 0 0 3px rgba(249,168,37,.14);}
@@ -354,7 +354,7 @@ st.markdown("""
     .raiox-container { display: flex; flex-wrap: wrap; background-color: #FFFFFF !important; padding: 20px; border-radius: 12px; border: 1px solid #CFD8DC; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; gap: 10px; }
     .raiox-item { flex: 1; min-width: 130px; text-align: center; border-right: 1px solid #E0E0E0; }
     .raiox-item:last-child { border-right: none; }
-    .raiox-label { color: #546E7A !important; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .raiox-label { color: #546E7A !important; font-size: 13px; font-weight: 700; text-transform: uppercase; }
     .raiox-value { color: #1A237E !important; font-size: 20px; font-weight: 800; margin-top: 5px; }
     
     .stDownloadButton button {
@@ -377,7 +377,7 @@ st.markdown("""
     .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:15px 17px;margin:9px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
     .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:10px}
     .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
-    .inst-lbl{color:#78909C;font-size:10px;font-weight:800;text-transform:uppercase;line-height:1.25}
+    .inst-lbl{color:#78909C;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25}
     .inst-val{color:#263238;font-size:13.5px;font-weight:750;margin-top:3px}
     .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
     .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
@@ -426,6 +426,19 @@ st.markdown("""
     .rx-badge{justify-self:end;background:#F2F5FA;color:#14206F !important;border:1px solid #E0E6EF;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}
     .rx-inst{color:#607D8B !important;font-size:8.5px;font-weight:800;margin-left:5px;background:#F3F6F9;border-radius:999px;padding:2px 5px}
 
+
+    /* Padronização ampliada dos títulos dos cards em todo o dashboard */
+    .metric-label,
+    .semaforo-label,
+    .raiox-label,
+    .inst-lbl,
+    .odonto-kpi-label,
+    .rx-header,
+    .km-table-header,
+    .frota-table-header,
+    .ipva-table-header {
+        font-size:13px !important;
+    }
 
     /* Revisão final de consistência */
     .final-download-gap{height:10px;}
@@ -542,7 +555,7 @@ st.markdown("""
 
     .odonto-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:6px 0 26px 0}
     .odonto-kpi{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:12px 11px;box-shadow:0 3px 10px rgba(26,35,126,.04);min-height:88px}
-    .odonto-kpi-label{color:#60758A !important;font-size:11px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:27px}
+    .odonto-kpi-label{color:#60758A !important;font-size:13px;font-weight:800;text-transform:uppercase;line-height:1.25;min-height:27px}
     .odonto-kpi-value{color:#14206F !important;font-size:21px;font-weight:800;margin-top:6px;white-space:nowrap}
     .odonto-kpi-sub{color:#607D8B !important;font-size:11.5px;margin-top:4px}
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
@@ -1577,93 +1590,6 @@ else:
                         '<div class="rx-list">' + cabecalho_rx + "".join(linhas) + '</div>',
                         unsafe_allow_html=True
                     )
-
-            # ---------- Destaque específico: Odontovans ----------
-            df_odonto = df_unidades[
-                df_unidades["Unidade_Gestao"].astype(str).str.contains("ODONTOVAN", case=False, na=False)
-                & ~df_unidades["Unidade_Gestao"].astype(str).str.contains("CAFARNAUM", case=False, na=False)
-            ].copy()
-            if not df_odonto.empty:
-                st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
-                st.markdown('<div class="exec-section-title">🦷 Odontovans | Painel Executivo</div>', unsafe_allow_html=True)
-
-                od_custo = df_odonto["Custo_Total"].sum()
-                od_manut = df_odonto["Custo de manutenção"].sum()
-                od_comb = df_odonto["Custo Combustível"].sum()
-                od_km = df_odonto["Quilometragem"].sum()
-                od_cpk = od_custo / od_km if od_km > 0 else 0
-
-                df_iav_ref = df_ano[df_ano["Instituição"] == "IAV"].copy()
-                mask_cadastro_iav = df_iav_ref["Placa"].astype(str).str.contains(
-                    cadastro_pattern, case=False, na=False, regex=True
-                )
-                df_iav_ref = df_iav_ref[~mask_cadastro_iav].copy()
-                df_iav_ref = df_iav_ref[df_iav_ref["Mes_Num"] <= mes_num_atual].copy()
-                custo_iav_ref = (
-                    df_iav_ref["Custo de manutenção"].sum() + df_iav_ref["Custo Combustível"].sum()
-                    + df_iav_ref["Custo de seguro"].sum() + df_iav_ref["Custo de Rastreador"].sum()
-                )
-                od_part_iav = (od_custo / custo_iav_ref * 100) if custo_iav_ref > 0 else 0
-
-                resumo_od_html = (
-                    '<div class="odonto-summary">'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Custo total</div><div class="odonto-kpi-value">{fmt_br(od_custo, True)}</div><div class="odonto-kpi-sub">Acumulado até {mes_sel}</div></div>'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Manutenção</div><div class="odonto-kpi-value">{fmt_br(od_manut, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Combustível</div><div class="odonto-kpi-value">{fmt_br(od_comb, True)}</div><div class="odonto-kpi-sub">Custo acumulado</div></div>'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">KM acumulados</div><div class="odonto-kpi-value">{fmt_br(od_km)}</div><div class="odonto-kpi-sub">Quilometragem total</div></div>'
-                    + f'<div class="odonto-kpi"><div class="odonto-kpi-label">Participação no IAV</div><div class="odonto-kpi-value">{od_part_iav:.1f}%</div><div class="odonto-kpi-sub">Do custo total do IAV</div></div>'
-                    + '</div>'
-                )
-                st.markdown(resumo_od_html, unsafe_allow_html=True)
-
-                tabela_odonto = df_odonto[[
-                    "Instituição", "Unidade_Gestao", "Ativos", "Quilometragem",
-                    "Custo de manutenção", "Custo Combustível", "Custo_Total", "Custo/KM"
-                ]].sort_values("Custo_Total", ascending=False).rename(columns={
-                    "Unidade_Gestao": "Odontovan", "Quilometragem": "KM"
-                })
-
-                col_od_graf, col_od_tabela = st.columns([1, 1.4])
-                with col_od_graf:
-                    st.markdown('<div class="exec-section-title">📊 Custo Total por Odontovan</div>', unsafe_allow_html=True)
-                    graf_od = tabela_odonto[tabela_odonto["Custo_Total"] > 0].sort_values("Custo_Total")
-                    if not graf_od.empty:
-                        fig_od = px.bar(
-                            graf_od, x="Custo_Total", y="Odontovan", orientation="h",
-                            text="Custo_Total", color_discrete_sequence=["#F57C00"]
-                        )
-                        fig_od.update_traces(texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False)
-                        max_od = graf_od["Custo_Total"].max() if not graf_od.empty else 1
-                        fig_od.update_layout(
-                            height=max(300, 54 * len(graf_od) + 90), separators=',.',
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                            margin=dict(l=5, r=95, t=5, b=10),
-                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_od * 1.32]),
-                            yaxis=dict(title="", automargin=True, tickfont=dict(size=12)), showlegend=False
-                        )
-                        st.plotly_chart(fig_od, use_container_width=True, config={"displayModeBar": False})
-
-                with col_od_tabela:
-                    st.markdown('<div class="exec-section-title">🔎 Comparativo Operacional</div>', unsafe_allow_html=True)
-                    linhas_od = []
-                    mostrar_inst_od = inst_sel == "TODAS"
-                    for _, r in tabela_odonto.iterrows():
-                        tag = f'<span class="rx-inst">{r["Instituição"]}</span>' if mostrar_inst_od else ""
-                        linhas_od.append(
-                            f'<div class="rx-row">'
-                            f'<div class="rx-name">{r["Odontovan"]}{tag}</div>'
-                            f'<div class="rx-ativos">{int(r["Ativos"])} ativos</div>'
-                            f'<div class="rx-km">{fmt_br(r["KM"])} km</div>'
-                            f'<div class="rx-money">{fmt_br(r["Custo_Total"], True)}</div>'
-                            f'<div class="rx-badge">{fmt_br(r["Custo/KM"], True)}/km</div>'
-                            f'</div>'
-                        )
-                    cabecalho_od = (
-                        '<div class="rx-header"><div>Odontovan</div>'
-                        '<div style="text-align:right">Ativos</div><div style="text-align:right">KM</div>'
-                        '<div style="text-align:right">Custo Total</div><div style="text-align:right">Custo/KM</div></div>'
-                    )
-                    st.markdown('<div class="rx-list">' + cabecalho_od + "".join(linhas_od) + '</div>', unsafe_allow_html=True)
 
         with tab_manut:
             # ================= VISÃO MENSAL =================
