@@ -906,6 +906,84 @@ else:
         def abrir_ficha_veiculo(placa):
             placa = str(placa).upper().strip()
 
+            # Estilo compacto exclusivo da ficha do veículo
+            st.markdown("""
+            <style>
+            div[role="dialog"] .stMetric {
+                background: #FFFFFF;
+                border: 1px solid #E3EAF1;
+                border-radius: 10px;
+                padding: 10px 12px;
+            }
+            div[role="dialog"] [data-testid="stMetricLabel"] {
+                font-size: 10px !important;
+                color: #60758A !important;
+                font-weight: 750 !important;
+            }
+            div[role="dialog"] [data-testid="stMetricValue"] {
+                font-size: 21px !important;
+                color: #14206F !important;
+                font-weight: 800 !important;
+            }
+            div[role="dialog"] hr {
+                margin: 12px 0 14px 0 !important;
+            }
+            div[role="dialog"] .veh-section-title {
+                color:#1A237E !important;
+                font-size:14px;
+                font-weight:800;
+                margin:2px 0 8px 0;
+            }
+            div[role="dialog"] .veh-info-grid {
+                display:grid;
+                grid-template-columns:1.15fr 1.15fr .75fr 1.45fr;
+                gap:8px;
+                margin-bottom:4px;
+            }
+            div[role="dialog"] .veh-info-card {
+                background:#FFFFFF;
+                border:1px solid #E3EAF1;
+                border-radius:9px;
+                padding:9px 10px;
+                min-height:58px;
+            }
+            div[role="dialog"] .veh-info-label {
+                color:#60758A !important;
+                font-size:9.5px;
+                font-weight:800;
+                text-transform:uppercase;
+                letter-spacing:.2px;
+                margin-bottom:4px;
+            }
+            div[role="dialog"] .veh-info-value {
+                color:#14206F !important;
+                font-size:13px;
+                font-weight:750;
+                line-height:1.25;
+                white-space:normal;
+                overflow-wrap:anywhere;
+            }
+            div[role="dialog"] .veh-header-plate {
+                color:#14206F !important;
+                font-size:21px;
+                font-weight:850;
+                line-height:1.1;
+            }
+            div[role="dialog"] .veh-header-sub {
+                color:#607D8B !important;
+                font-size:11px;
+                font-weight:600;
+                margin-top:4px;
+                line-height:1.3;
+            }
+            div[role="dialog"] .veh-header-period {
+                color:#78909C !important;
+                font-size:10px;
+                margin-top:3px;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
             # Lançamentos diretamente vinculados à placa física.
             df_veiculo = df_base_completa.copy()
             df_veiculo["Placa_Normalizada"] = (
@@ -963,30 +1041,45 @@ else:
 
             st.markdown(
                 f"""
-                <div style="background:#F7F9FC;border:1px solid #DCE4EC;border-radius:12px;
-                            padding:16px 18px;margin-bottom:16px;">
-                    <div style="color:#14206F !important;font-size:25px;font-weight:850;">{placa}</div>
-                    <div style="color:#607D8B !important;font-size:13px;font-weight:600;margin-top:6px;">
-                        {modelo} · {instituicao} · {unidade}
+                <div style="background:#F7F9FC;border:1px solid #DCE4EC;border-radius:11px;
+                            padding:12px 14px;margin-bottom:12px;">
+                    <div class="veh-header-plate">{placa}</div>
+                    <div class="veh-header-sub">{modelo} · {instituicao} · {unidade}</div>
+                    <div class="veh-header-period">Dados acumulados até {mes_sel}/{ano_sel}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            rotulo_unidade = "Base Social" if instituicao == "AMES" else "Centro de Custo" if instituicao == "IAV" else "Base / C.C."
+
+            st.markdown('<div class="veh-section-title">Dados do veículo</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div class="veh-info-grid">
+                    <div class="veh-info-card">
+                        <div class="veh-info-label">🚙 Modelo</div>
+                        <div class="veh-info-value">{modelo}</div>
                     </div>
-                    <div style="color:#78909C !important;font-size:11.5px;margin-top:4px;">
-                        Dados acumulados até {mes_sel}/{ano_sel}
+                    <div class="veh-info-card">
+                        <div class="veh-info-label">👤 Motorista</div>
+                        <div class="veh-info-value">{motorista}</div>
+                    </div>
+                    <div class="veh-info-card">
+                        <div class="veh-info-label">🏢 Instituição</div>
+                        <div class="veh-info-value">{instituicao}</div>
+                    </div>
+                    <div class="veh-info-card">
+                        <div class="veh-info-label">📍 {rotulo_unidade}</div>
+                        <div class="veh-info-value">{unidade}</div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            st.markdown("#### Dados do veículo")
-            cad1, cad2, cad3, cad4 = st.columns(4)
-            cad1.metric("🚙 Modelo", modelo)
-            cad2.metric("👤 Motorista", motorista)
-            cad3.metric("🏢 Instituição", instituicao)
-            rotulo_unidade = "Base Social" if instituicao == "AMES" else "Centro de Custo" if instituicao == "IAV" else "Base / C.C."
-            cad4.metric(f"📍 {rotulo_unidade}", unidade)
-
             st.divider()
-            st.markdown("#### Indicadores acumulados")
+            st.markdown('<div class="veh-section-title">Indicadores acumulados</div>', unsafe_allow_html=True)
             k1, k2, k3 = st.columns(3)
             k1.metric("💰 Custo Total", fmt_br(custo_total, True))
             k2.metric("🛣️ Quilometragem", f"{fmt_br(km_total)} km")
@@ -1015,7 +1108,7 @@ else:
 
                 if historico["Custo Total"].sum() > 0:
                     st.divider()
-                    st.markdown("#### Evolução mensal dos custos")
+                    st.markdown('<div class="veh-section-title">Evolução mensal dos custos</div>', unsafe_allow_html=True)
                     fig_ficha = px.bar(
                         historico, x="Mes_Nome", y="Custo Total", text="Custo Total",
                         color_discrete_sequence=["#1A237E"]
@@ -1024,7 +1117,7 @@ else:
                         texttemplate="R$ %{text:,.2f}", textposition="outside", cliponaxis=False
                     )
                     fig_ficha.update_layout(
-                        height=285, separators=",.",
+                        height=245, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                         margin=dict(l=10, r=20, t=15, b=10),
                         xaxis=dict(title="", showgrid=False),
