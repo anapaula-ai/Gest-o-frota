@@ -965,7 +965,7 @@ else:
 
             .veh-info-grid {
                 display:grid;
-                grid-template-columns:repeat(4,minmax(0,1fr));
+                grid-template-columns:repeat(2,minmax(0,1fr));
                 gap:10px;
                 margin-bottom:4px;
             }
@@ -1101,7 +1101,7 @@ else:
                 f"""
                 <div class="veh-header">
                     <div class="veh-header-plate">{placa}</div>
-                    <div class="veh-header-sub">— · {instituicao} · {unidade}</div>
+                    <div class="veh-header-sub">{instituicao} · {unidade}</div>
                     <div class="veh-header-period">Dados acumulados até {mes_sel}/{ano_sel}</div>
                 </div>
                 """,
@@ -1114,14 +1114,6 @@ else:
             st.markdown(
                 f"""
                 <div class="veh-info-grid">
-                    <div class="veh-info-item">
-                        <div class="veh-info-label">🚙 Modelo</div>
-                        <div class="veh-info-value">{modelo}</div>
-                    </div>
-                    <div class="veh-info-item">
-                        <div class="veh-info-label">👤 Motorista</div>
-                        <div class="veh-info-value">{motorista}</div>
-                    </div>
                     <div class="veh-info-item">
                         <div class="veh-info-label">🏢 Instituição</div>
                         <div class="veh-info-value">{instituicao}</div>
