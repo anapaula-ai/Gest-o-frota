@@ -2092,8 +2092,11 @@ else:
             else:
                 st.info("Sem dados suficientes para análise de veículos em atenção.")
 
-            # Espaçamento controlado entre o último card de Veículos em Atenção e a linha divisória.
-            st.markdown('<div class="manut-divider-tight"></div>', unsafe_allow_html=True)
+            # Espaçamento maior entre Veículos em Atenção e Desempenho Acumulado.
+            st.markdown(
+                '<div style="height:28px;"></div><div class="manut-divider-tight"></div><div style="height:12px;"></div>',
+                unsafe_allow_html=True
+            )
 
             # ================= VISÃO ACUMULADA =================
             st.markdown(f'<div class="manut-section-title">📈 Desempenho Acumulado | {ano_sel}</div>', unsafe_allow_html=True)
