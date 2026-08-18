@@ -374,12 +374,70 @@ st.markdown("""
         color:#1A237E !important;
     }
     
-    .inst-card{background:#fff;border:1px solid #DCE4EC;border-radius:12px;padding:15px 17px;margin:9px 0;box-shadow:0 3px 10px rgba(26,35,126,.04)}
-    .inst-name{color:#14206F;font-size:15px;font-weight:800;margin-bottom:10px}
-    .inst-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
-    .inst-lbl{color:#78909C;font-size:12px;font-weight:800;text-transform:uppercase;line-height:1.25}
-    .inst-val{color:#263238;font-size:13.5px;font-weight:750;margin-top:3px}
+    .inst-card{
+        background:#FFFFFF;
+        border:1px solid #DCE4EC;
+        border-radius:13px;
+        padding:16px 18px 17px 18px;
+        margin:10px 0;
+        box-shadow:0 3px 10px rgba(26,35,126,.045);
+    }
+    .inst-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom:13px;
+        padding-bottom:10px;
+        border-bottom:1px solid #EEF2F6;
+    }
+    .inst-name{
+        color:#14206F !important;
+        font-size:17px;
+        font-weight:850;
+        margin:0;
+    }
+    .inst-frota{
+        color:#14206F !important;
+        font-size:14px;
+        font-weight:850;
+        background:#F2F5FA;
+        border:1px solid #E0E6EF;
+        border-radius:999px;
+        padding:6px 10px;
+        white-space:nowrap;
+    }
+    .inst-grid{
+        display:grid;
+        grid-template-columns:repeat(5,minmax(0,1fr));
+        gap:12px;
+    }
+    .inst-item{
+        background:#FAFCFF;
+        border:1px solid #EEF2F6;
+        border-radius:9px;
+        padding:10px 11px;
+        min-height:67px;
+    }
+    .inst-lbl{
+        color:#60758A !important;
+        font-size:12.5px;
+        font-weight:800;
+        text-transform:uppercase;
+        line-height:1.2;
+    }
+    .inst-val{
+        color:#14206F !important;
+        font-size:15px;
+        font-weight:850;
+        margin-top:6px;
+        line-height:1.2;
+        white-space:nowrap;
+    }
     .inst-progress{height:5px;background:#EDF1F5;border-radius:10px;margin-top:10px;overflow:hidden}.inst-progress div{height:100%;background:#1A237E}
+    @media(max-width:1100px){
+        .inst-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    }
     .exec-list{background:#fff;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04)}
     .exec-row{display:grid;grid-template-columns:minmax(170px,2.1fr) .72fr 1fr 1.15fr .9fr;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF2F6}
     .exec-row:last-child{border-bottom:none}.exec-row:hover{background:#FAFCFF}
@@ -1259,16 +1317,16 @@ else:
                     st.markdown(
                         f"""
                         <div class="inst-card">
-                            <div class="inst-name">{inst_comp}</div>
-                            <div class="inst-grid">
-                                <div><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(custo_inst, True)}</div></div>
-                                <div><div class="inst-lbl">Execução orçamentária</div><div class="inst-val">{exec_inst:.1f}%</div></div>
-                                <div><div class="inst-lbl">Saldo</div><div class="inst-val">{fmt_br(saldo_inst, True)}</div></div>
-                                <div><div class="inst-lbl">Custo médio / veículo</div><div class="inst-val">{fmt_br(custo_medio_inst, True) if qtd_inst > 0 else "—"}</div></div>
-                                <div><div class="inst-lbl">CPK</div><div class="inst-val">{fmt_br(cpk_inst, True)}/km</div></div>
+                            <div class="inst-head">
+                                <div class="inst-name">{inst_comp}</div>
+                                <div class="inst-frota">🚙 {fmt_br(qtd_inst)} veículos cadastrados</div>
                             </div>
-                            <div style="margin-top:10px;color:#607D8B;font-size:10.5px;font-weight:700;">
-                                {fmt_br(qtd_inst)} veículos cadastrados
+                            <div class="inst-grid">
+                                <div class="inst-item"><div class="inst-lbl">Custo acumulado</div><div class="inst-val">{fmt_br(custo_inst, True)}</div></div>
+                                <div class="inst-item"><div class="inst-lbl">Execução orçamentária</div><div class="inst-val">{exec_inst:.1f}%</div></div>
+                                <div class="inst-item"><div class="inst-lbl">Saldo</div><div class="inst-val">{fmt_br(saldo_inst, True)}</div></div>
+                                <div class="inst-item"><div class="inst-lbl">Custo médio / veículo</div><div class="inst-val">{fmt_br(custo_medio_inst, True) if qtd_inst > 0 else "—"}</div></div>
+                                <div class="inst-item"><div class="inst-lbl">CPK</div><div class="inst-val">{fmt_br(cpk_inst, True)}/km</div></div>
                             </div>
                         </div>
                         """,
