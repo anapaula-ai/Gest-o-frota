@@ -1702,15 +1702,16 @@ else:
                         }, hole=0
                     )
                     fig_comp.update_traces(
-                        textposition="inside", textinfo="percent+label", textfont=dict(size=14),
+                        textposition="inside", textinfo="percent+label", textfont=dict(size=13, family="Arial, sans-serif"),
                         hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
                         marker=dict(line=dict(color="#FFFFFF", width=2))
                     )
                     fig_comp.update_layout(
-                        height=350, separators=",.", paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=5, r=5, t=5, b=30),
+                        height=365, separators=",.", paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=8, r=8, t=8, b=38),
+                        font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
                         showlegend=True,
-                        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=12))
+                        legend=dict(orientation="h", yanchor="top", y=-0.04, xanchor="center", x=0.5, font=dict(size=13, family="Arial, sans-serif"))
                     )
                     st.plotly_chart(fig_comp, use_container_width=True, config={"displayModeBar": False})
                 else:
@@ -1739,15 +1740,16 @@ else:
                         color_discrete_map={"Real acumulado": "#F57C00", "Orçamento anual": "#1A237E"}
                     )
                     fig_orcado.update_traces(
-                        texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', cliponaxis=False,
+                        texttemplate='<b>R$ %{text:,.0f}</b>', textposition='outside', textfont=dict(size=13, family='Arial, sans-serif', color='#263238'), cliponaxis=False,
                         hovertemplate='<b>%{x}</b><br>%{fullData.name}: R$ %{y:,.2f}<br>Execução: %{customdata[0]:.1f}%<extra></extra>'
                     )
                     max_orcado = df_orcado_long["Valor"].max() if not df_orcado_long.empty else 1
                     fig_orcado.update_layout(
-                        height=350, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=5, r=10, t=5, b=20),
+                        height=370, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(l=8, r=12, t=18, b=18),
+                        font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         yaxis=dict(title="", showticklabels=False, showgrid=True, gridcolor="#E6ECF2", range=[0, max_orcado * 1.22]),
-                        xaxis=dict(title="", tickfont=dict(size=12)),
+                        xaxis=dict(title="", tickfont=dict(size=13, family="Arial, sans-serif")),
                         legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1, title="", font=dict(size=13))
                     )
                     st.plotly_chart(fig_orcado, use_container_width=True, config={"displayModeBar": False})
@@ -1895,7 +1897,8 @@ else:
                     fig_unid.update_layout(
                         height=430, separators=',.',
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(l=15, r=120, t=10, b=5),
+                        margin=dict(l=15, r=125, t=12, b=4),
+                        font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=14, color="#455A64", family="Arial, sans-serif")),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="", font=dict(size=12))
@@ -2020,11 +2023,11 @@ else:
                 top10_km = df_top10[df_top10['Quilometragem'] > 0].nlargest(10, 'Quilometragem').sort_values('Quilometragem', ascending=True)
                 
                 if not top10_km.empty:
-                    top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:11px; color:#60758A; font-weight:normal;'>" + top10_km['Base'] + "</span>"
+                    top10_km['Placa_Base'] = "<b>" + top10_km['Placa'] + "</b><br><span style='font-size:11.5px; color:#60758A; font-weight:normal;'>" + top10_km['Base'] + "</span>"
                     fig_km = px.bar(top10_km, x='Quilometragem', y='Placa_Base', orientation='h', text='Quilometragem', color_discrete_sequence=['#0288D1'])
                     fig_km.update_traces(texttemplate='<b>%{text:,.0f}</b>', textposition='outside', textfont=dict(size=13, color='#263238'), cliponaxis=False)
                     max_km = top10_km['Quilometragem'].max() if not top10_km.empty else 1
-                    fig_km.update_layout(height=500, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=125, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_km * 1.34]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
+                    fig_km.update_layout(height=510, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=125, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_km * 1.34]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
                     st.plotly_chart(fig_km, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum dado para exibir neste mês.")
@@ -2034,11 +2037,11 @@ else:
                 top10_custo = df_top10[df_top10['Custo de manutenção'] > 0].nlargest(10, 'Custo de manutenção').sort_values('Custo de manutenção', ascending=True)
                 
                 if not top10_custo.empty and top10_custo['Custo de manutenção'].sum() > 0:
-                    top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:11px; color:#60758A; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
+                    top10_custo['Placa_Base'] = "<b>" + top10_custo['Placa'] + "</b><br><span style='font-size:11.5px; color:#60758A; font-weight:normal;'>" + top10_custo['Base'] + "</span>"
                     fig_custo = px.bar(top10_custo, x='Custo de manutenção', y='Placa_Base', orientation='h', text='Custo de manutenção', color_discrete_sequence=['#F57C00'])
                     fig_custo.update_traces(texttemplate='<b>R$ %{text:,.2f}</b>', textposition='outside', textfont=dict(size=13, color='#263238'), cliponaxis=False)
                     max_c = top10_custo['Custo de manutenção'].max() if not top10_custo.empty else 1
-                    fig_custo.update_layout(height=500, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=140, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_c * 1.38]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
+                    fig_custo.update_layout(height=510, separators=',.', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(r=140, l=10, t=10, b=5), xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_c * 1.38]), yaxis=dict(automargin=True, tickfont=dict(size=13, color='#455A64', family="Arial, sans-serif"), title=""))
                     st.plotly_chart(fig_custo, use_container_width=True, config={'displayModeBar': False})
                 else:
                     st.info("Nenhum custo lançado neste mês.")
@@ -2244,9 +2247,9 @@ else:
                 fig_evol.update_traces(
                     texttemplate='<b>R$ %{text:,.0f}</b>',
                     textposition='top center',
-                    textfont=dict(size=11),
+                    textfont=dict(size=12, family='Arial, sans-serif', color='#455A64'),
                     line=dict(width=3),
-                    marker=dict(size=8)
+                    marker=dict(size=9)
                 )
 
                 fig_evol.add_hline(
@@ -2256,7 +2259,7 @@ else:
                     line_width=1.5,
                     annotation_text=f"Média mensal total: {fmt_br(media_mensal, True)}",
                     annotation_position='bottom right',
-                    annotation_font=dict(size=11, color='#546E7A')
+                    annotation_font=dict(size=12, color='#546E7A', family='Arial, sans-serif')
                 )
 
                 max_c_evol = max(
@@ -2265,17 +2268,18 @@ else:
                 ) if not evol_inst.empty else 1
 
                 fig_evol.update_layout(
-                    height=430,
+                    height=440,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(r=20, l=10, t=35, b=10),
+                    margin=dict(r=20, l=12, t=42, b=8),
+                    font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                     yaxis=dict(
                         title="Custo no Mês (R$)",
                         showgrid=True,
                         gridcolor='#E0E0E0',
                         range=[0, max_c_evol * 1.30]
                     ),
-                    xaxis=dict(title=""),
+                    xaxis=dict(title="", tickfont=dict(size=13)),
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",
@@ -2387,11 +2391,12 @@ else:
 
                 max_cb = custo_base_acum["Custo de manutenção"].max()
                 fig_base_acum.update_layout(
-                    height=455,
+                    height=465,
                     separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(r=185, l=10, t=8, b=5),
+                    margin=dict(r=190, l=12, t=8, b=4),
+                    font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                     showlegend=False,
                     xaxis=dict(
                         showticklabels=False,
@@ -2535,10 +2540,11 @@ else:
                     )
                     max_cm = rank_mes["Custo de combustível"].max()
                     fig_cm.update_layout(
-                        height=455, separators=",.",
+                        height=480, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(r=115, l=10, t=10, b=10),
+                        margin=dict(r=125, l=12, t=10, b=5),
+                        font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         showlegend=False,
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.38]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
@@ -2588,10 +2594,11 @@ else:
                     ))
                     max_ca = rank_ac["Custo de combustível"].max()
                     fig_ca.update_layout(
-                        height=455, separators=",.",
+                        height=480, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(r=165, l=10, t=10, b=10),
+                        margin=dict(r=180, l=12, t=10, b=5),
+                        font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         showlegend=False,
                         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.50]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
@@ -2630,9 +2637,9 @@ else:
                 fig_ec.update_traces(
                     texttemplate="<b>R$ %{text:,.0f}</b>",
                     textposition="top center",
-                    textfont=dict(size=11),
+                    textfont=dict(size=12, family="Arial, sans-serif", color="#455A64"),
                     line=dict(width=3),
-                    marker=dict(size=8)
+                    marker=dict(size=9)
                 )
                 fig_ec.add_hline(
                     y=media_comb,
@@ -2641,21 +2648,22 @@ else:
                     line_width=1.5,
                     annotation_text=f"Média mensal total: {fmt_br(media_comb, True)}",
                     annotation_position="bottom right",
-                    annotation_font=dict(size=11, color="#546E7A")
+                    annotation_font=dict(size=12, color="#546E7A", family="Arial, sans-serif")
                 )
                 max_ec = max(evol_comb_inst["Custo de combustível"].max(), media_comb)
                 fig_ec.update_layout(
-                    height=430, separators=",.",
+                    height=440, separators=",.",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(r=20, l=10, t=35, b=10),
+                    margin=dict(r=20, l=12, t=42, b=8),
+                    font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
                     yaxis=dict(
                         title="Custo no Mês (R$)",
                         showgrid=True,
                         gridcolor="#E0E0E0",
                         range=[0, max_ec*1.30]
                     ),
-                    xaxis=dict(title=""),
+                    xaxis=dict(title="", tickfont=dict(size=13)),
                     legend=dict(
                         orientation="h", yanchor="bottom", y=1.02,
                         xanchor="right", x=1, title=""
@@ -2736,12 +2744,33 @@ else:
                 fig_fixos = px.bar(evol_fixos_melted, x='Mes_Nome', y='Custo', color='Tipo Despesa', barmode='group', color_discrete_map={"Seguro": "#1A237E", "Rastreador": "#0288D1"})
                 
                 max_f = evol_fixos_melted['Custo'].max()
-                fig_fixos.update_layout(height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                                        yaxis=dict(title="Custo (R$)", showgrid=True, gridcolor='#E0E0E0', range=[0, max_f * 1.3]), xaxis_title="",
-                                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
-                                        separators=',.')
-                
-                fig_fixos.update_traces(texttemplate='<b>R$ %{y:,.2f}</b>', textposition='outside', textfont=ESTILO_TEXTO)
+                fig_fixos.update_layout(
+                    height=420,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    margin=dict(l=12, r=20, t=40, b=8),
+                    font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
+                    yaxis=dict(
+                        title=dict(text="Custo (R$)", font=dict(size=12)),
+                        tickfont=dict(size=12.5),
+                        showgrid=True,
+                        gridcolor='#E6ECF2',
+                        range=[0, max_f * 1.34]
+                    ),
+                    xaxis=dict(title="", tickfont=dict(size=13)),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="right", x=1, title="", font=dict(size=13)
+                    ),
+                    separators=',.'
+                )
+
+                fig_fixos.update_traces(
+                    texttemplate='<b>R$ %{y:,.2f}</b>',
+                    textposition='outside',
+                    textfont=dict(size=12.5, family="Arial, sans-serif", color="#263238"),
+                    cliponaxis=False
+                )
                 st.plotly_chart(fig_fixos, use_container_width=True)
             else:
                 st.info("Nenhum custo de Seguro ou Rastreador lançado nestes meses.")
@@ -2901,17 +2930,18 @@ else:
                     fig_comp_rx.update_traces(
                         textposition="outside",
                         textinfo="label+percent",
-                        textfont=dict(size=13),
+                        textfont=dict(size=13, family="Arial, sans-serif"),
                         hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>"
                     )
                     fig_comp_rx.add_annotation(
                         text=f"<b>{fmt_br(total_mes, True)}</b><br>Total do mês",
                         x=0.5, y=0.5, showarrow=False,
-                        font=dict(size=14, color="#263238")
+                        font=dict(size=15, color="#263238", family="Arial, sans-serif")
                     )
                     fig_comp_rx.update_layout(
-                        height=330,
-                        margin=dict(l=20, r=20, t=10, b=10),
+                        height=350,
+                        margin=dict(l=25, r=25, t=12, b=12),
+                        font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
                         showlegend=False,
                         paper_bgcolor="rgba(0,0,0,0)"
                     )
@@ -3208,18 +3238,19 @@ else:
                         fig_top15.update_traces(
                             texttemplate='<b>%{text}</b>', 
                             textposition='outside', 
-                            textfont=ESTILO_TEXTO, 
+                            textfont=dict(size=13, family="Arial, sans-serif", color="#263238"), 
                             cliponaxis=False
                         )
                         max_km = top15[col_km].max() if not top15.empty else 1
                         
                         fig_top15.update_layout(
-                            height=550, 
+                            height=610, 
                             paper_bgcolor='rgba(0,0,0,0)', 
                             plot_bgcolor='rgba(0,0,0,0)', 
-                            margin=dict(r=60, l=10, t=10, b=10), 
-                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_km * 1.20]), 
-                            yaxis=dict(automargin=True, tickfont=dict(size=13, color='#333333', family="Arial, sans-serif"), title=""),
+                            margin=dict(r=80, l=12, t=10, b=5),
+                            font=dict(family='Arial, sans-serif', size=13, color='#455A64'), 
+                            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, title=None, range=[0, max_km * 1.24]), 
+                            yaxis=dict(automargin=True, tickfont=dict(size=13.5, color='#455A64', family="Arial, sans-serif"), title=""),
                             coloraxis_showscale=False  # Oculta a barrinha lateral do degradê para ficar mais limpo
                         )
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
