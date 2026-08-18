@@ -1019,21 +1019,47 @@ else:
             max-width: 100% !important;
             padding-left: 2rem !important;
             padding-right: 2rem !important;
+            padding-top: 1.05rem !important;
+        }
+        .topo-logistica {
+            font-family: Arial, sans-serif !important;
+            font-size: 30px !important;
+            line-height: 1.05 !important;
+            font-weight: 900 !important;
+            color: #1A237E !important;
+            letter-spacing: -0.35px;
+            padding: 0 0 3px 0;
+            margin: 0;
+        }
+        .topo-saida-spacer {
+            height: 0px;
+        }
+        div[data-testid="stSelectbox"] {
+            margin-bottom: 0 !important;
+        }
+        div[data-testid="stSelectbox"] label p {
+            font-size: 12.5px !important;
+            font-weight: 750 !important;
+            color: #455A64 !important;
+            margin-bottom: 2px !important;
+        }
+        div[data-testid="stSelectbox"] > div > div {
+            min-height: 38px !important;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    topo_logo, topo_saida = st.columns([8.5, 1.5], gap="small")
+    topo_logo, topo_saida = st.columns([8.8, 1.2], gap="small")
     with topo_logo:
         st.markdown(
-            '<div style="font-size:22px;font-weight:850;color:#1A237E;'
-            'padding:2px 0 4px 0;">🏢 LOGÍSTICA</div>',
+            '<div class="topo-logistica">🏢 LOGÍSTICA</div>',
             unsafe_allow_html=True
         )
     with topo_saida:
-        if st.button("🔒 Sair / Bloquear App", use_container_width=True):
+        st.markdown('<div class="topo-saida-spacer"></div>', unsafe_allow_html=True)
+        if st.button("🔒 Sair", use_container_width=True):
             st.session_state["autenticado"] = False
             st.rerun()
 
@@ -1214,15 +1240,8 @@ else:
         # ==========================================================
         # FILTROS GLOBAIS NO TOPO — VERSÃO DE TESTE
         # ==========================================================
-        st.markdown(
-            '<div style="font-size:12px;font-weight:800;color:#60758A;'
-            'text-transform:uppercase;letter-spacing:.45px;margin:0 0 5px 1px;">'
-            'Filtros do painel</div>',
-            unsafe_allow_html=True
-        )
-
         col_f_ano, col_f_inst, col_f_cc, col_f_mes = st.columns(
-            [0.75, 1.0, 1.65, 1.15], gap="small"
+            [0.72, 1.05, 1.85, 1.18], gap="small"
         )
 
         with col_f_ano:
