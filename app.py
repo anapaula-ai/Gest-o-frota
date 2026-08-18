@@ -1583,7 +1583,7 @@ else:
 
             # ---------- Rankings executivos por veículo ----------
             st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
-            st.markdown('<div class="exec-section-title compact">🚘 Destaques da Frota</div>', unsafe_allow_html=True)
+            st.markdown('<div class="exec-section-title compact">🚘 Indicadores da Frota</div>', unsafe_allow_html=True)
 
             # Considera somente placas físicas de 7 caracteres e o acumulado até o mês selecionado.
             df_rank_veic = df_fin_exec.copy()
