@@ -846,16 +846,41 @@ else:
         mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(pattern_digitais, case=False, na=True)
         df_base = df_base_completa[mask_reais]
 
-        placas_disponiveis = get_ativos(df_base)
-        opcoes_placas = [""] + sorted(placas_disponiveis)
-        
+        # ==========================================================
+        # BUSCA GLOBAL DE PLACA ESPECÍFICA
+        # ==========================================================
+        df_placas_busca = df_base_completa.copy()
+        df_placas_busca["Placa_Normalizada"] = (
+            df_placas_busca["Placa"].astype(str).str.upper().str.strip()
+            .str.replace(r"[^A-Z0-9]", "", regex=True)
+        )
+
+        placas_disponiveis = sorted(
+            df_placas_busca.loc[
+                df_placas_busca["Placa_Normalizada"].str.fullmatch(r"[A-Z0-9]{7}", na=False),
+                "Placa_Normalizada"
+            ].dropna().unique()
+        )
+        opcoes_placas = [""] + placas_disponiveis
+
         busca_placa = st.sidebar.selectbox(
-            "🔍 Buscar Placa específica", 
-            options=opcoes_placas, 
+            "🔍 Buscar Placa específica",
+            options=opcoes_placas,
             index=0,
-            help="Clique e comece a digitar a placa para pesquisar"
-        ).upper().strip()
-        
+            format_func=lambda x: "Selecione uma placa..." if x == "" else x,
+            help="Digite parte da placa para localizar rapidamente o veículo.",
+            key="busca_placa_global"
+        )
+        busca_placa = str(busca_placa).upper().strip()
+
+        abrir_ficha_manual = False
+        if busca_placa:
+            abrir_ficha_manual = st.sidebar.button(
+                "🚙 Abrir ficha do veículo",
+                use_container_width=True,
+                key="btn_abrir_ficha_veiculo"
+            )
+
         df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
         
         if df_meses_validos.empty:
@@ -873,6 +898,155 @@ else:
             mes_num_atual = df_ano[df_ano["Mes_Nome"] == mes_sel]["Mes_Num"].iloc[0]
         except:
             mes_num_atual = 1
+
+        # ==========================================================
+        # FICHA GLOBAL DO VEÍCULO — JANELA MODAL
+        # ==========================================================
+        @st.dialog("🚙 Ficha do Veículo", width="large")
+        def abrir_ficha_veiculo(placa):
+            placa = str(placa).upper().strip()
+
+            # Lançamentos diretamente vinculados à placa física.
+            df_veiculo = df_base_completa.copy()
+            df_veiculo["Placa_Normalizada"] = (
+                df_veiculo["Placa"].astype(str).str.upper().str.strip()
+                .str.replace(r"[^A-Z0-9]", "", regex=True)
+            )
+            df_veiculo = df_veiculo[
+                (df_veiculo["Placa_Normalizada"] == placa) &
+                (df_veiculo["Mes_Num"] <= mes_num_atual)
+            ].copy().sort_values("Mes_Num")
+
+            # Cadastro auxiliar da frota: modelo, motorista e vínculo atual.
+            df_cad = df_temp_inst.copy()
+            df_cad["Placa_Fisica"] = (
+                df_cad["Placa"].astype(str).str.upper()
+                .str.extract(r"([A-Z0-9]{7})\\s*$", expand=False)
+            )
+            df_cad = df_cad[df_cad["Placa_Fisica"] == placa].copy()
+            if not df_cad.empty:
+                df_cad = (
+                    df_cad.sort_values("Mes_Num")
+                    .drop_duplicates(subset=["Placa_Fisica"], keep="last")
+                )
+
+            if df_veiculo.empty and df_cad.empty:
+                st.warning(
+                    f"Nenhum cadastro ou lançamento encontrado para a placa {placa} "
+                    f"até {mes_sel}/{ano_sel}."
+                )
+                return
+
+            def ultimo_valor_valido(dataframe, coluna, padrao="—"):
+                if dataframe.empty or coluna not in dataframe.columns:
+                    return padrao
+                serie = (
+                    dataframe[coluna].astype(str).str.strip()
+                    .replace(["", "0", "0.0", "nan", "NAN", "None", "-"], np.nan)
+                    .dropna()
+                )
+                return serie.iloc[-1] if not serie.empty else padrao
+
+            fonte = df_cad if not df_cad.empty else df_veiculo
+            modelo = ultimo_valor_valido(fonte, "Modelo")
+            motorista = ultimo_valor_valido(fonte, "Motorista")
+            instituicao = ultimo_valor_valido(fonte, "Instituição")
+            unidade = ultimo_valor_valido(fonte, col_cc) if col_cc in fonte.columns else ultimo_valor_valido(fonte, "Base")
+
+            manut = df_veiculo["Custo de manutenção"].sum() if not df_veiculo.empty else 0
+            comb = df_veiculo["Custo Combustível"].sum() if not df_veiculo.empty else 0
+            seguro = df_veiculo["Custo de seguro"].sum() if not df_veiculo.empty else 0
+            rastreador = df_veiculo["Custo de Rastreador"].sum() if not df_veiculo.empty else 0
+            custo_total = manut + comb + seguro + rastreador
+            km_total = df_veiculo["Quilometragem"].sum() if not df_veiculo.empty else 0
+            custo_km = custo_total / km_total if km_total > 0 else 0
+
+            st.markdown(
+                f"""
+                <div style="background:#F7F9FC;border:1px solid #DCE4EC;border-radius:12px;
+                            padding:16px 18px;margin-bottom:16px;">
+                    <div style="color:#14206F !important;font-size:25px;font-weight:850;">{placa}</div>
+                    <div style="color:#607D8B !important;font-size:13px;font-weight:600;margin-top:6px;">
+                        {modelo} · {instituicao} · {unidade}
+                    </div>
+                    <div style="color:#78909C !important;font-size:11.5px;margin-top:4px;">
+                        Dados acumulados até {mes_sel}/{ano_sel}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.markdown("#### Dados do veículo")
+            cad1, cad2, cad3, cad4 = st.columns(4)
+            cad1.metric("🚙 Modelo", modelo)
+            cad2.metric("👤 Motorista", motorista)
+            cad3.metric("🏢 Instituição", instituicao)
+            rotulo_unidade = "Base Social" if instituicao == "AMES" else "Centro de Custo" if instituicao == "IAV" else "Base / C.C."
+            cad4.metric(f"📍 {rotulo_unidade}", unidade)
+
+            st.divider()
+            st.markdown("#### Indicadores acumulados")
+            k1, k2, k3 = st.columns(3)
+            k1.metric("💰 Custo Total", fmt_br(custo_total, True))
+            k2.metric("🛣️ Quilometragem", f"{fmt_br(km_total)} km")
+            k3.metric("📊 Custo por KM", f"{fmt_br(custo_km, True)}/km")
+
+            k4, k5, k6, k7 = st.columns(4)
+            k4.metric("🔧 Manutenção", fmt_br(manut, True))
+            k5.metric("⛽ Combustível", fmt_br(comb, True))
+            k6.metric("🛡️ Seguro", fmt_br(seguro, True))
+            k7.metric("📡 Rastreador", fmt_br(rastreador, True))
+
+            if not df_veiculo.empty:
+                historico = (
+                    df_veiculo.groupby(["Mes_Num", "Mes_Nome"], as_index=False)
+                    .agg({
+                        "Custo de manutenção": "sum",
+                        "Custo Combustível": "sum",
+                        "Custo de seguro": "sum",
+                        "Custo de Rastreador": "sum"
+                    }).sort_values("Mes_Num")
+                )
+                historico["Custo Total"] = (
+                    historico["Custo de manutenção"] + historico["Custo Combustível"]
+                    + historico["Custo de seguro"] + historico["Custo de Rastreador"]
+                )
+
+                if historico["Custo Total"].sum() > 0:
+                    st.divider()
+                    st.markdown("#### Evolução mensal dos custos")
+                    fig_ficha = px.bar(
+                        historico, x="Mes_Nome", y="Custo Total", text="Custo Total",
+                        color_discrete_sequence=["#1A237E"]
+                    )
+                    fig_ficha.update_traces(
+                        texttemplate="R$ %{text:,.2f}", textposition="outside", cliponaxis=False
+                    )
+                    fig_ficha.update_layout(
+                        height=285, separators=",.",
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        margin=dict(l=10, r=20, t=15, b=10),
+                        xaxis=dict(title="", showgrid=False),
+                        yaxis=dict(title="", showgrid=True, gridcolor="#EEF2F6")
+                    )
+                    st.plotly_chart(fig_ficha, use_container_width=True, config={"displayModeBar": False})
+
+            st.caption(
+                "A ficha considera somente custos diretamente vinculados à placa física. "
+                "Custos lançados em placas digitais gerais da Base/Centro de Custo não são "
+                "rateados automaticamente para o veículo."
+            )
+
+        # Abre ao selecionar uma nova placa e evita reabrir em loop após fechar.
+        if "ultima_placa_dialog" not in st.session_state:
+            st.session_state["ultima_placa_dialog"] = ""
+
+        if not busca_placa:
+            st.session_state["ultima_placa_dialog"] = ""
+        elif busca_placa != st.session_state["ultima_placa_dialog"] or abrir_ficha_manual:
+            st.session_state["ultima_placa_dialog"] = busca_placa
+            abrir_ficha_veiculo(busca_placa)
 
         df_filtrado_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Nome"] == mes_sel]
         df_acumulado_ate_mes_manut = df_apenas_manut[df_apenas_manut["Mes_Num"] <= mes_num_atual]
@@ -1704,8 +1878,6 @@ else:
                 else:
                     draw_card("🎯 ORÇAMENTO CONSUMIDO", "—", "Orçamento não cadastrado para o ano")
 
-            if busca_placa:
-                st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="manut-subsection-title">🔍 Raio-X do Veículo: {busca_placa}</div>', unsafe_allow_html=True)
                 
                 df_veiculo = df_base[df_base["Placa"] == busca_placa].sort_values("Mes_Num")
