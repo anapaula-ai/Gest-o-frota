@@ -2737,11 +2737,6 @@ else:
                 custo_ativo_unidade = custo_ativo_unidade[custo_ativo_unidade >= 0]
                 media_custo_por_ativo = custo_ativo_unidade.mean() if not custo_ativo_unidade.empty else 0
 
-                st.markdown(
-                    f'<div class="rx-page-subtitle"><b>{base_raiox}</b> · Resumo mensal para acompanhamento de Manutenção e Combustível</div>',
-                    unsafe_allow_html=True
-                )
-
                 # Resumo mensal orientado ao missionário
                 r1, r2, r3 = st.columns(3)
                 with r1:
@@ -2841,11 +2836,6 @@ else:
                     f'<div class="rx-section-title">📋 Detalhamento da {rotulo_rx} | {base_raiox}</div>',
                     unsafe_allow_html=True
                 )
-                st.markdown(
-                    f'<div class="rx-section-note">Histórico de janeiro até {mes_sel}/{ano_sel}, organizado em duas leituras: evolução mensal da unidade e detalhamento das placas.</div>',
-                    unsafe_allow_html=True
-                )
-
                 meses_rx = (
                     df_rx_acum[["Mes_Num", "Mes_Nome"]]
                     .dropna()
