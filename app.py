@@ -126,9 +126,9 @@ st.markdown("""
         background:#FFFFFF;
         border:1px solid #DCE4EC;
         border-radius:11px;
-        padding:15px 17px;
+        padding:18px 20px;
         box-shadow:0 3px 10px rgba(26,35,126,.04);
-        min-height:132px;
+        min-height:158px;
         position:relative;
         overflow:hidden;
     }
@@ -144,14 +144,37 @@ st.markdown("""
     .semaforo-card.warning .semaforo-dot{background:#F9A825;box-shadow:0 0 0 3px rgba(249,168,37,.14);}
     .semaforo-card.critical .semaforo-dot{background:#D32F2F;box-shadow:0 0 0 3px rgba(211,47,47,.12);}
     .semaforo-status{color:#14206F !important;font-size:15px;font-weight:850;margin-top:10px;}
-    .semaforo-detail{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.45;margin-top:8px;}
-    .semaforo-cost{
-        color:#14206F !important;
-        font-size:16px;
-        font-weight:850;
-        line-height:1.25;
+    .semaforo-detail{
+        color:#607D8B !important;
+        font-size:12.5px;
+        font-weight:550;
+        line-height:1.45;
+        margin-top:12px;
+    }
+    .semaforo-cost-label{
         display:block;
-        margin-bottom:5px;
+        color:#60758A !important;
+        font-size:11px;
+        font-weight:750;
+        text-transform:uppercase;
+        letter-spacing:.2px;
+        margin-bottom:3px;
+    }
+    .semaforo-cost{
+        display:block;
+        color:#14206F !important;
+        font-size:20px;
+        font-weight:900;
+        line-height:1.15;
+        margin-bottom:8px;
+        white-space:nowrap;
+    }
+    .semaforo-progress-text{
+        display:block;
+        color:#607D8B !important;
+        font-size:12.5px;
+        font-weight:600;
+        line-height:1.4;
     }
     @media (max-width:1200px){.semaforo-wrap{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
@@ -1303,7 +1326,11 @@ else:
                     f'<div class="semaforo-dot"></div>'
                     f'</div>'
                     f'<div class="semaforo-status">{sem["status"]}</div>'
-                    f'<div class="semaforo-detail"><b>Gasto: {valor_gasto_sem}</b><br>{sem["detalhe"]}</div>'
+                    f'<div class="semaforo-detail">'
+                    f'<span class="semaforo-cost-label">Custo acumulado</span>'
+                    f'<span class="semaforo-cost">{valor_gasto_sem}</span>'
+                    f'<span class="semaforo-progress-text">{sem["detalhe"]}</span>'
+                    f'</div>'
                     f'</div>'
                 )
 
