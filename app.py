@@ -2049,148 +2049,7 @@ else:
                 else:
                     st.info("Nenhum custo lançado neste mês.")
 
-            st.markdown('<div class="manut-block-spacer"></div>', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="chart-title">⚠️ Veículos em Atenção | Acumulado</div>',
-                unsafe_allow_html=True
-            )
-            st.caption(
-                "Veículos com pelo menos 2 sinais de atenção: custo acumulado elevado, custo por KM elevado ou recorrência de manutenção."
-            )
-
-            mask_fisica_acum = df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
-                r"[A-Z0-9]{7}", case=False, na=False
-            )
-            df_atencao_base = df_acumulado_ate_mes_manut[mask_fisica_acum].copy()
-
-            if not df_atencao_base.empty:
-                resumo_atencao = df_atencao_base.groupby("Placa", as_index=False).agg({
-                    "Custo de manutenção": "sum",
-                    "Quilometragem": "sum"
-                })
-
-                meses_manut = (
-                    df_atencao_base[df_atencao_base["Custo de manutenção"] > 0]
-                    .groupby("Placa")["Mes_Num"]
-                    .nunique()
-                    .reset_index(name="Meses com Manutenção")
-                )
-
-                resumo_atencao = resumo_atencao.merge(
-                    meses_manut, on="Placa", how="left"
-                )
-                resumo_atencao["Meses com Manutenção"] = (
-                    resumo_atencao["Meses com Manutenção"].fillna(0).astype(int)
-                )
-
-                resumo_atencao = resumo_atencao[
-                    resumo_atencao["Custo de manutenção"] > 0
-                ].copy()
-
-                resumo_atencao["Custo/KM Manut."] = resumo_atencao.apply(
-                    lambda r: (
-                        r["Custo de manutenção"] / r["Quilometragem"]
-                        if r["Quilometragem"] > 0 else 0
-                    ),
-                    axis=1
-                )
-
-                media_custo_frota = (
-                    resumo_atencao["Custo de manutenção"].mean()
-                    if not resumo_atencao.empty else 0
-                )
-
-                positivos_cpk = resumo_atencao[
-                    resumo_atencao["Custo/KM Manut."] > 0
-                ]
-                media_cpk_frota = (
-                    positivos_cpk["Custo/KM Manut."].mean()
-                    if not positivos_cpk.empty else 0
-                )
-
-                # Recorrência: manutenção registrada em 2 ou mais competências.
-                resumo_atencao["Sinal_Custo"] = (
-                    resumo_atencao["Custo de manutenção"] > media_custo_frota
-                )
-                resumo_atencao["Sinal_CPK"] = (
-                    (resumo_atencao["Custo/KM Manut."] > media_cpk_frota)
-                    & (resumo_atencao["Quilometragem"] > 0)
-                )
-                resumo_atencao["Sinal_Recorrencia"] = (
-                    resumo_atencao["Meses com Manutenção"] >= 2
-                )
-
-                resumo_atencao["Qtd_Sinais"] = (
-                    resumo_atencao[
-                        ["Sinal_Custo", "Sinal_CPK", "Sinal_Recorrencia"]
-                    ].sum(axis=1)
-                )
-
-                criticos = (
-                    resumo_atencao[resumo_atencao["Qtd_Sinais"] >= 2]
-                    .sort_values(
-                        ["Qtd_Sinais", "Custo de manutenção"],
-                        ascending=[False, False]
-                    )
-                    .head(5)
-                )
-
-                if not criticos.empty:
-                    qtd_criticos = len(criticos)
-                    custo_criticos = criticos["Custo de manutenção"].sum()
-
-                    st.markdown(
-                        f"""
-                        <div class="attention-summary">
-                            <div class="attention-summary-card">
-                                <div class="attention-summary-label">Veículos em atenção</div>
-                                <div class="attention-summary-value">{qtd_criticos}</div>
-                            </div>
-                            <div class="attention-summary-card">
-                                <div class="attention-summary-label">Custo acumulado</div>
-                                <div class="attention-summary-value">{fmt_br(custo_criticos, True)}</div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-                    linhas_atencao = ['<div class="attention-list">']
-
-                    for pos, (_, r) in enumerate(criticos.iterrows(), start=1):
-                        badges = []
-
-                        if r["Sinal_Custo"]:
-                            badges.append('<span class="attention-badge cost">Custo acima da média</span>')
-
-                        if r["Sinal_CPK"]:
-                            badges.append('<span class="attention-badge cpk">Custo/KM acima da média</span>')
-
-                        linhas_atencao.append(
-                            f'<div class="attention-row">'
-                            f'<div class="attention-rank">{pos}º</div>'
-                            f'<div class="attention-plate">{r["Placa"]}</div>'
-                            f'<div class="attention-value">Manutenção<br><strong>{fmt_br(r["Custo de manutenção"], True)}</strong></div>'
-                            f'<div class="attention-value attention-km-col">KM<br><strong>{fmt_br(r["Quilometragem"])}</strong></div>'
-                            f'<div class="attention-value">Custo/KM<br><strong>{fmt_br(r["Custo/KM Manut."], True)}/km</strong></div>'
-                            f'<div class="attention-signals">{"".join(badges)}</div>'
-                            f'</div>'
-                        )
-
-                    linhas_atencao.append("</div>")
-                    st.markdown("".join(linhas_atencao), unsafe_allow_html=True)
-                else:
-                    st.success(
-                        "Nenhum veículo apresenta pelo menos 2 sinais de atenção na seleção atual."
-                    )
-            else:
-                st.info("Sem dados suficientes para análise de veículos em atenção.")
-
-            # Espaçamento maior entre Veículos em Atenção e Desempenho Acumulado.
-            st.markdown(
-                '<div style="height:28px;"></div><div class="manut-divider-tight"></div><div style="height:12px;"></div>',
-                unsafe_allow_html=True
-            )
+            st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
 
             # ================= VISÃO ACUMULADA =================
             st.markdown(f'<div class="manut-section-title">📈 Desempenho Acumulado | {ano_sel}</div>', unsafe_allow_html=True)
@@ -2334,10 +2193,6 @@ else:
                 f'<div class="chart-title">Top 10 {rotulo_unid_manut} | Maior Custo de Manutenção Acumulado</div>',
                 unsafe_allow_html=True
             )
-            st.caption(
-                f"Acumulado até {mes_sel}/{ano_sel} · % representa a participação no custo total de manutenção."
-            )
-
             df_rank_acum = df_acumulado_ate_mes_manut.copy()
             df_rank_acum["Unidade_Ranking"] = df_rank_acum[col_cc].apply(limpar_unidade)
 
@@ -2363,13 +2218,9 @@ else:
                     .sort_values("Custo de manutenção", ascending=True)
                 )
 
-                # Rótulo único e compacto: valor principal + participação.
-                custo_base_acum["Rotulo_Profissional"] = custo_base_acum.apply(
-                    lambda r: (
-                        f'{fmt_br(r["Custo de manutenção"], True)}'
-                        f'  |  {r["Participação"]:.1f}% do total'
-                    ),
-                    axis=1
+                # Rótulo das barras: somente o custo acumulado.
+                custo_base_acum["Rotulo_Profissional"] = custo_base_acum["Custo de manutenção"].apply(
+                    lambda v: fmt_br(v, True)
                 )
 
                 fig_base_acum = go.Figure()
@@ -2382,11 +2233,9 @@ else:
                     textposition="outside",
                     textfont=dict(size=13.5, color="#263238"),
                     cliponaxis=False,
-                    customdata=custo_base_acum["Participação"],
                     hovertemplate=(
                         "<b>%{y}</b><br>"
-                        "Manutenção acumulada: R$ %{x:,.2f}<br>"
-                        "Participação no total: %{customdata:.1f}%"
+                        "Manutenção acumulada: R$ %{x:,.2f}"
                         "<extra></extra>"
                     ),
                     showlegend=False
