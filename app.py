@@ -896,6 +896,89 @@ st.markdown("""
         background:#1A237E;
     }
 
+    /* ==========================================================
+       PADRONIZAÇÃO TIPOGRÁFICA GLOBAL — REVISÃO FINAL
+       Hierarquia:
+       21px = título principal da seção/aba
+       18px = título de bloco/gráfico/subseção
+       13px = subtítulo/apoio e títulos de cards
+       ========================================================== */
+
+    /* Família tipográfica única no painel */
+    .stApp,
+    .stApp button,
+    .stApp input,
+    .stApp textarea,
+    .stApp select,
+    .stApp label {
+        font-family: Arial, sans-serif !important;
+    }
+    .js-plotly-plot text {
+        font-family: Arial, sans-serif !important;
+    }
+
+    /* NÍVEL 1 — títulos principais das abas/seções */
+    .manut-section-title {
+        font-size:21px !important;
+        font-weight:800 !important;
+        line-height:1.2 !important;
+    }
+
+    /* NÍVEL 2 — títulos de blocos, gráficos e subseções */
+    .exec-section-title,
+    .chart-title,
+    .rx-section-title,
+    .manut-subsection-title {
+        font-size:18px !important;
+        font-weight:800 !important;
+        line-height:1.25 !important;
+    }
+
+    /* Mantém versões compactas com a mesma tipografia, mudando só o espaçamento */
+    .exec-section-title.compact {
+        font-size:18px !important;
+        font-weight:800 !important;
+    }
+
+    /* NÍVEL 3 — subtítulos e textos de apoio abaixo de títulos */
+    .exec-section-subtitle,
+    .rx-page-subtitle,
+    .rx-section-note,
+    .km-section-subtitle,
+    .frota-subtitle {
+        font-size:13px !important;
+        font-weight:600 !important;
+        line-height:1.45 !important;
+    }
+
+    /* Títulos/rótulos dos cards */
+    .metric-label,
+    .semaforo-label,
+    .inst-lbl,
+    .raiox-label,
+    .attention-summary-label,
+    .odonto-kpi-label {
+        font-size:13px !important;
+        font-weight:800 !important;
+        line-height:1.25 !important;
+    }
+
+    /* Textos auxiliares dos cards */
+    .metric-subtext,
+    .odonto-kpi-sub {
+        font-size:12px !important;
+        font-weight:550 !important;
+        line-height:1.4 !important;
+    }
+
+    /* Abas de navegação */
+    div[data-testid="stTabs"] [role="tab"] p {
+        font-family:Arial, sans-serif !important;
+        font-size:14px !important;
+        font-weight:700 !important;
+        line-height:1.2 !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1704,7 +1787,7 @@ else:
 
             with col_km_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="font-size:17px;margin-bottom:9px;">🛣️ Veículos com Maior KM</div>',
+                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🛣️ Veículos com Maior KM</div>',
                     unsafe_allow_html=True
                 )
 
@@ -1737,7 +1820,7 @@ else:
 
             with col_manut_rank:
                 st.markdown(
-                    '<div class="exec-section-title compact" style="font-size:17px;margin-bottom:9px;">🔧 Veículos com Maior Custo de Manutenção</div>',
+                    '<div class="exec-section-title compact" style="margin-bottom:9px;">🔧 Veículos com Maior Custo de Manutenção</div>',
                     unsafe_allow_html=True
                 )
 
@@ -2892,7 +2975,7 @@ else:
                         anterior = valor
                     df_resumo_mensal_rx["Vs mês anterior"] = variacoes
 
-                st.markdown('<div class="rx-section-title" style="font-size:18px;min-height:40px;">1. Evolução Mensal da Unidade</div>', unsafe_allow_html=True)
+                st.markdown('<div class="rx-section-title" style="min-height:40px;">1. Evolução Mensal da Unidade</div>', unsafe_allow_html=True)
 
                 # Tabela padronizada no mesmo visual executivo do dashboard.
                 # Mantém fonte confortável (13px) e os destaques de variação.
@@ -2944,7 +3027,7 @@ else:
                 # ============================================================
                 # 2) DETALHAMENTO DAS PLACAS
                 # ============================================================
-                st.markdown('<div class="rx-section-title" style="font-size:18px;min-height:40px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="rx-section-title" style="min-height:40px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
                 df_veic_acum_rx = df_rx_acum[
                     df_rx_acum["Placa"].astype(str).str.fullmatch(
                         r"[A-Z0-9]{7}", case=False, na=False
