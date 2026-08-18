@@ -2940,11 +2940,6 @@ else:
                 # 2) DETALHAMENTO DAS PLACAS
                 # ============================================================
                 st.markdown('<div class="rx-section-title" style="font-size:18px;min-height:40px;">2. Detalhamento dos Veículos</div>', unsafe_allow_html=True)
-                st.markdown(
-                    '<div class="rx-section-note">KM e manutenção são apresentados por placa. O combustível permanece no resumo da unidade, pois não é rateado individualmente entre os veículos.</div>',
-                    unsafe_allow_html=True
-                )
-
                 df_veic_acum_rx = df_rx_acum[
                     df_rx_acum["Placa"].astype(str).str.fullmatch(
                         r"[A-Z0-9]{7}", case=False, na=False
