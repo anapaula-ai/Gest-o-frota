@@ -1004,12 +1004,38 @@ if not st.session_state["autenticado"]:
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    st.sidebar.markdown("### 🏢 LOGÍSTICA")
-    if st.sidebar.button("🔒 Sair / Bloquear App"):
-        st.session_state["autenticado"] = False
-        st.rerun()
-    
-    st.sidebar.markdown("---")
+    # Versão de teste expandida: sidebar ocultada para liberar toda a largura útil.
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"],
+        [data-testid="collapsedControl"] {
+            display: none !important;
+        }
+        [data-testid="stAppViewContainer"] .main {
+            margin-left: 0 !important;
+        }
+        .block-container {
+            max-width: 100% !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    topo_logo, topo_saida = st.columns([8.5, 1.5], gap="small")
+    with topo_logo:
+        st.markdown(
+            '<div style="font-size:22px;font-weight:850;color:#1A237E;'
+            'padding:2px 0 4px 0;">🏢 LOGÍSTICA</div>',
+            unsafe_allow_html=True
+        )
+    with topo_saida:
+        if st.button("🔒 Sair / Bloquear App", use_container_width=True):
+            st.session_state["autenticado"] = False
+            st.rerun()
 
     ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
 
