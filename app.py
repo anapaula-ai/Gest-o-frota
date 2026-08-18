@@ -1019,16 +1019,16 @@ else:
             max-width: 100% !important;
             padding-left: 2rem !important;
             padding-right: 2rem !important;
-            padding-top: 1.05rem !important;
+            padding-top: 2.2rem !important;
         }
         .topo-logistica {
             font-family: Arial, sans-serif !important;
-            font-size: 30px !important;
-            line-height: 1.05 !important;
-            font-weight: 900 !important;
+            font-size: 26px !important;
+            line-height: 1.15 !important;
+            font-weight: 850 !important;
             color: #1A237E !important;
-            letter-spacing: -0.35px;
-            padding: 0 0 3px 0;
+            letter-spacing: -0.20px;
+            padding: 4px 0 7px 0;
             margin: 0;
         }
         .topo-saida-spacer {
@@ -1058,10 +1058,12 @@ else:
             unsafe_allow_html=True
         )
     with topo_saida:
-        st.markdown('<div class="topo-saida-spacer"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
         if st.button("🔒 Sair", use_container_width=True):
             st.session_state["autenticado"] = False
             st.rerun()
+
+    st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
     ESTILO_TEXTO = dict(size=13, color='#333333', family="Arial, sans-serif")
 
