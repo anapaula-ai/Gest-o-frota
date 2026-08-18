@@ -2366,7 +2366,6 @@ else:
                     f'<div class="chart-title">Top 10 {rotulo_comb} | Maior Custo de Combustível no Mês</div>',
                     unsafe_allow_html=True
                 )
-                st.caption(f"Competência: {mes_sel}/{ano_sel} · ranking do custo de combustível no mês.")
                 rank_mes = (
                     df_comb_mes.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
                     .sum()
@@ -2395,10 +2394,10 @@ else:
                         height=480, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(r=125, l=12, t=10, b=5),
+                        margin=dict(r=150, l=12, t=10, b=5),
                         font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         showlegend=False,
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.38]),
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_cm*1.42]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
                     )
                     st.plotly_chart(fig_cm, use_container_width=True, config={"displayModeBar": False})
@@ -2409,9 +2408,6 @@ else:
                 st.markdown(
                     f'<div class="chart-title">Top 10 {rotulo_comb} | Maior Custo de Combustível Acumulado</div>',
                     unsafe_allow_html=True
-                )
-                st.caption(
-                    f"Acumulado até {mes_sel}/{ano_sel} · % representa a participação no custo total de combustível."
                 )
                 rank_ac = (
                     df_comb_acum.groupby("Unidade_Comb", as_index=False)["Custo de combustível"]
@@ -2425,9 +2421,8 @@ else:
                     rank_ac = rank_ac.nlargest(10, "Custo de combustível").sort_values(
                         "Custo de combustível", ascending=True
                     )
-                    rank_ac["Rotulo"] = rank_ac.apply(
-                        lambda r: f'{fmt_br(r["Custo de combustível"], True)}  |  {r["Participação"]:.1f}% do total',
-                        axis=1
+                    rank_ac["Rotulo"] = rank_ac["Custo de combustível"].apply(
+                        lambda v: fmt_br(v, True)
                     )
                     fig_ca = go.Figure(go.Bar(
                         x=rank_ac["Custo de combustível"],
@@ -2438,10 +2433,8 @@ else:
                         textposition="outside",
                         textfont=dict(size=13, color="#263238"),
                         cliponaxis=False,
-                        customdata=rank_ac["Participação"],
                         hovertemplate=(
-                            "<b>%{y}</b><br>Custo acumulado: R$ %{x:,.2f}<br>"
-                            "Participação: %{customdata:.1f}%<extra></extra>"
+                            "<b>%{y}</b><br>Custo acumulado: R$ %{x:,.2f}<extra></extra>"
                         )
                     ))
                     max_ca = rank_ac["Custo de combustível"].max()
@@ -2449,10 +2442,10 @@ else:
                         height=480, separators=",.",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
-                        margin=dict(r=180, l=12, t=10, b=5),
+                        margin=dict(r=150, l=12, t=10, b=5),
                         font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
                         showlegend=False,
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.50]),
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, max_ca*1.42]),
                         yaxis=dict(title="", automargin=True, tickfont=dict(size=13, color="#455A64", family="Arial, sans-serif"))
                     )
                     st.plotly_chart(fig_ca, use_container_width=True, config={"displayModeBar": False})
