@@ -347,12 +347,14 @@ st.markdown("""
     }
 
     div[data-testid="stTabs"] [role="tab"] {
-        flex: 1 1 calc(20% - 12px) !important;
-        min-width: 140px !important;
-        background-color: #FFFFFF !important; 
-        border: 1px solid #CFD8DC !important; 
-        border-radius: 8px !important; 
-        padding: 10px 8px !important; 
+        flex: 0 0 calc(25% - 9px) !important;
+        width: calc(25% - 9px) !important;
+        min-width: 0 !important;
+        max-width: calc(25% - 9px) !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #CFD8DC !important;
+        border-radius: 8px !important;
+        padding: 10px 8px !important;
         margin: 0 !important;
         min-height: 48px !important;
         height: auto !important;
