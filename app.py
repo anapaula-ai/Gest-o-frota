@@ -3303,7 +3303,7 @@ else:
         with tab_km:
             # ================= SAÚDE DA FROTA =================
             st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
-            st.markdown('<div class="km-section-subtitle">Leitura gerencial que combina quilometragem total, idade, manutenção acumulada, custo por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="km-section-subtitle">Leitura gerencial que combina KM rodado no período, idade, manutenção acumulada, custo por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
 
             df_saude = df_base_completa.copy()
             mask_fisica_saude = df_saude["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
@@ -3364,7 +3364,7 @@ else:
                     score = 0
                     sinais = []
                     if km_q75 > 0 and row["Quilometragem"] >= km_q75:
-                        score += 1; sinais.append("KM elevado")
+                        score += 1; sinais.append("rodagem elevada")
                     if manut_q75 > 0 and row["Custo de manutenção"] >= manut_q75:
                         score += 2; sinais.append("manutenção elevada")
                     if cpk_q75 > 0 and row["Custo_KM"] >= cpk_q75:
@@ -3434,7 +3434,7 @@ else:
                 if linhas_saude:
                     st.markdown(
                         '<div class="health-list"><div class="health-scroll">'
-                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM total</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
+                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM Rodado</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
                         + ''.join(linhas_saude) + '</div></div>', unsafe_allow_html=True
                     )
                     st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
