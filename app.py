@@ -3338,9 +3338,15 @@ else:
                     0
                 )
 
+                # Recorrência = quantidade de meses distintos em que o veículo
+                # apresentou pelo menos um lançamento de manutenção maior que zero.
+                # Vários lançamentos no mesmo mês contam apenas uma vez.
+                df_manut_rec = df_saude[df_saude["Custo de manutenção"].fillna(0) > 0].copy()
                 meses_manut = (
-                    df_saude.assign(_tem_manut=df_saude["Custo de manutenção"].fillna(0) > 0)
-                    .groupby("Placa")["_tem_manut"].sum().to_dict()
+                    df_manut_rec.dropna(subset=["Mes_Num"])
+                    .groupby("Placa")["Mes_Num"]
+                    .nunique()
+                    .to_dict()
                 )
                 agg_saude["Meses_Manut"] = agg_saude["Placa"].map(meses_manut).fillna(0)
 
