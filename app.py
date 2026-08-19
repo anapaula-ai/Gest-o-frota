@@ -3303,7 +3303,7 @@ else:
         with tab_km:
             # ================= SAÚDE DA FROTA =================
             st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
-            st.markdown('<div class="km-section-subtitle">Leitura gerencial que combina KM rodado no período, idade, manutenção acumulada, custo por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="km-section-subtitle">Leitura gerencial que usa o KM rodado como contexto de utilização e avalia idade, custo de manutenção por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
 
             df_saude = df_base_completa.copy()
             mask_fisica_saude = df_saude["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
@@ -3354,8 +3354,10 @@ else:
                     serie_ok = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
                     return float(serie_ok.quantile(q)) if not serie_ok.empty else 0.0
 
-                km_q75 = _q_saude(agg_saude["Quilometragem"], .75)
-                manut_q75 = _q_saude(agg_saude["Custo de manutenção"], .75)
+                # O KM rodado permanece visível como contexto de utilização, mas NÃO
+                # gera pontuação negativa por si só. Veículos de campo podem rodar muito
+                # por necessidade operacional. A saúde é avaliada pela eficiência e
+                # frequência de manutenção, contextualizadas pela idade do ativo.
                 cpk_q75 = _q_saude(agg_saude.loc[agg_saude["Custo_KM"] > 0, "Custo_KM"], .75)
                 idade_q75 = _q_saude(agg_saude["Idade"], .75)
                 rec_q75 = _q_saude(agg_saude["Meses_Manut"], .75)
@@ -3363,19 +3365,19 @@ else:
                 def classificar_saude(row):
                     score = 0
                     sinais = []
-                    if km_q75 > 0 and row["Quilometragem"] >= km_q75:
-                        score += 1; sinais.append("rodagem elevada")
-                    if manut_q75 > 0 and row["Custo de manutenção"] >= manut_q75:
-                        score += 2; sinais.append("manutenção elevada")
                     if cpk_q75 > 0 and row["Custo_KM"] >= cpk_q75:
-                        score += 2; sinais.append("custo/km elevado")
-                    if pd.notna(row["Idade"]) and idade_q75 > 0 and row["Idade"] >= idade_q75:
-                        score += 1; sinais.append("idade elevada")
+                        score += 2
+                        sinais.append("custo/km elevado")
                     if rec_q75 > 0 and row["Meses_Manut"] >= rec_q75 and row["Meses_Manut"] >= 2:
-                        score += 2; sinais.append("manutenção recorrente")
-                    if score >= 5:
+                        score += 2
+                        sinais.append("manutenção recorrente")
+                    if pd.notna(row["Idade"]) and idade_q75 > 0 and row["Idade"] >= idade_q75:
+                        score += 1
+                        sinais.append("idade elevada")
+
+                    if score >= 4:
                         return "Acompanhamento prioritário", "priority", ", ".join(sinais[:3])
-                    if score >= 3:
+                    if score >= 2:
                         return "Atenção", "warning", ", ".join(sinais[:3])
                     return "Adequado", "ok", ", ".join(sinais[:2]) if sinais else "indicadores dentro do padrão"
 
