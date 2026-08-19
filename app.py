@@ -1346,12 +1346,6 @@ else:
         # FILTROS GLOBAIS NO TOPO — BARRA EXECUTIVA
         # ==========================================================
         with st.container(border=True):
-            st.markdown(
-                '<div class="filter-bar-title">⚙️ Filtros do Painel</div>'
-                '<div class="filter-bar-subtitle">Refine a visão dos indicadores por período, instituição e unidade.</div>',
-                unsafe_allow_html=True
-            )
-
             col_f_ano, col_f_inst, col_f_cc, col_f_mes = st.columns(
                 [0.72, 1.05, 1.85, 1.18], gap="small"
             )
