@@ -1093,6 +1093,51 @@ else:
         div[data-testid="stSelectbox"] > div > div {
             min-height: 38px !important;
         }
+
+        /* Barra executiva de filtros */
+        .filter-bar-title {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            color:#1A237E !important;
+            font-size:14px !important;
+            font-weight:850 !important;
+            letter-spacing:.1px;
+            margin:0 0 2px 0;
+        }
+        .filter-bar-subtitle {
+            color:#78909C !important;
+            font-size:11.5px !important;
+            font-weight:550 !important;
+            margin:0 0 8px 0;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background:linear-gradient(180deg,#FFFFFF 0%,#FCFDFF 100%) !important;
+            border:1px solid #D7E0EA !important;
+            border-top:3px solid #1A237E !important;
+            border-radius:13px !important;
+            box-shadow:0 3px 10px rgba(26,35,126,.045) !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] > div {
+            padding:12px 15px 10px 15px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stSelectbox"] label p {
+            color:#455A64 !important;
+            font-size:12.5px !important;
+            font-weight:800 !important;
+            margin-bottom:4px !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-baseweb="select"] > div {
+            background:#F9FBFD !important;
+            border-color:#D7E0EA !important;
+            border-radius:8px !important;
+            min-height:40px !important;
+            box-shadow:none !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] div[data-baseweb="select"] > div:hover {
+            border-color:#90CAF9 !important;
+            background:#FFFFFF !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -1298,76 +1343,83 @@ else:
 
     if not df.empty:
         # ==========================================================
-        # FILTROS GLOBAIS NO TOPO — VERSÃO DE TESTE
+        # FILTROS GLOBAIS NO TOPO — BARRA EXECUTIVA
         # ==========================================================
-        col_f_ano, col_f_inst, col_f_cc, col_f_mes = st.columns(
-            [0.72, 1.05, 1.85, 1.18], gap="small"
-        )
-
-        with col_f_ano:
-            ano_sel = st.selectbox(
-                "Ano",
-                options=sorted(df["Ano"].unique(), reverse=True),
-                key="filtro_topo_ano"
+        with st.container(border=True):
+            st.markdown(
+                '<div class="filter-bar-title">⚙️ Filtros do Painel</div>'
+                '<div class="filter-bar-subtitle">Refine a visão dos indicadores por período, instituição e unidade.</div>',
+                unsafe_allow_html=True
             )
 
-        df_ano = df[df["Ano"] == ano_sel]
-        opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].dropna().unique())
-
-        with col_f_inst:
-            inst_sel = st.selectbox(
-                "Instituição",
-                options=opcoes_inst,
-                key="filtro_topo_instituicao"
+            col_f_ano, col_f_inst, col_f_cc, col_f_mes = st.columns(
+                [0.72, 1.05, 1.85, 1.18], gap="small"
             )
 
-        if inst_sel == "TODAS":
-            df_temp_inst = df_ano.copy()
-            inst_ativas = df_ano["Instituição"].unique()
-        else:
-            df_temp_inst = df_ano[df_ano["Instituição"] == inst_sel]
-            inst_ativas = [inst_sel]
+            with col_f_ano:
+                ano_sel = st.selectbox(
+                    "📅 Ano",
+                    options=sorted(df["Ano"].unique(), reverse=True),
+                    key="filtro_topo_ano"
+                )
 
-        col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
-        opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
+            df_ano = df[df["Ano"] == ano_sel]
+            opcoes_inst = ["TODAS"] + sorted(df_ano["Instituição"].dropna().unique())
 
-        with col_f_cc:
-            cc_sel = st.selectbox(
-                "Centro de Custo / Base",
-                options=opcoes_cc,
-                key="filtro_topo_cc"
+            with col_f_inst:
+                inst_sel = st.selectbox(
+                    "🏢 Instituição",
+                    options=opcoes_inst,
+                    key="filtro_topo_instituicao"
+                )
+
+            if inst_sel == "TODAS":
+                df_temp_inst = df_ano.copy()
+                inst_ativas = df_ano["Instituição"].unique()
+            else:
+                df_temp_inst = df_ano[df_ano["Instituição"] == inst_sel]
+                inst_ativas = [inst_sel]
+
+            col_cc = 'Centro de Custo' if 'Centro de Custo' in df.columns else 'Base'
+            opcoes_cc = ["TODOS"] + sorted(df_temp_inst[col_cc].dropna().unique())
+
+            with col_f_cc:
+                cc_sel = st.selectbox(
+                    "📍 Centro de Custo / Base",
+                    options=opcoes_cc,
+                    key="filtro_topo_cc"
+                )
+
+            df_base_completa = (
+                df_temp_inst.copy()
+                if cc_sel == "TODOS"
+                else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
             )
 
-        df_base_completa = (
-            df_temp_inst.copy()
-            if cc_sel == "TODOS"
-            else df_temp_inst[df_temp_inst[col_cc] == cc_sel]
-        )
-
-        pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-        mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(
-            pattern_digitais, case=False, na=True
-        )
-        df_base = df_base_completa[mask_reais]
-
-        df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
-        if df_meses_validos.empty:
-            lista_meses = ["Nenhum Mês"]
-        else:
-            df_meses_unicos = (
-                df_meses_validos[['Mes_Num', 'Mes_Nome']]
-                .drop_duplicates()
-                .sort_values('Mes_Num')
+            pattern_digitais = "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+            mask_reais = ~df_base_completa["Placa"].astype(str).str.contains(
+                pattern_digitais, case=False, na=True
             )
-            lista_meses = df_meses_unicos['Mes_Nome'].tolist()
+            df_base = df_base_completa[mask_reais]
 
-        with col_f_mes:
-            mes_sel = st.selectbox(
-                "Mês Competência",
-                options=lista_meses,
-                index=len(lista_meses)-1,
-                key="filtro_topo_mes"
-            )
+            df_meses_validos = df_ano.dropna(subset=['Mes_Num', 'Mes_Nome']).copy()
+            if df_meses_validos.empty:
+                lista_meses = ["Nenhum Mês"]
+            else:
+                df_meses_unicos = (
+                    df_meses_validos[['Mes_Num', 'Mes_Nome']]
+                    .drop_duplicates()
+                    .sort_values('Mes_Num')
+                )
+                lista_meses = df_meses_unicos['Mes_Nome'].tolist()
+
+            with col_f_mes:
+                mes_sel = st.selectbox(
+                    "🗓️ Mês Competência",
+                    options=lista_meses,
+                    index=len(lista_meses)-1,
+                    key="filtro_topo_mes"
+                )
 
         st.markdown(
             '<div style="height:3px;"></div>'
