@@ -611,7 +611,7 @@ st.markdown("""
     .km-table-scroll{max-height:550px;overflow-y:auto;}
     .km-table-header, .km-table-row{
         display:grid;
-        grid-template-columns:.78fr 1.05fr 1.35fr;
+        grid-template-columns:.72fr 1.02fr 1.62fr;
         align-items:center;
         gap:10px;
         padding:12px 12px;
@@ -631,9 +631,9 @@ st.markdown("""
     .km-table-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}
     .km-table-row:last-child{border-bottom:none;}
     .km-table-row:hover{background:#FAFCFF;}
-    .km-table-placa{color:#17206A !important;font-size:14px;font-weight:800;}
-    .km-table-km{color:#1976D2 !important;font-size:14px;font-weight:800;text-align:right;white-space:nowrap;}
-    .km-table-base{color:#263238 !important;font-size:14px;font-weight:650;}
+    .km-table-placa{color:#17206A !important;font-size:14.5px;font-weight:800;}
+    .km-table-km{color:#1976D2 !important;font-size:14.5px;font-weight:800;text-align:right;white-space:nowrap;}
+    .km-table-base{color:#263238 !important;font-size:14.5px;font-weight:650;}
 
     /* Acabamento visual — Frota, IPVA & Doc */
     .frota-subtitle{color:#607D8B !important;font-size:12.5px;font-weight:550;line-height:1.45;margin:-3px 0 16px 0;}
@@ -996,8 +996,8 @@ st.markdown("""
     .health-header,.health-row{display:grid;grid-template-columns:.82fr 1.35fr .82fr .70fr 1.02fr .82fr .78fr 1.28fr;align-items:center;gap:10px;padding:11px 13px;}
     .health-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.25px;position:sticky;top:0;z-index:3;}
     .health-header div{color:#FFFFFF !important;}.health-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}.health-row:last-child{border-bottom:none;}.health-row:hover{background:#FAFCFF;}
-    .health-plate{color:#14206F !important;font-size:13.5px;font-weight:850;}.health-unit{color:#455A64 !important;font-size:12.5px;font-weight:650;line-height:1.25;}
-    .health-num{color:#263238 !important;font-size:12.5px;font-weight:750;text-align:right;white-space:nowrap;}
+    .health-plate{color:#14206F !important;font-size:14px;font-weight:850;}.health-unit{color:#455A64 !important;font-size:13px;font-weight:650;line-height:1.25;}
+    .health-num{color:#263238 !important;font-size:13.5px;font-weight:750;text-align:right;white-space:nowrap;}
     .health-status{justify-self:end;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:850;white-space:nowrap;}
     .health-status.ok{background:#E8F5E9;color:#2E7D32 !important;}.health-status.warning{background:#FFF8E1;color:#8A6500 !important;}.health-status.priority{background:#FDECEC;color:#B3261E !important;}
     @media(max-width:1200px){.health-header,.health-row{grid-template-columns:.82fr 1.30fr .80fr .68fr 1fr .78fr .74fr 1.20fr;}}
@@ -3447,7 +3447,6 @@ else:
 
             # ================= TOP 15 KM =================
             st.markdown('<div class="manut-section-title">🚗 Top 15 Veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
-            st.markdown('<div class="km-section-subtitle">Análise dos veículos mais rodados da frota</div>', unsafe_allow_html=True)
             
             df_top_km = load_top_km_data()
             
@@ -3473,7 +3472,7 @@ else:
                     
                     top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=True)
                     
-                    c_grafico, c_tabela = st.columns([2, 1.2])
+                    c_grafico, c_tabela = st.columns([1.22, 1], gap="medium")
                     
                     with c_grafico:
                         
