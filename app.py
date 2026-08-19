@@ -992,8 +992,9 @@ st.markdown("""
     .health-value{color:#14206F !important;font-size:24px;font-weight:900;line-height:1.1;margin-top:7px;}
     .health-note{color:#607D8B !important;font-size:11.5px;font-weight:600;line-height:1.35;margin-top:5px;}
     .health-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);}
+    .health-scroll{max-height:360px;overflow-y:auto;overflow-x:hidden;}
     .health-header,.health-row{display:grid;grid-template-columns:.9fr 1.45fr .85fr .8fr 1.05fr .85fr 1.15fr;align-items:center;gap:10px;padding:11px 13px;}
-    .health-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.25px;}
+    .health-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.25px;position:sticky;top:0;z-index:3;}
     .health-header div{color:#FFFFFF !important;}.health-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}.health-row:last-child{border-bottom:none;}.health-row:hover{background:#FAFCFF;}
     .health-plate{color:#14206F !important;font-size:13.5px;font-weight:850;}.health-unit{color:#455A64 !important;font-size:12.5px;font-weight:650;line-height:1.25;}
     .health-num{color:#263238 !important;font-size:12.5px;font-weight:750;text-align:right;white-space:nowrap;}
@@ -3425,9 +3426,9 @@ else:
 
                 if linhas_saude:
                     st.markdown(
-                        '<div class="health-list">'
+                        '<div class="health-list"><div class="health-scroll">'
                         '<div class="health-header"><div>Placa</div><div>Unidade</div><div>KM total</div><div>Idade</div><div>Manutenção</div><div>Custo/KM</div><div>Saúde</div></div>'
-                        + ''.join(linhas_saude) + '</div>', unsafe_allow_html=True
+                        + ''.join(linhas_saude) + '</div></div>', unsafe_allow_html=True
                     )
                     st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
                 else:
