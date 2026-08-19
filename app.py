@@ -993,14 +993,14 @@ st.markdown("""
     .health-note{color:#607D8B !important;font-size:11.5px;font-weight:600;line-height:1.35;margin-top:5px;}
     .health-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);}
     .health-scroll{max-height:360px;overflow-y:auto;overflow-x:hidden;}
-    .health-header,.health-row{display:grid;grid-template-columns:.9fr 1.45fr .85fr .8fr 1.05fr .85fr 1.15fr;align-items:center;gap:10px;padding:11px 13px;}
+    .health-header,.health-row{display:grid;grid-template-columns:.82fr 1.35fr .82fr .70fr 1.02fr .82fr .78fr 1.28fr;align-items:center;gap:10px;padding:11px 13px;}
     .health-header{background:#1A237E;color:#FFFFFF !important;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.25px;position:sticky;top:0;z-index:3;}
     .health-header div{color:#FFFFFF !important;}.health-row{border-bottom:1px solid #EEF2F6;background:#FFFFFF;}.health-row:last-child{border-bottom:none;}.health-row:hover{background:#FAFCFF;}
     .health-plate{color:#14206F !important;font-size:13.5px;font-weight:850;}.health-unit{color:#455A64 !important;font-size:12.5px;font-weight:650;line-height:1.25;}
     .health-num{color:#263238 !important;font-size:12.5px;font-weight:750;text-align:right;white-space:nowrap;}
     .health-status{justify-self:end;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:850;white-space:nowrap;}
     .health-status.ok{background:#E8F5E9;color:#2E7D32 !important;}.health-status.warning{background:#FFF8E1;color:#8A6500 !important;}.health-status.priority{background:#FDECEC;color:#B3261E !important;}
-    @media(max-width:1200px){.health-header,.health-row{grid-template-columns:.9fr 1.35fr .8fr .75fr 1fr 1.1fr}.health-cpk-col{display:none;}}
+    @media(max-width:1200px){.health-header,.health-row{grid-template-columns:.82fr 1.30fr .80fr .68fr 1fr .78fr .74fr 1.20fr;}}
 
 </style>
 """, unsafe_allow_html=True)
@@ -3420,6 +3420,7 @@ else:
                         f'<div class="health-num">{idade_txt}</div>'
                         f'<div class="health-num">{fmt_br(r["Custo de manutenção"], True)}</div>'
                         f'<div class="health-num health-cpk-col">R$ {r["Custo_KM"]:.2f}/km</div>'
+                        f'<div class="health-num">{int(r["Meses_Manut"])} meses</div>'
                         f'<div class="health-status {r["Classe_Saude"]}" title="{sinais_txt}">{r["Saude"]}</div>'
                         '</div>'
                     )
@@ -3427,7 +3428,7 @@ else:
                 if linhas_saude:
                     st.markdown(
                         '<div class="health-list"><div class="health-scroll">'
-                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div>KM total</div><div>Idade</div><div>Manutenção</div><div>Custo/KM</div><div>Saúde</div></div>'
+                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM total</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
                         + ''.join(linhas_saude) + '</div></div>', unsafe_allow_html=True
                     )
                     st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
