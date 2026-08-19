@@ -1495,130 +1495,6 @@ else:
 
             st.caption(f"{contexto_inst} · Acumulado até {mes_sel}/{ano_sel}")
 
-            # ---------- Saúde da Frota ----------
-            # Leitura gerencial baseada na combinação de uso, idade e custos.
-            # A régua é relativa à própria frota filtrada para não tratar alto uso, isoladamente, como problema.
-            df_saude = df_base_completa.copy()
-            mask_fisica_saude = df_saude["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_saude = df_saude[mask_fisica_saude].copy()
-
-            if not df_saude.empty:
-                agg_saude = df_saude.groupby("Placa", as_index=False).agg({
-                    "Quilometragem": "sum",
-                    "Custo de manutenção": "sum",
-                    "Custo Combustível": "sum",
-                    col_cc: "first",
-                })
-
-                anos_dict_saude = {}
-                try:
-                    df_ipva_saude = load_ipva_data()
-                    if not df_ipva_saude.empty and "Placa" in df_ipva_saude.columns and "Ano do veículo" in df_ipva_saude.columns:
-                        tmp = df_ipva_saude.copy()
-                        tmp["Placa_norm"] = tmp["Placa"].astype(str).str.upper().str.replace(r"[^A-Z0-9]", "", regex=True)
-                        tmp["Ano do veículo"] = pd.to_numeric(tmp["Ano do veículo"], errors="coerce")
-                        tmp = tmp.dropna(subset=["Ano do veículo"]).drop_duplicates("Placa_norm", keep="last")
-                        anos_dict_saude = dict(zip(tmp["Placa_norm"], tmp["Ano do veículo"]))
-                except Exception:
-                    anos_dict_saude = {}
-
-                agg_saude["Ano_Veiculo"] = agg_saude["Placa"].map(anos_dict_saude)
-                agg_saude["Idade"] = ano_sel - agg_saude["Ano_Veiculo"]
-                agg_saude.loc[(agg_saude["Idade"] < 0) | (agg_saude["Idade"] > 40), "Idade"] = np.nan
-                agg_saude["Custo_KM"] = np.where(
-                    agg_saude["Quilometragem"] > 0,
-                    agg_saude["Custo de manutenção"] / agg_saude["Quilometragem"],
-                    0
-                )
-
-                meses_manut = (
-                    df_saude.assign(_tem_manut=df_saude["Custo de manutenção"].fillna(0) > 0)
-                    .groupby("Placa")["_tem_manut"].sum().to_dict()
-                )
-                agg_saude["Meses_Manut"] = agg_saude["Placa"].map(meses_manut).fillna(0)
-
-                def _q_saude(series, q):
-                    serie_ok = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
-                    return float(serie_ok.quantile(q)) if not serie_ok.empty else 0.0
-
-                km_q75 = _q_saude(agg_saude["Quilometragem"], .75)
-                manut_q75 = _q_saude(agg_saude["Custo de manutenção"], .75)
-                cpk_q75 = _q_saude(agg_saude.loc[agg_saude["Custo_KM"] > 0, "Custo_KM"], .75)
-                idade_q75 = _q_saude(agg_saude["Idade"], .75)
-                rec_q75 = _q_saude(agg_saude["Meses_Manut"], .75)
-
-                def classificar_saude(row):
-                    score = 0
-                    sinais = []
-                    if km_q75 > 0 and row["Quilometragem"] >= km_q75:
-                        score += 1; sinais.append("KM elevado")
-                    if manut_q75 > 0 and row["Custo de manutenção"] >= manut_q75:
-                        score += 2; sinais.append("manutenção elevada")
-                    if cpk_q75 > 0 and row["Custo_KM"] >= cpk_q75:
-                        score += 2; sinais.append("custo/km elevado")
-                    if pd.notna(row["Idade"]) and idade_q75 > 0 and row["Idade"] >= idade_q75:
-                        score += 1; sinais.append("idade elevada")
-                    if rec_q75 > 0 and row["Meses_Manut"] >= rec_q75 and row["Meses_Manut"] >= 2:
-                        score += 2; sinais.append("manutenção recorrente")
-
-                    if score >= 5:
-                        return "Acompanhamento prioritário", "priority", ", ".join(sinais[:3])
-                    if score >= 3:
-                        return "Atenção", "warning", ", ".join(sinais[:3])
-                    return "Adequado", "ok", ", ".join(sinais[:2]) if sinais else "indicadores dentro do padrão"
-
-                classif = agg_saude.apply(classificar_saude, axis=1, result_type="expand")
-                classif.columns = ["Saude", "Classe_Saude", "Sinais_Saude"]
-                agg_saude = pd.concat([agg_saude, classif], axis=1)
-
-                qtd_ok = int((agg_saude["Classe_Saude"] == "ok").sum())
-                qtd_at = int((agg_saude["Classe_Saude"] == "warning").sum())
-                qtd_pr = int((agg_saude["Classe_Saude"] == "priority").sum())
-
-                st.markdown('<div class="exec-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
-                st.markdown('<div class="exec-section-subtitle">Leitura gerencial que combina quilometragem, idade, manutenção, custo por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
-                st.markdown(
-                    f'<div class="health-summary">'
-                    f'<div class="health-card ok"><div class="health-label">Adequado</div><div class="health-value">{qtd_ok}</div><div class="health-note">Indicadores dentro do padrão da frota filtrada</div></div>'
-                    f'<div class="health-card warning"><div class="health-label">Atenção</div><div class="health-value">{qtd_at}</div><div class="health-note">Alguns indicadores merecem acompanhamento</div></div>'
-                    f'<div class="health-card priority"><div class="health-label">Acompanhamento prioritário</div><div class="health-value">{qtd_pr}</div><div class="health-note">Combinação de sinais que merece análise da Logística</div></div>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-
-                ordem_saude = {"priority": 0, "warning": 1, "ok": 2}
-                top_saude = agg_saude.copy()
-                top_saude["_ord"] = top_saude["Classe_Saude"].map(ordem_saude)
-                top_saude = top_saude.sort_values(
-                    ["_ord", "Custo de manutenção", "Quilometragem"],
-                    ascending=[True, False, False]
-                ).head(8)
-
-                linhas_saude = []
-                for _, r in top_saude.iterrows():
-                    idade_txt = "—" if pd.isna(r["Idade"]) else f"{int(r['Idade'])} anos"
-                    unidade_txt = html.escape(str(r[col_cc])) if pd.notna(r[col_cc]) else "—"
-                    linhas_saude.append(
-                        '<div class="health-row">'
-                        f'<div class="health-plate">{html.escape(str(r["Placa"]))}</div>'
-                        f'<div class="health-unit">{unidade_txt}</div>'
-                        f'<div class="health-num">{fmt_br(r["Quilometragem"])} km</div>'
-                        f'<div class="health-num">{idade_txt}</div>'
-                        f'<div class="health-num">{fmt_br(r["Custo de manutenção"], True)}</div>'
-                        f'<div class="health-num health-cpk-col">R$ {r["Custo_KM"]:.2f}/km</div>'
-                        f'<div class="health-status {r["Classe_Saude"]}">{r["Saude"]}</div>'
-                        '</div>'
-                    )
-
-                st.markdown(
-                    '<div class="health-list">'
-                    '<div class="health-header"><div>Placa</div><div>Unidade</div><div>KM total</div><div>Idade</div><div>Manutenção</div><div>Custo/KM</div><div>Saúde</div></div>'
-                    + ''.join(linhas_saude) + '</div>',
-                    unsafe_allow_html=True
-                )
-                st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
-
-
             # ---------- Regras centrais de classificação ----------
             # Cadastro/composição da frota: serve para identificar os ativos,
             # modelos, motoristas e vínculos. NÃO entra nos custos.
@@ -3424,6 +3300,143 @@ else:
                 )
 
         with tab_km:
+            # ================= SAÚDE DA FROTA =================
+            st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
+            st.markdown('<div class="km-section-subtitle">Leitura gerencial que combina quilometragem total, idade, manutenção acumulada, custo por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
+
+            df_saude = df_base_completa.copy()
+            mask_fisica_saude = df_saude["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
+            df_saude = df_saude[mask_fisica_saude].copy()
+
+            if not df_saude.empty:
+                agg_saude = df_saude.groupby("Placa", as_index=False).agg({
+                    "Quilometragem": "sum",
+                    "Custo de manutenção": "sum",
+                    "Custo Combustível": "sum",
+                    col_cc: "first",
+                })
+
+                anos_dict_saude = {}
+                try:
+                    df_ipva_saude = load_ipva_data()
+                    if not df_ipva_saude.empty and "Placa" in df_ipva_saude.columns and "Ano do veículo" in df_ipva_saude.columns:
+                        tmp = df_ipva_saude.copy()
+                        tmp["Placa_norm"] = tmp["Placa"].astype(str).str.upper().str.replace(r"[^A-Z0-9]", "", regex=True)
+                        tmp["Ano do veículo"] = pd.to_numeric(tmp["Ano do veículo"], errors="coerce")
+                        tmp = tmp.dropna(subset=["Ano do veículo"]).drop_duplicates("Placa_norm", keep="last")
+                        anos_dict_saude = dict(zip(tmp["Placa_norm"], tmp["Ano do veículo"]))
+                except Exception:
+                    anos_dict_saude = {}
+
+                agg_saude["Ano_Veiculo"] = agg_saude["Placa"].map(anos_dict_saude)
+                agg_saude["Idade"] = ano_sel - agg_saude["Ano_Veiculo"]
+                agg_saude.loc[(agg_saude["Idade"] < 0) | (agg_saude["Idade"] > 40), "Idade"] = np.nan
+                agg_saude["Custo_KM"] = np.where(
+                    agg_saude["Quilometragem"] > 0,
+                    agg_saude["Custo de manutenção"] / agg_saude["Quilometragem"],
+                    0
+                )
+
+                meses_manut = (
+                    df_saude.assign(_tem_manut=df_saude["Custo de manutenção"].fillna(0) > 0)
+                    .groupby("Placa")["_tem_manut"].sum().to_dict()
+                )
+                agg_saude["Meses_Manut"] = agg_saude["Placa"].map(meses_manut).fillna(0)
+
+                def _q_saude(series, q):
+                    serie_ok = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+                    return float(serie_ok.quantile(q)) if not serie_ok.empty else 0.0
+
+                km_q75 = _q_saude(agg_saude["Quilometragem"], .75)
+                manut_q75 = _q_saude(agg_saude["Custo de manutenção"], .75)
+                cpk_q75 = _q_saude(agg_saude.loc[agg_saude["Custo_KM"] > 0, "Custo_KM"], .75)
+                idade_q75 = _q_saude(agg_saude["Idade"], .75)
+                rec_q75 = _q_saude(agg_saude["Meses_Manut"], .75)
+
+                def classificar_saude(row):
+                    score = 0
+                    sinais = []
+                    if km_q75 > 0 and row["Quilometragem"] >= km_q75:
+                        score += 1; sinais.append("KM elevado")
+                    if manut_q75 > 0 and row["Custo de manutenção"] >= manut_q75:
+                        score += 2; sinais.append("manutenção elevada")
+                    if cpk_q75 > 0 and row["Custo_KM"] >= cpk_q75:
+                        score += 2; sinais.append("custo/km elevado")
+                    if pd.notna(row["Idade"]) and idade_q75 > 0 and row["Idade"] >= idade_q75:
+                        score += 1; sinais.append("idade elevada")
+                    if rec_q75 > 0 and row["Meses_Manut"] >= rec_q75 and row["Meses_Manut"] >= 2:
+                        score += 2; sinais.append("manutenção recorrente")
+                    if score >= 5:
+                        return "Acompanhamento prioritário", "priority", ", ".join(sinais[:3])
+                    if score >= 3:
+                        return "Atenção", "warning", ", ".join(sinais[:3])
+                    return "Adequado", "ok", ", ".join(sinais[:2]) if sinais else "indicadores dentro do padrão"
+
+                classif = agg_saude.apply(classificar_saude, axis=1, result_type="expand")
+                classif.columns = ["Saude", "Classe_Saude", "Sinais_Saude"]
+                agg_saude = pd.concat([agg_saude, classif], axis=1)
+
+                qtd_ok = int((agg_saude["Classe_Saude"] == "ok").sum())
+                qtd_at = int((agg_saude["Classe_Saude"] == "warning").sum())
+                qtd_pr = int((agg_saude["Classe_Saude"] == "priority").sum())
+                st.markdown(
+                    f'<div class="health-summary">'
+                    f'<div class="health-card ok"><div class="health-label">Adequado</div><div class="health-value">{qtd_ok}</div><div class="health-note">Indicadores dentro do padrão da frota filtrada</div></div>'
+                    f'<div class="health-card warning"><div class="health-label">Atenção</div><div class="health-value">{qtd_at}</div><div class="health-note">Alguns indicadores merecem acompanhamento</div></div>'
+                    f'<div class="health-card priority"><div class="health-label">Acompanhamento prioritário</div><div class="health-value">{qtd_pr}</div><div class="health-note">Combinação de sinais que merece análise da Logística</div></div>'
+                    f'</div>', unsafe_allow_html=True
+                )
+
+                status_saude = st.radio(
+                    "Visualizar veículos:",
+                    ["Todos", "🟢 Adequado", "🟡 Atenção", "🔴 Acompanhamento prioritário"],
+                    horizontal=True,
+                    key="filtro_status_saude"
+                )
+                mapa_status = {
+                    "🟢 Adequado": "Adequado",
+                    "🟡 Atenção": "Atenção",
+                    "🔴 Acompanhamento prioritário": "Acompanhamento prioritário"
+                }
+                df_saude_view = agg_saude.copy()
+                if status_saude != "Todos":
+                    df_saude_view = df_saude_view[df_saude_view["Saude"] == mapa_status[status_saude]].copy()
+
+                ordem_saude = {"priority": 0, "warning": 1, "ok": 2}
+                df_saude_view["_ord"] = df_saude_view["Classe_Saude"].map(ordem_saude)
+                df_saude_view = df_saude_view.sort_values(["_ord", "Custo de manutenção", "Quilometragem"], ascending=[True, False, False])
+
+                linhas_saude = []
+                for _, r in df_saude_view.iterrows():
+                    idade_txt = "—" if pd.isna(r["Idade"]) else f"{int(r['Idade'])} anos"
+                    unidade_txt = html.escape(str(r[col_cc])) if pd.notna(r[col_cc]) else "—"
+                    sinais_txt = html.escape(str(r["Sinais_Saude"]))
+                    linhas_saude.append(
+                        '<div class="health-row">'
+                        f'<div class="health-plate">{html.escape(str(r["Placa"]))}</div>'
+                        f'<div class="health-unit">{unidade_txt}</div>'
+                        f'<div class="health-num">{fmt_br(r["Quilometragem"])} km</div>'
+                        f'<div class="health-num">{idade_txt}</div>'
+                        f'<div class="health-num">{fmt_br(r["Custo de manutenção"], True)}</div>'
+                        f'<div class="health-num health-cpk-col">R$ {r["Custo_KM"]:.2f}/km</div>'
+                        f'<div class="health-status {r["Classe_Saude"]}" title="{sinais_txt}">{r["Saude"]}</div>'
+                        '</div>'
+                    )
+
+                if linhas_saude:
+                    st.markdown(
+                        '<div class="health-list">'
+                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div>KM total</div><div>Idade</div><div>Manutenção</div><div>Custo/KM</div><div>Saúde</div></div>'
+                        + ''.join(linhas_saude) + '</div>', unsafe_allow_html=True
+                    )
+                    st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
+                else:
+                    st.info("Nenhum veículo encontrado nesta classificação para os filtros selecionados.")
+            else:
+                st.info("Não há veículos físicos suficientes para calcular a Saúde da Frota com os filtros selecionados.")
+
+            st.markdown('<div class="km-divider"></div>', unsafe_allow_html=True)
+
             # ================= TOP 15 KM =================
             st.markdown('<div class="manut-section-title">🚗 Top 15 Veículos | Maior Quilometragem</div>', unsafe_allow_html=True)
             st.markdown('<div class="km-section-subtitle">Análise dos veículos mais rodados da frota</div>', unsafe_allow_html=True)
