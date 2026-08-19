@@ -3434,7 +3434,7 @@ else:
                 if linhas_saude:
                     st.markdown(
                         '<div class="health-list"><div class="health-scroll">'
-                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM Rodado</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
+                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM Rodado/2026</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
                         + ''.join(linhas_saude) + '</div></div>', unsafe_allow_html=True
                     )
                     st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
@@ -3476,7 +3476,6 @@ else:
                     c_grafico, c_tabela = st.columns([2, 1.2])
                     
                     with c_grafico:
-                        st.markdown('<div class="chart-title">Ranking dos 15 veículos Mais Rodados</div>', unsafe_allow_html=True)
                         
                         def formatar_k(x):
                             if x >= 1000:
