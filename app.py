@@ -1467,7 +1467,7 @@ else:
             "⛽ Combustível", 
             "🛡️ Seguro/Rastreadores", 
             "📍 Raio-X da Base", 
-            "🛣️ Gestão de Quilometragem", 
+            "🛣️ Desempenho da Frota", 
             "📋 Frota, IPVA & Doc", 
             "📑 Detalhamento"
         ])
