@@ -3515,7 +3515,6 @@ else:
                         st.plotly_chart(fig_top15, use_container_width=True, config={'displayModeBar': False})
                     
                     with c_tabela:
-                        st.markdown('<div class="chart-title">Tabela de Dados</div>', unsafe_allow_html=True)
                         tabela_top15 = df_top_km.nlargest(15, col_km).sort_values(col_km, ascending=False).copy()
 
                         # Mantém a tabela com o mesmo padrão visual executivo do dashboard.
@@ -3540,7 +3539,7 @@ else:
                                 '<div class="km-table-row">'
                                 f'<div class="km-table-placa">{placa_txt}</div>'
                                 f'<div class="km-table-km">{km_txt}</div>'
-                                f'<div class="km-table-base">{base_txt}</div>'
+                                f'<div class="km-table-base" style="text-align:right">{base_txt}</div>'
                                 '</div>'
                             )
 
@@ -3548,7 +3547,7 @@ else:
                             '<div class="km-table-header">'
                             '<div>🚙 Placa</div>'
                             '<div style="text-align:right">🛣️ Quilometragem</div>'
-                            '<div>🏢 Base</div>'
+                            '<div style="text-align:right">🏢 Base</div>'
                             '</div>'
                         )
 
