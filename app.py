@@ -2401,7 +2401,7 @@ else:
                 )
 
                 evol_veiculos["Rotulo"] = evol_veiculos.apply(
-                    lambda r: f"<b>{int(r['Veiculos'])} veículos</b><br>{fmt_br(r['Custo_Mensal'], True)}",
+                    lambda r: f"{int(r['Veiculos'])} veículos<br><b>{fmt_br(r['Custo_Mensal'], True)}</b>",
                     axis=1
                 )
 
