@@ -2400,6 +2400,10 @@ else:
                     .sort_values("Mes_Num")
                 )
 
+                evol_veiculos["Media_por_Veiculo"] = (
+                    evol_veiculos["Custo_Mensal"] / evol_veiculos["Veiculos"].replace(0, np.nan)
+                ).fillna(0)
+
                 evol_veiculos["Rotulo"] = evol_veiculos.apply(
                     lambda r: f"{int(r['Veiculos'])} veículos<br><b>{fmt_br(r['Custo_Mensal'], True)}</b>",
                     axis=1
@@ -2419,11 +2423,12 @@ else:
                     textposition="outside",
                     textfont=dict(size=12, family="Arial, sans-serif", color="#455A64"),
                     cliponaxis=False,
-                    customdata=evol_veiculos[["Custo_Mensal"]].to_numpy(),
+                    customdata=evol_veiculos[["Custo_Mensal", "Media_por_Veiculo"]].to_numpy(),
                     hovertemplate=(
                         "<b>%{x}</b><br>"
                         "Veículos em manutenção: %{y:.0f}<br>"
-                        "Custo do mês: R$ %{customdata[0]:,.2f}"
+                        "Custo do mês: R$ %{customdata[0]:,.2f}<br>"
+                        "Média por veículo: R$ %{customdata[1]:,.2f}"
                         "<extra></extra>"
                     )
                 )
