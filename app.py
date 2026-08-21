@@ -2357,8 +2357,13 @@ else:
                 ].copy()
 
                 qtd_veic_manut_acum = df_veic_manut_acum["Placa"].nunique()
+
+                # A média deve usar exatamente o mesmo universo do denominador:
+                # apenas custos lançados nas placas físicas que tiveram manutenção > 0.
+                custo_veic_manut_acum = df_veic_manut_acum["Custo de manutenção"].sum()
+
                 media_veic_manut = (
-                    gasto_manut_acum / qtd_veic_manut_acum
+                    custo_veic_manut_acum / qtd_veic_manut_acum
                     if qtd_veic_manut_acum > 0 else 0
                 )
 
