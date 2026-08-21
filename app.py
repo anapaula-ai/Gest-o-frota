@@ -2345,6 +2345,28 @@ else:
                 km_acumulado = df_acumulado_ate_mes_manut['Quilometragem'].sum()
                 sub_km = f"Total rodado em {ano_sel} até {mes_sel}"
                 draw_card("QUILOMETRAGEM ACUMULADA", fmt_br(km_acumulado), subtext=sub_km, is_lower_better=False)
+
+
+            with ca3:
+                # Apenas placas físicas que tiveram manutenção > 0 no período acumulado.
+                df_veic_manut_acum = df_acumulado_ate_mes_manut[
+                    (df_acumulado_ate_mes_manut["Custo de manutenção"].fillna(0) > 0) &
+                    (df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
+                        r"[A-Z0-9]{7}", case=False, na=False
+                    ))
+                ].copy()
+
+                qtd_veic_manut_acum = df_veic_manut_acum["Placa"].nunique()
+                media_veic_manut = (
+                    gasto_manut_acum / qtd_veic_manut_acum
+                    if qtd_veic_manut_acum > 0 else 0
+                )
+
+                draw_card(
+                    "MÉDIA POR VEÍCULO EM MANUTENÇÃO",
+                    fmt_br(media_veic_manut, True),
+                    subtext=f"{fmt_br(qtd_veic_manut_acum)} veículos com manutenção em {ano_sel} até {mes_sel}"
+                )
             
             st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
             
@@ -2352,106 +2374,84 @@ else:
                 f'<div class="chart-title">Evolução Mensal do Custo de Manutenção | {ano_sel}</div>',
                 unsafe_allow_html=True
             )
-
-            evol_inst = (
-                df_acumulado_ate_mes_manut
-                .groupby(['Mes_Num', 'Mes_Nome', 'Instituição'])['Custo de manutenção']
-                .sum().reset_index().sort_values('Mes_Num')
+            st.markdown(
+                '<div class="km-section-subtitle" style="margin-top:-10px;margin-bottom:10px;">'
+                'Quantidade de veículos com manutenção no mês e respectivo custo mensal.'
+                '</div>',
+                unsafe_allow_html=True
             )
 
-            evol_total = (
-                df_acumulado_ate_mes_manut
-                .groupby(['Mes_Num', 'Mes_Nome'])['Custo de manutenção']
-                .sum().reset_index().sort_values('Mes_Num')
-            )
+            # Cada placa física conta apenas uma vez no mês, mesmo com vários lançamentos.
+            df_evol_manut = df_acumulado_ate_mes_manut[
+                (df_acumulado_ate_mes_manut["Custo de manutenção"].fillna(0) > 0) &
+                (df_acumulado_ate_mes_manut["Placa"].astype(str).str.fullmatch(
+                    r"[A-Z0-9]{7}", case=False, na=False
+                ))
+            ].copy()
 
-            if not evol_inst.empty and not evol_total.empty:
-                media_mensal = evol_total['Custo de manutenção'].mean()
+            if not df_evol_manut.empty:
+                evol_veiculos = (
+                    df_evol_manut
+                    .groupby(["Mes_Num", "Mes_Nome"], as_index=False)
+                    .agg(
+                        Veiculos=("Placa", "nunique"),
+                        Custo_Mensal=("Custo de manutenção", "sum")
+                    )
+                    .sort_values("Mes_Num")
+                )
 
-                # Mantém a separação AMES/IAV quando ambas estiverem selecionadas,
-                # mas em linha para enfatizar a evolução temporal.
-                fig_evol = px.line(
-                    evol_inst,
-                    x='Mes_Nome',
-                    y='Custo de manutenção',
-                    color='Instituição',
-                    markers=True,
-                    text='Custo de manutenção',
-                    color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
+                evol_veiculos["Rotulo"] = evol_veiculos.apply(
+                    lambda r: f"<b>{int(r['Veiculos'])} veículos</b><br>{fmt_br(r['Custo_Mensal'], True)}",
+                    axis=1
+                )
+
+                fig_evol = px.bar(
+                    evol_veiculos,
+                    x="Mes_Nome",
+                    y="Veiculos",
+                    text="Rotulo",
+                    color_discrete_sequence=["#1A237E"]
                 )
 
                 fig_evol.update_traces(
-                    texttemplate='<b>R$ %{text:,.0f}</b>',
-                    textposition='top center',
-                    textfont=dict(size=12, family='Arial, sans-serif', color='#455A64'),
-                    line=dict(width=3),
-                    marker=dict(size=9)
+                    texttemplate="%{text}",
+                    textposition="outside",
+                    textfont=dict(size=12, family="Arial, sans-serif", color="#455A64"),
+                    cliponaxis=False,
+                    customdata=evol_veiculos[["Custo_Mensal"]].to_numpy(),
+                    hovertemplate=(
+                        "<b>%{x}</b><br>"
+                        "Veículos em manutenção: %{y:.0f}<br>"
+                        "Custo do mês: R$ %{customdata[0]:,.2f}"
+                        "<extra></extra>"
+                    )
                 )
 
-                fig_evol.add_hline(
-                    y=media_mensal,
-                    line_dash='dash',
-                    line_color='#78909C',
-                    line_width=1.5,
-                    annotation_text=f"Média mensal total: {fmt_br(media_mensal, True)}",
-                    annotation_position='bottom right',
-                    annotation_font=dict(size=12, color='#546E7A', family='Arial, sans-serif')
-                )
-
-                max_c_evol = max(
-                    evol_inst['Custo de manutenção'].max(),
-                    media_mensal
-                ) if not evol_inst.empty else 1
+                max_veiculos = evol_veiculos["Veiculos"].max()
 
                 fig_evol.update_layout(
                     height=440,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
                     margin=dict(r=20, l=12, t=42, b=8),
-                    font=dict(family='Arial, sans-serif', size=13, color='#455A64'),
+                    font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
                     yaxis=dict(
-                        title="Custo no Mês (R$)",
+                        title="Veículos em Manutenção",
                         showgrid=True,
-                        gridcolor='#E0E0E0',
-                        range=[0, max_c_evol * 1.30]
+                        gridcolor="#E0E0E0",
+                        range=[0, max_veiculos * 1.35],
+                        dtick=1
                     ),
                     xaxis=dict(title="", tickfont=dict(size=13)),
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        xanchor="right",
-                        x=1,
-                        title=""
-                    ),
-                    separators=',.'
+                    showlegend=False,
+                    separators=",."
                 )
-                st.plotly_chart(fig_evol, use_container_width=True, config={'displayModeBar': False})
 
-                # Variação consolidada do último mês contra o mês anterior.
-                if len(evol_total) >= 2:
-                    atual = float(evol_total.iloc[-1]['Custo de manutenção'])
-                    anterior = float(evol_total.iloc[-2]['Custo de manutenção'])
-                    mes_atual = str(evol_total.iloc[-1]['Mes_Nome'])
-                    mes_anterior = str(evol_total.iloc[-2]['Mes_Nome'])
-
-                    if anterior > 0:
-                        variacao_ev = ((atual - anterior) / anterior) * 100
-
-                        if variacao_ev > 0:
-                            classe_ev, icone_ev = "vs-alta", "▲"
-                        elif variacao_ev < 0:
-                            classe_ev, icone_ev = "vs-baixa", "▼"
-                        else:
-                            classe_ev, icone_ev = "vs-neutro", "●"
-
-                        st.markdown(
-                            f'<div style="font-size:12.5px;color:#455A64;margin-top:-8px;">'
-                            f'{mes_atual} vs {mes_anterior}: '
-                            f'<span class="{classe_ev}">{icone_ev} {abs(variacao_ev):.1f}%</span>'
-                            f'</div>',
-                            unsafe_allow_html=True
-                        )
+                st.plotly_chart(
+                    fig_evol,
+                    use_container_width=True,
+                    config={"displayModeBar": False}
+                )
             else:
                 st.info("Sem dados mensais de manutenção para a seleção atual.")
 
