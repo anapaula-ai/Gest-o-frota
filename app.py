@@ -2363,9 +2363,9 @@ else:
                 )
 
                 draw_card(
-                    "MÉDIA POR VEÍCULO EM MANUTENÇÃO",
+                    "MÉDIA POR VEÍCULO ATENDIDO",
                     fmt_br(media_veic_manut, True),
-                    subtext=f"{fmt_br(qtd_veic_manut_acum)} veículos atendidos em {ano_sel} até {str(mes_sel).lower()}"
+                    subtext=f"{fmt_br(qtd_veic_manut_acum)} veículos com manutenção em {ano_sel} até {str(mes_sel).lower()}"
                 )
             
             st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
