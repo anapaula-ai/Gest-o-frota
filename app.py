@@ -2414,6 +2414,7 @@ else:
                 )
 
                 fig_evol.update_traces(
+                    width=0.55,
                     texttemplate="%{text}",
                     textposition="outside",
                     textfont=dict(size=12, family="Arial, sans-serif", color="#455A64"),
@@ -2440,7 +2441,7 @@ else:
                         showgrid=True,
                         gridcolor="#E0E0E0",
                         range=[0, max_veiculos * 1.35],
-                        dtick=1
+                        nticks=6
                     ),
                     xaxis=dict(title="", tickfont=dict(size=13)),
                     showlegend=False,
