@@ -2244,7 +2244,7 @@ else:
             orc_manut_aba = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas) if ano_sel == 2026 else 0
             perc_manut_aba = (gasto_manut_acum_aba / orc_manut_aba * 100) if orc_manut_aba > 0 else 0
 
-            m1, m2, m3, m4, m5 = st.columns(5)
+            m1, m2, m3, m4, m5, m6 = st.columns(6)
             with m1:
                 if custo_a > 0:
                     if trend_c > 0:
@@ -2266,13 +2266,41 @@ else:
                     texto_vs = "Vs mês anterior: sem base de comparação"
 
                 draw_card("🔧 CUSTO NO MÊS", fmt_br(custo_m, True), texto_vs)
+
             with m2:
-                draw_card("💰 CUSTO ACUMULADO", fmt_br(gasto_manut_acum_aba, True), f"Até {mes_sel}/{ano_sel}")
+                if km_a > 0:
+                    if trend_km > 0:
+                        classe_km_vs = "vs-alta"
+                        icone_km_vs = "▲"
+                    elif trend_km < 0:
+                        classe_km_vs = "vs-baixa"
+                        icone_km_vs = "▼"
+                    else:
+                        classe_km_vs = "vs-neutro"
+                        icone_km_vs = "●"
+
+                    texto_km_vs = (
+                        f'Vs mês anterior: '
+                        f'<span class="{classe_km_vs}">'
+                        f'{icone_km_vs} {abs(trend_km):.1f}%</span>'
+                    )
+                else:
+                    texto_km_vs = "Vs mês anterior: sem base de comparação"
+
+                draw_card(
+                    "🛣️ KM NO MÊS",
+                    f"{fmt_br(km_m)} km",
+                    texto_km_vs,
+                    is_lower_better=False
+                )
+
             with m3:
-                draw_card("🚙 VEÍCULOS ATENDIDOS", fmt_br(veiculos_manut_mes), "Com manutenção lançada no mês", is_lower_better=False)
+                draw_card("💰 CUSTO ACUMULADO", fmt_br(gasto_manut_acum_aba, True), f"Até {mes_sel}/{ano_sel}")
             with m4:
-                draw_card("📊 MÉDIA POR VEÍCULO", fmt_br(custo_medio_atendido, True), "Entre veículos atendidos no mês")
+                draw_card("🚙 VEÍCULOS ATENDIDOS", fmt_br(veiculos_manut_mes), "Com manutenção lançada no mês", is_lower_better=False)
             with m5:
+                draw_card("📊 MÉDIA POR VEÍCULO", fmt_br(custo_medio_atendido, True), "Entre veículos atendidos no mês")
+            with m6:
                 if ano_sel == 2026 and orc_manut_aba > 0:
                     draw_card(
                         "🎯 ORÇAMENTO CONSUMIDO", f"{perc_manut_aba:.1f}%",
@@ -3312,6 +3340,125 @@ else:
                 )
 
         with tab_km:
+            # ================= QUILOMETRAGEM MENSAL POR INSTITUIÇÃO =================
+            st.markdown(
+                f'<div class="manut-section-title">🛣️ Quilometragem Mensal | AMES x IAV | {ano_sel}</div>',
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                '<div class="km-section-subtitle">Total de quilômetros rodados por mês em cada instituição, considerando somente placas físicas da frota.</div>',
+                unsafe_allow_html=True
+            )
+
+            # Para este comparativo, usamos o ano selecionado, mas mantemos AMES e IAV
+            # lado a lado independentemente do filtro de Instituição/Base do topo.
+            df_km_inst = df_ano.copy()
+            mask_placa_fisica_km_inst = df_km_inst["Placa"].astype(str).str.fullmatch(
+                r"[A-Z0-9]{7}", case=False, na=False
+            )
+            df_km_inst = df_km_inst[
+                mask_placa_fisica_km_inst &
+                df_km_inst["Instituição"].astype(str).str.upper().isin(["AMES", "IAV"])
+            ].copy()
+
+            df_km_inst["Quilometragem"] = pd.to_numeric(
+                df_km_inst["Quilometragem"], errors="coerce"
+            ).fillna(0)
+
+            meses_ordem_km = {
+                1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
+                5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
+                9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+            }
+
+            if not df_km_inst.empty:
+                km_mensal_inst = (
+                    df_km_inst
+                    .dropna(subset=["Mes_Num"])
+                    .groupby(["Mes_Num", "Instituição"], as_index=False)["Quilometragem"]
+                    .sum()
+                )
+                km_mensal_inst["Mes_Num"] = km_mensal_inst["Mes_Num"].astype(int)
+                km_mensal_inst["Mês"] = km_mensal_inst["Mes_Num"].map(meses_ordem_km)
+                km_mensal_inst = km_mensal_inst.sort_values(["Mes_Num", "Instituição"])
+
+                # Cards do mês selecionado
+                km_mes_cards = km_mensal_inst[km_mensal_inst["Mes_Num"] == mes_num_atual]
+                km_ames_mes = km_mes_cards.loc[
+                    km_mes_cards["Instituição"] == "AMES", "Quilometragem"
+                ].sum()
+                km_iav_mes = km_mes_cards.loc[
+                    km_mes_cards["Instituição"] == "IAV", "Quilometragem"
+                ].sum()
+                km_total_mes_inst = km_ames_mes + km_iav_mes
+
+                kmi1, kmi2, kmi3 = st.columns(3)
+                with kmi1:
+                    draw_card(
+                        "🛣️ KM AMES NO MÊS",
+                        f"{fmt_br(km_ames_mes)} km",
+                        f"Total rodado em {mes_sel}/{ano_sel}",
+                        is_lower_better=False
+                    )
+                with kmi2:
+                    draw_card(
+                        "🛣️ KM IAV NO MÊS",
+                        f"{fmt_br(km_iav_mes)} km",
+                        f"Total rodado em {mes_sel}/{ano_sel}",
+                        is_lower_better=False
+                    )
+                with kmi3:
+                    draw_card(
+                        "🛣️ KM TOTAL NO MÊS",
+                        f"{fmt_br(km_total_mes_inst)} km",
+                        f"AMES + IAV em {mes_sel}/{ano_sel}",
+                        is_lower_better=False
+                    )
+
+                # Gráfico mensal comparativo AMES x IAV
+                fig_km_inst = px.bar(
+                    km_mensal_inst,
+                    x="Mês",
+                    y="Quilometragem",
+                    color="Instituição",
+                    barmode="group",
+                    text="Quilometragem",
+                    category_orders={
+                        "Mês": [meses_ordem_km[m] for m in sorted(km_mensal_inst["Mes_Num"].unique())],
+                        "Instituição": ["AMES", "IAV"]
+                    },
+                    color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
+                )
+                fig_km_inst.update_traces(
+                    texttemplate="%{text:,.0f}",
+                    textposition="outside",
+                    textfont=dict(size=12, family="Arial, sans-serif"),
+                    cliponaxis=False
+                )
+                fig_km_inst.update_layout(
+                    height=390,
+                    separators=",.",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    margin=dict(l=10, r=20, t=15, b=10),
+                    font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
+                    xaxis=dict(title=None, showgrid=False),
+                    yaxis=dict(title=None, showticklabels=False, showgrid=False, zeroline=False),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="right", x=1, title="", font=dict(size=12)
+                    )
+                )
+                st.plotly_chart(
+                    fig_km_inst,
+                    use_container_width=True,
+                    config={"displayModeBar": False}
+                )
+            else:
+                st.info("Não há dados de quilometragem de placas físicas da AMES e IAV para o ano selecionado.")
+
+            st.markdown('<div class="km-divider"></div>', unsafe_allow_html=True)
+
             # ================= SAÚDE DA FROTA =================
             st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
             st.markdown('<div class="km-section-subtitle">Leitura gerencial que usa o KM rodado como contexto de utilização e avalia idade, custo de manutenção por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
