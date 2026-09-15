@@ -1282,6 +1282,37 @@ else:
             st.error(f"Erro ao carregar dados do Top KM: {e}")
             return pd.DataFrame()
 
+    @st.cache_data(ttl=60)
+    def load_aquisicoes_data():
+        try:
+            # Usa a mesma planilha publicada do dashboard, mas lê especificamente
+            # a aba "Aquisições". Assim não precisamos duplicar esses dados na base principal.
+            url_aquisicoes = (
+                "https://docs.google.com/spreadsheets/d/e/"
+                "2PACX-1vRVMBTwRCrEvDUddWeUaIIpdSiA27cuPhHeArqAa_I3b_E8Fa_43lKg5hhSh2StAQddZQIXFFlM-zn-/"
+                "pub?output=xlsx"
+            )
+            df_aq = pd.read_excel(url_aquisicoes, sheet_name="Aquisições")
+
+            # Padroniza os nomes e tipos usados no dashboard.
+            df_aq.columns = [str(c).strip() for c in df_aq.columns]
+            if "Valor" in df_aq.columns:
+                df_aq["Valor"] = to_float(df_aq["Valor"])
+            if "Ano da aquisição" in df_aq.columns:
+                df_aq["Ano da aquisição"] = pd.to_numeric(
+                    df_aq["Ano da aquisição"], errors="coerce"
+                )
+            if "Instituição" in df_aq.columns:
+                df_aq["Instituição"] = df_aq["Instituição"].astype(str).str.strip().str.upper()
+            if "Placa" in df_aq.columns:
+                df_aq["Placa"] = df_aq["Placa"].astype(str).str.strip().str.upper()
+
+            return df_aq
+        except Exception:
+            # A Visão Executiva continua funcionando mesmo se a aba de aquisições
+            # estiver temporariamente indisponível.
+            return pd.DataFrame()
+
     @st.cache_data(ttl=60) 
     def load_data():
         try:
@@ -1355,6 +1386,7 @@ else:
             return pd.DataFrame()
 
     df = load_data()
+    df_aquisicoes = load_aquisicoes_data()
 
     # VERBAS (Definidas apenas para 2026)
     ORCAMENTOS_MANUT_2026 = {"AMES": 987380.00, "IAV": 305434.00}
@@ -1765,6 +1797,91 @@ else:
                     ),
                     is_lower_better=True
                 )
+
+            # ==========================================================
+            # AQUISIÇÕES — INVESTIMENTO E QUANTIDADE DE VEÍCULOS
+            # Um único card com os anos 2024, 2025 e 2026.
+            # Independente de todos os filtros do painel.
+            # ==========================================================
+            dados_aquisicoes = {}
+
+            for ano_aq in [2024, 2025, 2026]:
+                investimento_aq = 0.0
+                qtd_aq = 0
+
+                if not df_aquisicoes.empty:
+                    df_aq_ano = df_aquisicoes.copy()
+
+                    if "Ano da aquisição" in df_aq_ano.columns:
+                        df_aq_ano["Ano da aquisição"] = pd.to_numeric(
+                            df_aq_ano["Ano da aquisição"], errors="coerce"
+                        )
+                        df_aq_ano = df_aq_ano[
+                            df_aq_ano["Ano da aquisição"] == ano_aq
+                        ].copy()
+
+                    if "Valor" in df_aq_ano.columns:
+                        investimento_aq = pd.to_numeric(
+                            df_aq_ano["Valor"], errors="coerce"
+                        ).fillna(0).sum()
+
+                    if "Placa" in df_aq_ano.columns:
+                        placas_aq = (
+                            df_aq_ano["Placa"]
+                            .astype(str)
+                            .str.strip()
+                            .str.upper()
+                        )
+                        placas_aq = placas_aq[
+                            ~placas_aq.isin(["", "NAN", "NONE", "NAT"])
+                        ]
+                        qtd_aq = placas_aq.nunique()
+
+                dados_aquisicoes[ano_aq] = {
+                    "investimento": float(investimento_aq),
+                    "quantidade": int(qtd_aq)
+                }
+
+            st.markdown(
+                '<div class="exec-section-title compact">🚗 Aquisições de Veículos</div>',
+                unsafe_allow_html=True
+            )
+
+            # Card único: 2024 | 2025 | 2026
+            aquisicoes_html = [
+                '<div style="background:#FFFFFF;border:1px solid #DCE4EC;border-radius:13px;'
+                'box-shadow:0 3px 10px rgba(26,35,126,.045);overflow:hidden;margin-bottom:8px;">',
+                '<div style="padding:14px 18px 11px 18px;border-bottom:1px solid #EEF2F6;'
+                'color:#14206F;font-size:13px;font-weight:800;text-transform:uppercase;'
+                'letter-spacing:.2px;">Investimento e quantidade de veículos adquiridos</div>',
+                '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));">'
+            ]
+
+            for i, ano_aq in enumerate([2024, 2025, 2026]):
+                dados = dados_aquisicoes[ano_aq]
+                investimento_fmt = fmt_br(dados["investimento"], True)
+                quantidade_fmt = fmt_br(dados["quantidade"])
+                borda = 'border-right:1px solid #EEF2F6;' if i < 2 else ''
+
+                aquisicoes_html.append(
+                    f'<div style="padding:16px 20px 17px 20px;{borda}">'
+                    f'<div style="color:#60758A;font-size:13px;font-weight:800;'
+                    f'text-transform:uppercase;letter-spacing:.2px;">{ano_aq}</div>'
+                    f'<div style="color:#14206F;font-size:23px;font-weight:900;'
+                    f'line-height:1.2;margin-top:7px;white-space:nowrap;">{investimento_fmt}</div>'
+                    f'<div style="color:#607D8B;font-size:11.5px;font-weight:600;'
+                    f'margin-top:3px;">Investimento</div>'
+                    f'<div style="color:#14206F;font-size:19px;font-weight:850;'
+                    f'line-height:1.2;margin-top:13px;">{quantidade_fmt}</div>'
+                    f'<div style="color:#607D8B;font-size:11.5px;font-weight:600;'
+                    f'margin-top:3px;">Veículos adquiridos</div>'
+                    '</div>'
+                )
+
+            aquisicoes_html.append('</div></div>')
+
+            st.markdown(''.join(aquisicoes_html), unsafe_allow_html=True)
+            st.caption('Dados da aba Aquisições · indicadores independentes dos filtros de mês, instituição, base e centro de custo.')
 
             st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
@@ -2244,7 +2361,7 @@ else:
             orc_manut_aba = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas) if ano_sel == 2026 else 0
             perc_manut_aba = (gasto_manut_acum_aba / orc_manut_aba * 100) if orc_manut_aba > 0 else 0
 
-            m1, m2, m3, m4, m5, m6 = st.columns(6)
+            m1, m2, m3, m4, m5 = st.columns(5)
             with m1:
                 if custo_a > 0:
                     if trend_c > 0:
@@ -2266,41 +2383,13 @@ else:
                     texto_vs = "Vs mês anterior: sem base de comparação"
 
                 draw_card("🔧 CUSTO NO MÊS", fmt_br(custo_m, True), texto_vs)
-
             with m2:
-                if km_a > 0:
-                    if trend_km > 0:
-                        classe_km_vs = "vs-alta"
-                        icone_km_vs = "▲"
-                    elif trend_km < 0:
-                        classe_km_vs = "vs-baixa"
-                        icone_km_vs = "▼"
-                    else:
-                        classe_km_vs = "vs-neutro"
-                        icone_km_vs = "●"
-
-                    texto_km_vs = (
-                        f'Vs mês anterior: '
-                        f'<span class="{classe_km_vs}">'
-                        f'{icone_km_vs} {abs(trend_km):.1f}%</span>'
-                    )
-                else:
-                    texto_km_vs = "Vs mês anterior: sem base de comparação"
-
-                draw_card(
-                    "🛣️ KM NO MÊS",
-                    f"{fmt_br(km_m)} km",
-                    texto_km_vs,
-                    is_lower_better=False
-                )
-
-            with m3:
                 draw_card("💰 CUSTO ACUMULADO", fmt_br(gasto_manut_acum_aba, True), f"Até {mes_sel}/{ano_sel}")
-            with m4:
+            with m3:
                 draw_card("🚙 VEÍCULOS ATENDIDOS", fmt_br(veiculos_manut_mes), "Com manutenção lançada no mês", is_lower_better=False)
-            with m5:
+            with m4:
                 draw_card("📊 MÉDIA POR VEÍCULO", fmt_br(custo_medio_atendido, True), "Entre veículos atendidos no mês")
-            with m6:
+            with m5:
                 if ano_sel == 2026 and orc_manut_aba > 0:
                     draw_card(
                         "🎯 ORÇAMENTO CONSUMIDO", f"{perc_manut_aba:.1f}%",
@@ -2385,20 +2474,15 @@ else:
                 ].copy()
 
                 qtd_veic_manut_acum = df_veic_manut_acum["Placa"].nunique()
-
-                # A média deve usar exatamente o mesmo universo do denominador:
-                # apenas custos lançados nas placas físicas que tiveram manutenção > 0.
-                custo_veic_manut_acum = df_veic_manut_acum["Custo de manutenção"].sum()
-
                 media_veic_manut = (
-                    custo_veic_manut_acum / qtd_veic_manut_acum
+                    gasto_manut_acum / qtd_veic_manut_acum
                     if qtd_veic_manut_acum > 0 else 0
                 )
 
                 draw_card(
-                    "MÉDIA POR VEÍCULO ATENDIDO",
+                    "MÉDIA POR VEÍCULO EM MANUTENÇÃO",
                     fmt_br(media_veic_manut, True),
-                    subtext=f"{fmt_br(qtd_veic_manut_acum)} veículos com manutenção em {ano_sel} até {str(mes_sel).lower()}"
+                    subtext=f"{fmt_br(qtd_veic_manut_acum)} veículos com manutenção em {ano_sel} até {mes_sel}"
                 )
             
             st.markdown('<div class="manut-divider"></div>', unsafe_allow_html=True)
@@ -2433,12 +2517,8 @@ else:
                     .sort_values("Mes_Num")
                 )
 
-                evol_veiculos["Media_por_Veiculo"] = (
-                    evol_veiculos["Custo_Mensal"] / evol_veiculos["Veiculos"].replace(0, np.nan)
-                ).fillna(0)
-
                 evol_veiculos["Rotulo"] = evol_veiculos.apply(
-                    lambda r: f"{int(r['Veiculos'])} veículos<br><b>{fmt_br(r['Custo_Mensal'], True)}</b>",
+                    lambda r: f"<b>{int(r['Veiculos'])} veículos</b><br>{fmt_br(r['Custo_Mensal'], True)}",
                     axis=1
                 )
 
@@ -2451,17 +2531,15 @@ else:
                 )
 
                 fig_evol.update_traces(
-                    width=0.55,
                     texttemplate="%{text}",
                     textposition="outside",
                     textfont=dict(size=12, family="Arial, sans-serif", color="#455A64"),
                     cliponaxis=False,
-                    customdata=evol_veiculos[["Custo_Mensal", "Media_por_Veiculo"]].to_numpy(),
+                    customdata=evol_veiculos[["Custo_Mensal"]].to_numpy(),
                     hovertemplate=(
                         "<b>%{x}</b><br>"
                         "Veículos em manutenção: %{y:.0f}<br>"
-                        "Custo do mês: R$ %{customdata[0]:,.2f}<br>"
-                        "Média por veículo: R$ %{customdata[1]:,.2f}"
+                        "Custo do mês: R$ %{customdata[0]:,.2f}"
                         "<extra></extra>"
                     )
                 )
@@ -2479,7 +2557,7 @@ else:
                         showgrid=True,
                         gridcolor="#E0E0E0",
                         range=[0, max_veiculos * 1.35],
-                        nticks=6
+                        dtick=1
                     ),
                     xaxis=dict(title="", tickfont=dict(size=13)),
                     showlegend=False,
@@ -3340,125 +3418,6 @@ else:
                 )
 
         with tab_km:
-            # ================= QUILOMETRAGEM MENSAL POR INSTITUIÇÃO =================
-            st.markdown(
-                f'<div class="manut-section-title">🛣️ Quilometragem Mensal | AMES x IAV | {ano_sel}</div>',
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                '<div class="km-section-subtitle">Total de quilômetros rodados por mês em cada instituição, considerando somente placas físicas da frota.</div>',
-                unsafe_allow_html=True
-            )
-
-            # Para este comparativo, usamos o ano selecionado, mas mantemos AMES e IAV
-            # lado a lado independentemente do filtro de Instituição/Base do topo.
-            df_km_inst = df_ano.copy()
-            mask_placa_fisica_km_inst = df_km_inst["Placa"].astype(str).str.fullmatch(
-                r"[A-Z0-9]{7}", case=False, na=False
-            )
-            df_km_inst = df_km_inst[
-                mask_placa_fisica_km_inst &
-                df_km_inst["Instituição"].astype(str).str.upper().isin(["AMES", "IAV"])
-            ].copy()
-
-            df_km_inst["Quilometragem"] = pd.to_numeric(
-                df_km_inst["Quilometragem"], errors="coerce"
-            ).fillna(0)
-
-            meses_ordem_km = {
-                1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
-                5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
-                9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
-            }
-
-            if not df_km_inst.empty:
-                km_mensal_inst = (
-                    df_km_inst
-                    .dropna(subset=["Mes_Num"])
-                    .groupby(["Mes_Num", "Instituição"], as_index=False)["Quilometragem"]
-                    .sum()
-                )
-                km_mensal_inst["Mes_Num"] = km_mensal_inst["Mes_Num"].astype(int)
-                km_mensal_inst["Mês"] = km_mensal_inst["Mes_Num"].map(meses_ordem_km)
-                km_mensal_inst = km_mensal_inst.sort_values(["Mes_Num", "Instituição"])
-
-                # Cards do mês selecionado
-                km_mes_cards = km_mensal_inst[km_mensal_inst["Mes_Num"] == mes_num_atual]
-                km_ames_mes = km_mes_cards.loc[
-                    km_mes_cards["Instituição"] == "AMES", "Quilometragem"
-                ].sum()
-                km_iav_mes = km_mes_cards.loc[
-                    km_mes_cards["Instituição"] == "IAV", "Quilometragem"
-                ].sum()
-                km_total_mes_inst = km_ames_mes + km_iav_mes
-
-                kmi1, kmi2, kmi3 = st.columns(3)
-                with kmi1:
-                    draw_card(
-                        "🛣️ KM AMES NO MÊS",
-                        f"{fmt_br(km_ames_mes)} km",
-                        f"Total rodado em {mes_sel}/{ano_sel}",
-                        is_lower_better=False
-                    )
-                with kmi2:
-                    draw_card(
-                        "🛣️ KM IAV NO MÊS",
-                        f"{fmt_br(km_iav_mes)} km",
-                        f"Total rodado em {mes_sel}/{ano_sel}",
-                        is_lower_better=False
-                    )
-                with kmi3:
-                    draw_card(
-                        "🛣️ KM TOTAL NO MÊS",
-                        f"{fmt_br(km_total_mes_inst)} km",
-                        f"AMES + IAV em {mes_sel}/{ano_sel}",
-                        is_lower_better=False
-                    )
-
-                # Gráfico mensal comparativo AMES x IAV
-                fig_km_inst = px.bar(
-                    km_mensal_inst,
-                    x="Mês",
-                    y="Quilometragem",
-                    color="Instituição",
-                    barmode="group",
-                    text="Quilometragem",
-                    category_orders={
-                        "Mês": [meses_ordem_km[m] for m in sorted(km_mensal_inst["Mes_Num"].unique())],
-                        "Instituição": ["AMES", "IAV"]
-                    },
-                    color_discrete_map={"AMES": "#0288D1", "IAV": "#F57C00"}
-                )
-                fig_km_inst.update_traces(
-                    texttemplate="%{text:,.0f}",
-                    textposition="outside",
-                    textfont=dict(size=12, family="Arial, sans-serif"),
-                    cliponaxis=False
-                )
-                fig_km_inst.update_layout(
-                    height=390,
-                    separators=",.",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=10, r=20, t=15, b=10),
-                    font=dict(family="Arial, sans-serif", size=13, color="#455A64"),
-                    xaxis=dict(title=None, showgrid=False),
-                    yaxis=dict(title=None, showticklabels=False, showgrid=False, zeroline=False),
-                    legend=dict(
-                        orientation="h", yanchor="bottom", y=1.02,
-                        xanchor="right", x=1, title="", font=dict(size=12)
-                    )
-                )
-                st.plotly_chart(
-                    fig_km_inst,
-                    use_container_width=True,
-                    config={"displayModeBar": False}
-                )
-            else:
-                st.info("Não há dados de quilometragem de placas físicas da AMES e IAV para o ano selecionado.")
-
-            st.markdown('<div class="km-divider"></div>', unsafe_allow_html=True)
-
             # ================= SAÚDE DA FROTA =================
             st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
             st.markdown('<div class="km-section-subtitle">Leitura gerencial que usa o KM rodado como contexto de utilização e avalia idade, custo de manutenção por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
