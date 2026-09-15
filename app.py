@@ -1282,7 +1282,6 @@ else:
             st.error(f"Erro ao carregar dados do Top KM: {e}")
             return pd.DataFrame()
 
-    @st.cache_data(ttl=60)
     def load_aquisicoes_data():
         try:
             # Usa a mesma planilha publicada do dashboard, mas lê especificamente
@@ -1386,7 +1385,6 @@ else:
             return pd.DataFrame()
 
     df = load_data()
-    df_aquisicoes = load_aquisicoes_data()
 
     # VERBAS (Definidas apenas para 2026)
     ORCAMENTOS_MANUT_2026 = {"AMES": 987380.00, "IAV": 305434.00}
@@ -1797,93 +1795,6 @@ else:
                     ),
                     is_lower_better=True
                 )
-
-            # ==========================================================
-            # AQUISIÇÕES — INVESTIMENTO E QUANTIDADE DE VEÍCULOS
-            # Um único card com os anos 2024, 2025 e 2026.
-            # Independente de todos os filtros do painel.
-            # ==========================================================
-            dados_aquisicoes = {}
-
-            for ano_aq in [2024, 2025, 2026]:
-                investimento_aq = 0.0
-                qtd_aq = 0
-
-                if not df_aquisicoes.empty:
-                    df_aq_ano = df_aquisicoes.copy()
-
-                    if "Ano da aquisição" in df_aq_ano.columns:
-                        df_aq_ano["Ano da aquisição"] = pd.to_numeric(
-                            df_aq_ano["Ano da aquisição"], errors="coerce"
-                        )
-                        df_aq_ano = df_aq_ano[
-                            df_aq_ano["Ano da aquisição"] == ano_aq
-                        ].copy()
-
-                    if "Valor" in df_aq_ano.columns:
-                        investimento_aq = pd.to_numeric(
-                            df_aq_ano["Valor"], errors="coerce"
-                        ).fillna(0).sum()
-
-                    if "Placa" in df_aq_ano.columns:
-                        placas_aq = (
-                            df_aq_ano["Placa"]
-                            .astype(str)
-                            .str.strip()
-                            .str.upper()
-                        )
-                        placas_aq = placas_aq[
-                            ~placas_aq.isin(["", "NAN", "NONE", "NAT"])
-                        ]
-                        qtd_aq = placas_aq.nunique()
-
-                dados_aquisicoes[ano_aq] = {
-                    "investimento": float(investimento_aq),
-                    "quantidade": int(qtd_aq)
-                }
-
-            st.markdown(
-                '<div class="exec-section-title compact">🚗 Aquisições de Veículos</div>',
-                unsafe_allow_html=True
-            )
-
-            # Card único: 2024 | 2025 | 2026
-            aquisicoes_html = [
-                '<div style="background:#FFFFFF;border:1px solid #DCE4EC;border-radius:13px;'
-                'box-shadow:0 3px 10px rgba(26,35,126,.045);overflow:hidden;margin-bottom:8px;">',
-                '<div style="padding:14px 18px 11px 18px;border-bottom:1px solid #EEF2F6;'
-                'color:#14206F;font-size:13px;font-weight:800;text-transform:uppercase;'
-                'letter-spacing:.2px;">Investimento e quantidade de veículos adquiridos</div>',
-                '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));">'
-            ]
-
-            for i, ano_aq in enumerate([2024, 2025, 2026]):
-                dados = dados_aquisicoes[ano_aq]
-                investimento_fmt = fmt_br(dados["investimento"], True)
-                quantidade_fmt = fmt_br(dados["quantidade"])
-                borda = 'border-right:1px solid #EEF2F6;' if i < 2 else ''
-
-                aquisicoes_html.append(
-                    f'<div style="padding:16px 20px 17px 20px;{borda}">'
-                    f'<div style="color:#60758A;font-size:13px;font-weight:800;'
-                    f'text-transform:uppercase;letter-spacing:.2px;">{ano_aq}</div>'
-                    f'<div style="color:#14206F;font-size:23px;font-weight:900;'
-                    f'line-height:1.2;margin-top:7px;white-space:nowrap;">{investimento_fmt}</div>'
-                    f'<div style="color:#607D8B;font-size:11.5px;font-weight:600;'
-                    f'margin-top:3px;">Investimento</div>'
-                    f'<div style="color:#14206F;font-size:19px;font-weight:850;'
-                    f'line-height:1.2;margin-top:13px;">{quantidade_fmt}</div>'
-                    f'<div style="color:#607D8B;font-size:11.5px;font-weight:600;'
-                    f'margin-top:3px;">Veículos adquiridos</div>'
-                    '</div>'
-                )
-
-            aquisicoes_html.append('</div></div>')
-
-            st.markdown(''.join(aquisicoes_html), unsafe_allow_html=True)
-            st.caption('Dados da aba Aquisições · indicadores independentes dos filtros de mês, instituição, base e centro de custo.')
-
-            st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # ==========================================================
             # COMPARATIVO INSTITUCIONAL — AMES × IAV
