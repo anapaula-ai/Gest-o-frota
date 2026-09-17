@@ -702,8 +702,7 @@ st.markdown("""
     .odonto-kpi-sub{color:#607D8B !important;font-size:11.5px;margin-top:4px}
     @media (max-width: 1100px){.odonto-summary{grid-template-columns:repeat(3,minmax(0,1fr));}}
 
-
-    /* Tabela executiva de IPVA */
+    /* Tabela executiva de IPVA - Atualizado para manter 13px e mesmo peso da Frota */
     .ipva-table-list{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(26,35,126,.04);margin-top:6px}
     .ipva-table-header,.ipva-table-row{display:grid;grid-template-columns:.8fr .72fr .72fr 2fr .9fr 1fr .7fr .95fr;align-items:center}
     .ipva-table-header{background:#1A237E;color:#FFFFFF !important;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
@@ -712,11 +711,11 @@ st.markdown("""
     .ipva-table-scroll{max-height:470px;overflow-y:auto;overflow-x:auto}
     .ipva-table-row{min-width:980px;border-bottom:1px solid #E7EDF3;color:#263238 !important;font-size:13px}
     .ipva-table-row:last-child{border-bottom:none}.ipva-table-row:hover{background:#FAFCFF}
-    .ipva-table-row>div{padding:9px 10px;border-right:1px solid #EEF2F6;color:#263238 !important}
+    .ipva-table-row>div{padding:9px 10px;border-right:1px solid #EEF2F6;color:#263238 !important; font-size:13px; font-weight:650;}
     .ipva-table-row>div:last-child{border-right:none}
-    .ipva-center{text-align:center}.ipva-money{text-align:right;color:#14206F !important;font-size:13px;font-weight:800}.ipva-placa{font-size:13.5px;font-weight:800;color:#14206F !important}
-
-
+    .ipva-center{text-align:center}
+    .ipva-money{text-align:right;color:#14206F !important;font-size:13px !important;font-weight:800 !important;}
+    .ipva-placa{font-size:13.5px !important;font-weight:800 !important;color:#14206F !important;}
 
     .attention-summary{
         display:grid;
@@ -2013,12 +2012,69 @@ else:
                 else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
 
+
+            # ==========================================================
+            # SEÇÃO DE AQUISIÇÕES DE VEÍCULOS
+            # ==========================================================
+            df_aq = load_aquisicoes_data()
+            if not df_aq.empty:
+                df_aq_filtered = df_aq.copy()
+                if inst_sel != "TODAS":
+                    df_aq_filtered = df_aq_filtered[df_aq_filtered["Instituição"] == inst_sel]
+
+                st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-title">📦 Aquisições de Veículos</div>', unsafe_allow_html=True)
+                st.markdown('<div class="exec-section-subtitle">Investimentos em renovação e ampliação da frota.</div>', unsafe_allow_html=True)
+
+                df_aq_ano = df_aq_filtered[df_aq_filtered["Ano da aquisição"] == ano_sel]
+                qtd_aq_ano = len(df_aq_ano)
+                valor_aq_ano = df_aq_ano["Valor"].sum()
+
+                col_aq1, col_aq2, col_aq3 = st.columns([1, 1.2, 1.8])
+                with col_aq1:
+                    draw_card("VEÍCULOS ADQUIRIDOS", fmt_br(qtd_aq_ano), f"No ano de {ano_sel}", is_lower_better=False)
+                with col_aq2:
+                    draw_card("INVESTIMENTO TOTAL", fmt_br(valor_aq_ano, True), f"No ano de {ano_sel}", is_lower_better=False)
+                with col_aq3:
+                    df_hist_aq = df_aq_filtered.groupby("Ano da aquisição").agg(
+                        Qtd=("Placa", "count"),
+                        Valor=("Valor", "sum")
+                    ).reset_index().sort_values("Ano da aquisição", ascending=False)
+
+                    if not df_hist_aq.empty:
+                        linhas_aq = []
+                        for _, r in df_hist_aq.iterrows():
+                            ano_aq = int(r["Ano da aquisição"]) if pd.notna(r["Ano da aquisição"]) else "N/I"
+                            linhas_aq.append(
+                                "<tr>"
+                                f"<td class='rx-left'><b>{ano_aq}</b></td>"
+                                f"<td class='rx-num'>{int(r['Qtd'])} veículos</td>"
+                                f"<td class='rx-num rx-total'>{fmt_br(r['Valor'], True)}</td>"
+                                "</tr>"
+                            )
+
+                        tabela_aq_html = f"""
+                        <div class="rx-table-card" style="margin-top: 5px;">
+                            <div class="rx-table-scroll" style="max-height: 170px;">
+                                <table class="rx-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ano</th>
+                                            <th style="text-align:right;">Quantidade</th>
+                                            <th style="text-align:right;">Valor Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>{''.join(linhas_aq)}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        """
+                        st.markdown(tabela_aq_html, unsafe_allow_html=True)
+                    else:
+                        st.info("Sem histórico de aquisições para a seleção atual.")
+
             # ---------- Rankings executivos por veículo ----------
-            st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
-            st.markdown(
-                '<div style="height:10px;"></div><div style="border-top:1px solid #C9D6E2; margin:0 0 18px 0;"></div>',
-                unsafe_allow_html=True
-            )
+            st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # Considera somente placas físicas de 7 caracteres e o acumulado até o mês selecionado.
             df_rank_veic = df_fin_exec.copy()
@@ -2158,7 +2214,6 @@ else:
                 else:
                     st.info("Sem placas físicas disponíveis na seleção.")
 
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
             st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
 
             # ---------- Ranking de Bases Sociais / Centros de Custo ----------
