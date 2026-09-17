@@ -2012,7 +2012,6 @@ else:
                 else:
                     st.info("Comparativo Real x Orçado disponível para 2026, ano com orçamento cadastrado.")
 
-
             # ==========================================================
             # SEÇÃO DE AQUISIÇÕES DE VEÍCULOS
             # ==========================================================
@@ -2030,48 +2029,93 @@ else:
                 qtd_aq_ano = len(df_aq_ano)
                 valor_aq_ano = df_aq_ano["Valor"].sum()
 
-                col_aq1, col_aq2, col_aq3 = st.columns([1, 1.2, 1.8])
-                with col_aq1:
-                    draw_card("VEÍCULOS ADQUIRIDOS", fmt_br(qtd_aq_ano), f"No ano de {ano_sel}", is_lower_better=False)
-                with col_aq2:
-                    draw_card("INVESTIMENTO TOTAL", fmt_br(valor_aq_ano, True), f"No ano de {ano_sel}", is_lower_better=False)
-                with col_aq3:
-                    df_hist_aq = df_aq_filtered.groupby("Ano da aquisição").agg(
-                        Qtd=("Placa", "count"),
-                        Valor=("Valor", "sum")
-                    ).reset_index().sort_values("Ano da aquisição", ascending=False)
+                # Prepara os dados históricos para a tabela
+                df_hist_aq = df_aq_filtered.groupby("Ano da aquisição").agg(
+                    Qtd=("Placa", "count"),
+                    Valor=("Valor", "sum")
+                ).reset_index().sort_values("Ano da aquisição", ascending=False)
 
-                    if not df_hist_aq.empty:
-                        linhas_aq = []
-                        for _, r in df_hist_aq.iterrows():
-                            ano_aq = int(r["Ano da aquisição"]) if pd.notna(r["Ano da aquisição"]) else "N/I"
-                            linhas_aq.append(
-                                "<tr>"
-                                f"<td class='rx-left'><b>{ano_aq}</b></td>"
-                                f"<td class='rx-num'>{int(r['Qtd'])} veículos</td>"
-                                f"<td class='rx-num rx-total'>{fmt_br(r['Valor'], True)}</td>"
-                                "</tr>"
-                            )
+                linhas_aq = []
+                if not df_hist_aq.empty:
+                    for _, r in df_hist_aq.iterrows():
+                        ano_aq = int(r["Ano da aquisição"]) if pd.notna(r["Ano da aquisição"]) else "N/I"
+                        linhas_aq.append(
+                            "<tr>"
+                            f"<td class='rx-left'><b>{ano_aq}</b></td>"
+                            f"<td class='rx-num'>{int(r['Qtd'])} veículos</td>"
+                            f"<td class='rx-num rx-total'>{fmt_br(r['Valor'], True)}</td>"
+                            "</tr>"
+                        )
+                else:
+                    linhas_aq.append("<tr><td colspan='3' style='text-align:center; padding: 20px; color: #607D8B;'>Sem histórico de aquisições</td></tr>")
 
-                        tabela_aq_html = f"""
-                        <div class="rx-table-card" style="margin-top: 5px;">
-                            <div class="rx-table-scroll" style="max-height: 170px;">
-                                <table class="rx-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Ano</th>
-                                            <th style="text-align:right;">Quantidade</th>
-                                            <th style="text-align:right;">Valor Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>{''.join(linhas_aq)}</tbody>
-                                </table>
-                            </div>
+                # HTML unificado usando CSS Grid para garantir alinhamento perfeito de todos os lados
+                aq_html = f"""
+                <style>
+                .aq-grid {{
+                    display: grid;
+                    grid-template-columns: 1fr 1.2fr 1.8fr; /* Mantém a mesma proporção de tela */
+                    gap: 15px;
+                    align-items: stretch; /* Força todos os itens a terem exatamente a MESMA altura */
+                    margin-bottom: 10px;
+                }}
+                .aq-grid .metric-container {{
+                    margin-bottom: 0 !important; /* Remove margem para não desalinhar a base */
+                    height: 100%;
+                }}
+                .aq-grid .rx-table-card {{
+                    margin-top: 0 !important; /* Remove a margem superior antiga */
+                    height: 100%;
+                    min-height: 170px;
+                    display: flex;
+                    flex-direction: column;
+                }}
+                .aq-grid .rx-table-scroll {{
+                    flex: 1;
+                    max-height: 170px;
+                    overflow-y: auto;
+                }}
+                @media (max-width: 1000px) {{
+                    .aq-grid {{ grid-template-columns: 1fr; }}
+                }}
+                </style>
+
+                <div class="aq-grid">
+                    <!-- Card 1 -->
+                    <div class="metric-container">
+                        <div class="metric-label">VEÍCULOS ADQUIRIDOS</div>
+                        <div class="metric-value">{fmt_br(qtd_aq_ano)}</div>
+                        <div class="metric-subtext">No ano de {ano_sel}</div>
+                        <div class="trend-container"></div>
+                    </div>
+                    
+                    <!-- Card 2 -->
+                    <div class="metric-container">
+                        <div class="metric-label">INVESTIMENTO TOTAL</div>
+                        <div class="metric-value">{fmt_br(valor_aq_ano, True)}</div>
+                        <div class="metric-subtext">No ano de {ano_sel}</div>
+                        <div class="trend-container"></div>
+                    </div>
+                    
+                    <!-- Tabela Histórica -->
+                    <div class="rx-table-card">
+                        <div class="rx-table-scroll">
+                            <table class="rx-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ano</th>
+                                        <th style="text-align:right;">Quantidade</th>
+                                        <th style="text-align:right;">Valor Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>{''.join(linhas_aq)}</tbody>
+                            </table>
                         </div>
-                        """
-                        st.markdown(tabela_aq_html, unsafe_allow_html=True)
-                    else:
-                        st.info("Sem histórico de aquisições para a seleção atual.")
+                    </div>
+                </div>
+                """
+                st.markdown(aq_html, unsafe_allow_html=True)
+
 
             # ---------- Rankings executivos por veículo ----------
             st.markdown('<div class="exec-divider"></div>', unsafe_allow_html=True)
