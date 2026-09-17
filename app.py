@@ -2049,71 +2049,64 @@ else:
                 else:
                     linhas_aq.append("<tr><td colspan='3' style='text-align:center; padding: 20px; color: #607D8B;'>Sem histórico de aquisições</td></tr>")
 
-                # HTML unificado usando CSS Grid para garantir alinhamento perfeito de todos os lados
-                aq_html = f"""
-                <style>
-                .aq-grid {{
-                    display: grid;
-                    grid-template-columns: 1fr 1.2fr 1.8fr; /* Mantém a mesma proporção de tela */
-                    gap: 15px;
-                    align-items: stretch; /* Força todos os itens a terem exatamente a MESMA altura */
-                    margin-bottom: 10px;
-                }}
-                .aq-grid .metric-container {{
-                    margin-bottom: 0 !important; /* Remove margem para não desalinhar a base */
-                    height: 100%;
-                }}
-                .aq-grid .rx-table-card {{
-                    margin-top: 0 !important; /* Remove a margem superior antiga */
-                    height: 100%;
-                    min-height: 170px;
-                    display: flex;
-                    flex-direction: column;
-                }}
-                .aq-grid .rx-table-scroll {{
-                    flex: 1;
-                    max-height: 170px;
-                    overflow-y: auto;
-                }}
-                @media (max-width: 1000px) {{
-                    .aq-grid {{ grid-template-columns: 1fr; }}
-                }}
-                </style>
-
-                <div class="aq-grid">
-                    <!-- Card 1 -->
-                    <div class="metric-container">
-                        <div class="metric-label">VEÍCULOS ADQUIRIDOS</div>
-                        <div class="metric-value">{fmt_br(qtd_aq_ano)}</div>
-                        <div class="metric-subtext">No ano de {ano_sel}</div>
-                        <div class="trend-container"></div>
-                    </div>
-                    
-                    <!-- Card 2 -->
-                    <div class="metric-container">
-                        <div class="metric-label">INVESTIMENTO TOTAL</div>
-                        <div class="metric-value">{fmt_br(valor_aq_ano, True)}</div>
-                        <div class="metric-subtext">No ano de {ano_sel}</div>
-                        <div class="trend-container"></div>
-                    </div>
-                    
-                    <!-- Tabela Histórica -->
-                    <div class="rx-table-card">
-                        <div class="rx-table-scroll">
-                            <table class="rx-table">
-                                <thead>
-                                    <tr>
-                                        <th>Ano</th>
-                                        <th style="text-align:right;">Quantidade</th>
-                                        <th style="text-align:right;">Valor Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>{''.join(linhas_aq)}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                """
+                # IMPORTANTE: O texto dentro de aq_html não pode ter espaços no começo da linha, 
+                # senão o Streamlit transforma em "bloco de código" na tela.
+                aq_html = f"""<style>
+.aq-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1.8fr;
+    gap: 15px;
+    align-items: stretch;
+    margin-bottom: 10px;
+}}
+.aq-grid .metric-container {{
+    margin-bottom: 0 !important;
+    height: 100%;
+}}
+.aq-grid .rx-table-card {{
+    margin-top: 0 !important;
+    height: 100%;
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+}}
+.aq-grid .rx-table-scroll {{
+    flex: 1;
+    max-height: 170px;
+    overflow-y: auto;
+}}
+@media (max-width: 1000px) {{
+    .aq-grid {{ grid-template-columns: 1fr; }}
+}}
+</style>
+<div class="aq-grid">
+    <div class="metric-container">
+        <div class="metric-label">VEÍCULOS ADQUIRIDOS</div>
+        <div class="metric-value">{fmt_br(qtd_aq_ano)}</div>
+        <div class="metric-subtext">No ano de {ano_sel}</div>
+        <div class="trend-container"></div>
+    </div>
+    <div class="metric-container">
+        <div class="metric-label">INVESTIMENTO TOTAL</div>
+        <div class="metric-value">{fmt_br(valor_aq_ano, True)}</div>
+        <div class="metric-subtext">No ano de {ano_sel}</div>
+        <div class="trend-container"></div>
+    </div>
+    <div class="rx-table-card">
+        <div class="rx-table-scroll">
+            <table class="rx-table">
+                <thead>
+                    <tr>
+                        <th>Ano</th>
+                        <th style="text-align:right;">Quantidade</th>
+                        <th style="text-align:right;">Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody>{''.join(linhas_aq)}</tbody>
+            </table>
+        </div>
+    </div>
+</div>"""
                 st.markdown(aq_html, unsafe_allow_html=True)
 
 
