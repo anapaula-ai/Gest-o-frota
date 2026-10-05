@@ -652,7 +652,7 @@ st.markdown("""
     .frota-table-scroll{max-height:560px;overflow-y:auto;}
     .frota-table-header, .frota-table-row{
         display:grid;
-        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr;
+        grid-template-columns:1.05fr .66fr .82fr 1.55fr 1.02fr .60fr;
         align-items:center;
         gap:10px;
         padding:9px 12px;
@@ -681,9 +681,10 @@ st.markdown("""
     .frota-table-base{color:#455A64 !important;font-size:13px;font-weight:650;}
     .frota-table-modelo{color:#263238 !important;font-size:13px;font-weight:650;}
     .frota-table-motorista{color:#263238 !important;font-size:13px;font-weight:650;}
+    .frota-table-ano{color:#17206A !important;font-size:13px;font-weight:800;text-align:center;white-space:nowrap;}
     .frota-table-category{
         display:grid;
-        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr;
+        grid-template-columns:1.05fr .66fr .82fr 1.55fr 1.02fr .60fr;
         align-items:center;
         gap:10px;
         padding:8px 12px;
@@ -1377,6 +1378,13 @@ else:
             if 'Placa' in df.columns: 
                 df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
                 df['Placa'] = df['Placa'].replace(['NAN', 'NONE'], '')
+
+            # Nova coluna da Relação da Frota: ano do veículo.
+            # Mantemos apenas anos válidos; células vazias permanecem como NaN
+            # para não entrarem no cálculo como zero.
+            if 'Ano veículo' in df.columns:
+                df['Ano veículo'] = pd.to_numeric(df['Ano veículo'], errors='coerce')
+                df.loc[~df['Ano veículo'].between(1950, 2100, inclusive='both'), 'Ano veículo'] = pd.NA
             
             return df
         except Exception as e:
@@ -1584,52 +1592,37 @@ else:
             # Custo médio por veículo = custo acumulado da seleção / quantidade de ativos cadastrados.
             custo_medio_veiculo = (custo_total_global / qtd_frota) if qtd_frota > 0 else 0
 
-            # Ano médio da frota: usa o cadastro de veículos/IPVA e, sempre que possível,
-            # cruza pelas placas físicas da frota atual para respeitar Instituição e Base/CC selecionados.
+            # Ano médio da frota: usa exclusivamente a Relação da Frota.
+            # A Relação da Frota considera os registros digitais do cadastro,
+            # mantém o vínculo mais recente de cada placa e usa a nova coluna
+            # "Ano veículo". Células sem ano não entram na média.
             ano_medio_frota = None
             try:
-                df_anos_frota = load_ipva_data().copy()
-                if not df_anos_frota.empty and "Ano do veículo" in df_anos_frota.columns:
-                    df_anos_frota["Ano do veículo"] = pd.to_numeric(df_anos_frota["Ano do veículo"], errors="coerce")
-                    df_anos_frota = df_anos_frota[
-                        df_anos_frota["Ano do veículo"].between(1950, 2100, inclusive="both")
-                    ].copy()
+                pattern_relacao_frota = (
+                    "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|"
+                    "SPRINTER|ÔNIBUS|ONIBUS|MICRO"
+                )
+                mask_relacao_frota = df_base_completa["Placa"].astype(str).str.contains(
+                    pattern_relacao_frota, case=False, na=False, regex=True
+                )
+                df_ano_frota = df_base_completa[mask_relacao_frota].copy()
 
-                    # Normaliza a placa da base cadastral, quando disponível.
-                    col_placa_ipva = next(
-                        (c for c in ["Placa", "PLACA", "placa"] if c in df_anos_frota.columns),
-                        None
+                if not df_ano_frota.empty and "Ano veículo" in df_ano_frota.columns:
+                    # Mesma lógica da Relação da Frota: um registro atual por placa.
+                    df_ano_frota = (
+                        df_ano_frota
+                        .sort_values("Mes_Num", ascending=False)
+                        .drop_duplicates(subset=["Placa"])
                     )
-                    if col_placa_ipva and not df_frota_atual.empty:
-                        df_anos_frota["Placa_Normalizada"] = (
-                            df_anos_frota[col_placa_ipva]
-                            .astype(str).str.upper()
-                            .str.replace(r"[^A-Z0-9]", "", regex=True)
-                            .str.extract(r"([A-Z0-9]{7})", expand=False)
-                        )
-                        placas_selecao = set(
-                            df_frota_atual["Placa_Fisica"]
-                            .astype(str).str.upper()
-                            .str.replace(r"[^A-Z0-9]", "", regex=True)
-                            .str.extract(r"([A-Z0-9]{7})", expand=False)
-                            .dropna()
-                        )
-                        df_anos_frota = df_anos_frota[df_anos_frota["Placa_Normalizada"].isin(placas_selecao)].copy()
-                    elif "Instituição" in df_anos_frota.columns and inst_sel != "TODAS":
-                        df_anos_frota = df_anos_frota[
-                            df_anos_frota["Instituição"].astype(str).str.strip().str.upper() == inst_sel.upper()
-                        ].copy()
+                    df_ano_frota["Ano veículo"] = pd.to_numeric(
+                        df_ano_frota["Ano veículo"], errors="coerce"
+                    )
+                    df_ano_frota = df_ano_frota[
+                        df_ano_frota["Ano veículo"].between(1950, 2100, inclusive="both")
+                    ]
 
-                    # Evita duplicar o mesmo veículo caso haja mais de um ano-base de IPVA.
-                    if col_placa_ipva and "Placa_Normalizada" in df_anos_frota.columns:
-                        if "Ano base" in df_anos_frota.columns:
-                            df_anos_frota["Ano base"] = pd.to_numeric(df_anos_frota["Ano base"], errors="coerce")
-                            df_anos_frota = df_anos_frota.sort_values("Ano base").drop_duplicates("Placa_Normalizada", keep="last")
-                        else:
-                            df_anos_frota = df_anos_frota.drop_duplicates("Placa_Normalizada", keep="last")
-
-                    if not df_anos_frota.empty:
-                        ano_medio_frota = df_anos_frota["Ano do veículo"].mean()
+                    if not df_ano_frota.empty:
+                        ano_medio_frota = df_ano_frota["Ano veículo"].mean()
             except Exception:
                 ano_medio_frota = None
 
@@ -3995,7 +3988,8 @@ else:
                             'Instituição': inst,
                             col_cc: "",
                             'Modelo': "",
-                            'Motorista': ""
+                            'Motorista': "",
+                            'Ano veículo': ""
                         })
                         
                         df_cat = df_i[df_i['Categoria'] == cat]
@@ -4005,7 +3999,12 @@ else:
                                 'Instituição': row['Instituição'],
                                 col_cc: row.get(col_cc, ""),
                                 'Modelo': row.get('Modelo', ""),
-                                'Motorista': row.get('Motorista', "")
+                                'Motorista': row.get('Motorista', ""),
+                                'Ano veículo': (
+                                    str(int(float(row.get('Ano veículo'))))
+                                    if pd.notna(row.get('Ano veículo')) and str(row.get('Ano veículo')).strip() != ''
+                                    else ""
+                                )
                             })
                             
                 df_apresentacao = pd.DataFrame(linhas_segmentadas)
@@ -4036,6 +4035,7 @@ else:
                     base_txt = str(row.get(col_cc, ''))
                     modelo_txt = str(row.get('Modelo', ''))
                     motorista_txt = str(row.get('Motorista', ''))
+                    ano_veiculo_txt = str(row.get('Ano veículo', ''))
 
                     if placa_txt.startswith('🔸'):
                         categoria_txt = placa_txt.replace('🔸', '').strip()
@@ -4043,7 +4043,7 @@ else:
                             '<div class="frota-table-category">'
                             f'<div class="frota-table-category-name">◆ {categoria_txt}</div>'
                             f'<div class="frota-table-category-inst">{inst_txt}</div>'
-                            '<div></div><div></div><div></div>'
+                            '<div></div><div></div><div></div><div></div>'
                             '</div>'
                         )
                     else:
@@ -4054,6 +4054,7 @@ else:
                             f'<div class="frota-table-base">{base_txt}</div>'
                             f'<div class="frota-table-modelo">{modelo_txt}</div>'
                             f'<div class="frota-table-motorista">{motorista_txt}</div>'
+                            f'<div class="frota-table-ano">{ano_veiculo_txt}</div>'
                             '</div>'
                         )
 
@@ -4064,6 +4065,7 @@ else:
                     f'<div>📍 {"Base" if col_cc == "Base" else "Centro de Custo"}</div>'
                     '<div>🚙 Modelo</div>'
                     '<div>👤 Motorista</div>'
+                    '<div>📅 Ano veículo</div>'
                     '</div>'
                 )
 
