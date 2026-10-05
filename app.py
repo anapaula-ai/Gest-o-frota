@@ -652,7 +652,7 @@ st.markdown("""
     .frota-table-scroll{max-height:560px;overflow-y:auto;}
     .frota-table-header, .frota-table-row{
         display:grid;
-        grid-template-columns:1.05fr .66fr .82fr 1.55fr 1.02fr .60fr;
+        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr .70fr;
         align-items:center;
         gap:10px;
         padding:9px 12px;
@@ -681,10 +681,10 @@ st.markdown("""
     .frota-table-base{color:#455A64 !important;font-size:13px;font-weight:650;}
     .frota-table-modelo{color:#263238 !important;font-size:13px;font-weight:650;}
     .frota-table-motorista{color:#263238 !important;font-size:13px;font-weight:650;}
-    .frota-table-ano{color:#17206A !important;font-size:13px;font-weight:800;text-align:center;white-space:nowrap;}
+    .frota-table-ano{color:#14206F !important;font-size:13px;font-weight:800;text-align:center;}
     .frota-table-category{
         display:grid;
-        grid-template-columns:1.05fr .66fr .82fr 1.55fr 1.02fr .60fr;
+        grid-template-columns:1.05fr .66fr .82fr 1.75fr 1.08fr .70fr;
         align-items:center;
         gap:10px;
         padding:8px 12px;
@@ -999,7 +999,7 @@ st.markdown("""
     .health-plate{color:#14206F !important;font-size:14px;font-weight:850;}.health-unit{color:#455A64 !important;font-size:13px;font-weight:650;line-height:1.25;}
     .health-num{color:#263238 !important;font-size:13.5px;font-weight:750;text-align:right;white-space:nowrap;}
     .health-status{justify-self:end;border-radius:999px;padding:5px 8px;font-size:10.5px;font-weight:850;white-space:nowrap;}
-    .health-status.ok{background:#E8F5E9;color:#2E7D32 !important;}.health-status.warning{background:#FFF8E1;color:#8A6500 !important;}.health-status.priority{background:#FDECEC;color:#B3261E !important;}
+    .health-status.ok{background:#E8F5E9;color:#2E7D32 !important;}.health-status.warning{background:#FFF8E1;color:#8A6500 !important;}.health-status.priority{background:#FDECEC;color:#B3261E !important;}.health-status.nodata{background:#ECEFF1;color:#607D8B !important;}
     @media(max-width:1200px){.health-header,.health-row{grid-template-columns:.82fr 1.30fr .80fr .68fr 1fr .78fr .74fr 1.20fr;}}
 
 </style>
@@ -1374,17 +1374,15 @@ else:
                 df['Motorista'] = df['Motorista'].astype(str).str.strip().replace(['0', '0.0', 'nan', 'NAN', 'None'], '-')
             else:
                 df['Motorista'] = '-'
+
+            # Ano veículo: informação cadastral da Relação da Frota.
+            # Valores vazios permanecem como NaN e não entram em médias.
+            if 'Ano veículo' in df.columns:
+                df['Ano veículo'] = pd.to_numeric(df['Ano veículo'], errors='coerce')
             
             if 'Placa' in df.columns: 
                 df['Placa'] = df['Placa'].astype(str).str.strip().str.upper()
                 df['Placa'] = df['Placa'].replace(['NAN', 'NONE'], '')
-
-            # Nova coluna da Relação da Frota: ano do veículo.
-            # Mantemos apenas anos válidos; células vazias permanecem como NaN
-            # para não entrarem no cálculo como zero.
-            if 'Ano veículo' in df.columns:
-                df['Ano veículo'] = pd.to_numeric(df['Ano veículo'], errors='coerce')
-                df.loc[~df['Ano veículo'].between(1950, 2100, inclusive='both'), 'Ano veículo'] = pd.NA
             
             return df
         except Exception as e:
@@ -1564,16 +1562,23 @@ else:
                 + df_fin_exec["Custo de Rastreador"]
             )
 
-            # Frota atual: usa o cadastro auxiliar, pega o último vínculo conhecido
-            # de cada placa física no ano e só então aplica o filtro da unidade.
+            # Frota atual: a Relação da Frota é a fonte oficial da composição.
+            # Cada identificador digital (VEÍCULO, TRICICLO, KOMBI, REBOQUE etc.)
+            # representa uma unidade da frota e deve ser mantido como identificador
+            # próprio. Quando o identificador contém uma placa física ao final,
+            # guardamos essa placa apenas para cruzar os dados de custo/KM.
             mask_cadastro_frota = df_temp_inst["Placa"].astype(str).str.contains(
                 cadastro_pattern, case=False, na=False, regex=True
             )
             df_frota_atual = df_temp_inst[mask_cadastro_frota].copy()
             if not df_frota_atual.empty:
-                df_frota_atual["Placa_Fisica"] = df_frota_atual["Placa"].astype(str).str.upper().str.extract(r"([A-Z0-9]{7})\s*$", expand=False)
-                df_frota_atual["Placa_Fisica"] = df_frota_atual["Placa_Fisica"].fillna(df_frota_atual["Placa"].astype(str))
-                df_frota_atual = df_frota_atual.sort_values("Mes_Num").drop_duplicates(subset=["Placa_Fisica"], keep="last")
+                df_frota_atual["Frota_ID"] = df_frota_atual["Placa"].astype(str).str.strip().str.upper()
+                df_frota_atual["Placa_Fisica"] = df_frota_atual["Frota_ID"].str.extract(r"([A-Z0-9]{7})\s*$", expand=False)
+                df_frota_atual = (
+                    df_frota_atual
+                    .sort_values("Mes_Num")
+                    .drop_duplicates(subset=["Frota_ID"], keep="last")
+                )
                 df_frota_atual["Unidade_Gestao"] = df_frota_atual[col_cc].apply(limpar_unidade)
                 if cc_sel != "TODOS":
                     unidade_sel_limpa = limpar_unidade(cc_sel)
@@ -1586,45 +1591,20 @@ else:
             gasto_rastreador_acum = df_fin_exec["Custo de Rastreador"].sum()
             custo_total_global = df_fin_exec["Custo_Total"].sum()
             km_total_global = df_fin_exec["Quilometragem"].sum()
-            qtd_frota = df_frota_atual["Placa_Fisica"].nunique() if not df_frota_atual.empty else 0
+            qtd_frota = df_frota_atual["Frota_ID"].nunique() if not df_frota_atual.empty else 0
 
             # Indicadores médios da frota.
             # Custo médio por veículo = custo acumulado da seleção / quantidade de ativos cadastrados.
             custo_medio_veiculo = (custo_total_global / qtd_frota) if qtd_frota > 0 else 0
 
             # Ano médio da frota: usa exclusivamente a Relação da Frota.
-            # A Relação da Frota considera os registros digitais do cadastro,
-            # mantém o vínculo mais recente de cada placa e usa a nova coluna
-            # "Ano veículo". Células sem ano não entram na média.
+            # Somente os registros com Ano veículo preenchido e válido entram na média.
             ano_medio_frota = None
-            try:
-                pattern_relacao_frota = (
-                    "VEÍCUL|VEICUL|ALUGAD|MOTO|KOMBI|TRICICLO|REBOQUE|"
-                    "SPRINTER|ÔNIBUS|ONIBUS|MICRO"
-                )
-                mask_relacao_frota = df_base_completa["Placa"].astype(str).str.contains(
-                    pattern_relacao_frota, case=False, na=False, regex=True
-                )
-                df_ano_frota = df_base_completa[mask_relacao_frota].copy()
-
-                if not df_ano_frota.empty and "Ano veículo" in df_ano_frota.columns:
-                    # Mesma lógica da Relação da Frota: um registro atual por placa.
-                    df_ano_frota = (
-                        df_ano_frota
-                        .sort_values("Mes_Num", ascending=False)
-                        .drop_duplicates(subset=["Placa"])
-                    )
-                    df_ano_frota["Ano veículo"] = pd.to_numeric(
-                        df_ano_frota["Ano veículo"], errors="coerce"
-                    )
-                    df_ano_frota = df_ano_frota[
-                        df_ano_frota["Ano veículo"].between(1950, 2100, inclusive="both")
-                    ]
-
-                    if not df_ano_frota.empty:
-                        ano_medio_frota = df_ano_frota["Ano veículo"].mean()
-            except Exception:
-                ano_medio_frota = None
+            if not df_frota_atual.empty and "Ano veículo" in df_frota_atual.columns:
+                anos_validos = pd.to_numeric(df_frota_atual["Ano veículo"], errors="coerce")
+                anos_validos = anos_validos[anos_validos.between(1950, 2100, inclusive="both")]
+                if not anos_validos.empty:
+                    ano_medio_frota = anos_validos.mean()
 
             orc_manut = sum(ORCAMENTOS_MANUT_2026.get(inst, 0) for inst in inst_ativas)
             orc_comb = sum(ORCAMENTOS_COMB_2026.get(inst, 0) for inst in inst_ativas)
@@ -1816,7 +1796,7 @@ else:
                         df_frota_atual["Instituição"].astype(str).str.strip().str.upper() == inst_comp
                     ].copy() if not df_frota_atual.empty else pd.DataFrame()
 
-                    qtd_inst = df_inst_frota["Placa_Fisica"].nunique() if not df_inst_frota.empty else 0
+                    qtd_inst = df_inst_frota["Frota_ID"].nunique() if not df_inst_frota.empty else 0
                     custo_medio_inst = custo_inst / qtd_inst if qtd_inst > 0 else 0
                     st.markdown(
                         f"""
@@ -2257,7 +2237,7 @@ else:
             })
 
             if not df_frota_atual.empty:
-                frota_unid = df_frota_atual.groupby(["Instituição", "Unidade_Gestao"])["Placa_Fisica"].nunique().reset_index(name="Ativos")
+                frota_unid = df_frota_atual.groupby(["Instituição", "Unidade_Gestao"])["Frota_ID"].nunique().reset_index(name="Ativos")
                 df_unidades = pd.merge(df_unidades, frota_unid, on=["Instituição", "Unidade_Gestao"], how="left")
             else:
                 df_unidades["Ativos"] = 0
@@ -3416,66 +3396,109 @@ else:
         with tab_km:
             # ================= SAÚDE DA FROTA =================
             st.markdown('<div class="manut-section-title">🩺 Saúde da Frota</div>', unsafe_allow_html=True)
-            st.markdown('<div class="km-section-subtitle">Leitura gerencial que usa o KM rodado como contexto de utilização e avalia idade, custo de manutenção por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="km-section-subtitle">Leitura gerencial que usa a Relação da Frota como composição oficial e avalia idade, KM rodado, custo de manutenção por km e recorrência de manutenção.</div>', unsafe_allow_html=True)
 
-            df_saude = df_base_completa.copy()
-            mask_fisica_saude = df_saude["Placa"].astype(str).str.fullmatch(r"[A-Z0-9]{7}", case=False, na=False)
-            df_saude = df_saude[mask_fisica_saude].copy()
+            # A Relação da Frota define quais veículos existem na seleção.
+            # Os dados financeiros/KM continuam sendo buscados nos lançamentos
+            # reais e associados à placa física quando ela estiver disponível
+            # no identificador digital da Relação da Frota.
+            df_relacao_saude = df_frota_atual.copy() if not df_frota_atual.empty else pd.DataFrame()
 
-            if not df_saude.empty:
-                agg_saude = df_saude.groupby("Placa", as_index=False).agg({
-                    "Quilometragem": "sum",
-                    "Custo de manutenção": "sum",
-                    "Custo Combustível": "sum",
-                    col_cc: "first",
-                })
+            if not df_relacao_saude.empty:
+                df_relacao_saude["Frota_ID"] = df_relacao_saude["Frota_ID"].astype(str).str.strip().str.upper()
+                df_relacao_saude["Placa_Fisica_Normalizada"] = (
+                    df_relacao_saude["Placa_Fisica"]
+                    .astype(str)
+                    .str.upper()
+                    .str.replace(r"[^A-Z0-9]", "", regex=True)
+                )
+                df_relacao_saude.loc[
+                    df_relacao_saude["Placa_Fisica"].isna(), "Placa_Fisica_Normalizada"
+                ] = ""
 
-                anos_dict_saude = {}
-                try:
-                    df_ipva_saude = load_ipva_data()
-                    if not df_ipva_saude.empty and "Placa" in df_ipva_saude.columns and "Ano do veículo" in df_ipva_saude.columns:
-                        tmp = df_ipva_saude.copy()
-                        tmp["Placa_norm"] = tmp["Placa"].astype(str).str.upper().str.replace(r"[^A-Z0-9]", "", regex=True)
-                        tmp["Ano do veículo"] = pd.to_numeric(tmp["Ano do veículo"], errors="coerce")
-                        tmp = tmp.dropna(subset=["Ano do veículo"]).drop_duplicates("Placa_norm", keep="last")
-                        anos_dict_saude = dict(zip(tmp["Placa_norm"], tmp["Ano do veículo"]))
-                except Exception:
-                    anos_dict_saude = {}
+                # Lançamentos reais: exclui somente os registros cadastrais digitais.
+                mask_cadastro_saude = df_base_completa["Placa"].astype(str).str.contains(
+                    cadastro_pattern, case=False, na=False, regex=True
+                )
+                df_lanc_saude = df_base_completa[~mask_cadastro_saude].copy()
+                df_lanc_saude["Placa_Normalizada"] = (
+                    df_lanc_saude["Placa"]
+                    .astype(str)
+                    .str.upper()
+                    .str.replace(r"[^A-Z0-9]", "", regex=True)
+                )
 
-                agg_saude["Ano_Veiculo"] = agg_saude["Placa"].map(anos_dict_saude)
+                if not df_lanc_saude.empty:
+                    agg_lanc_saude = df_lanc_saude.groupby("Placa_Normalizada", as_index=False).agg({
+                        "Quilometragem": "sum",
+                        "Custo de manutenção": "sum",
+                        "Custo Combustível": "sum",
+                    })
+
+                    df_manut_rec = df_lanc_saude[
+                        df_lanc_saude["Custo de manutenção"].fillna(0) > 0
+                    ].copy()
+                    meses_manut = (
+                        df_manut_rec.dropna(subset=["Mes_Num"])
+                        .groupby("Placa_Normalizada")["Mes_Num"]
+                        .nunique()
+                        .to_dict()
+                    )
+                else:
+                    agg_lanc_saude = pd.DataFrame(columns=[
+                        "Placa_Normalizada", "Quilometragem", "Custo de manutenção", "Custo Combustível"
+                    ])
+                    meses_manut = {}
+
+                # Cada linha abaixo corresponde a uma unidade da Relação da Frota.
+                agg_saude = df_relacao_saude[[
+                    "Frota_ID", "Placa", col_cc, "Ano veículo", "Placa_Fisica_Normalizada"
+                ]].copy()
+                agg_saude = agg_saude.merge(
+                    agg_lanc_saude,
+                    left_on="Placa_Fisica_Normalizada",
+                    right_on="Placa_Normalizada",
+                    how="left"
+                )
+                agg_saude.drop(columns=["Placa_Normalizada"], inplace=True, errors="ignore")
+
+                for col in ["Quilometragem", "Custo de manutenção", "Custo Combustível"]:
+                    agg_saude[col] = pd.to_numeric(agg_saude[col], errors="coerce").fillna(0)
+
+                agg_saude["Ano_Veiculo"] = pd.to_numeric(agg_saude["Ano veículo"], errors="coerce")
+                agg_saude.loc[
+                    ~agg_saude["Ano_Veiculo"].between(1950, 2100, inclusive="both"),
+                    "Ano_Veiculo"
+                ] = np.nan
                 agg_saude["Idade"] = ano_sel - agg_saude["Ano_Veiculo"]
                 agg_saude.loc[(agg_saude["Idade"] < 0) | (agg_saude["Idade"] > 40), "Idade"] = np.nan
+
                 agg_saude["Custo_KM"] = np.where(
                     agg_saude["Quilometragem"] > 0,
                     agg_saude["Custo de manutenção"] / agg_saude["Quilometragem"],
                     0
                 )
-
-                # Recorrência = quantidade de meses distintos em que o veículo
-                # apresentou pelo menos um lançamento de manutenção maior que zero.
-                # Vários lançamentos no mesmo mês contam apenas uma vez.
-                df_manut_rec = df_saude[df_saude["Custo de manutenção"].fillna(0) > 0].copy()
-                meses_manut = (
-                    df_manut_rec.dropna(subset=["Mes_Num"])
-                    .groupby("Placa")["Mes_Num"]
-                    .nunique()
-                    .to_dict()
+                agg_saude["Meses_Manut"] = agg_saude["Placa_Fisica_Normalizada"].map(meses_manut).fillna(0)
+                agg_saude["Tem_Dados_Operacionais"] = (
+                    (agg_saude["Quilometragem"] > 0) |
+                    (agg_saude["Custo de manutenção"] > 0)
                 )
-                agg_saude["Meses_Manut"] = agg_saude["Placa"].map(meses_manut).fillna(0)
 
                 def _q_saude(series, q):
                     serie_ok = pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
                     return float(serie_ok.quantile(q)) if not serie_ok.empty else 0.0
 
-                # O KM rodado permanece visível como contexto de utilização, mas NÃO
-                # gera pontuação negativa por si só. Veículos de campo podem rodar muito
-                # por necessidade operacional. A saúde é avaliada pela eficiência e
-                # frequência de manutenção, contextualizadas pela idade do ativo.
+                # O KM rodado permanece como contexto de utilização, não como penalização.
                 cpk_q75 = _q_saude(agg_saude.loc[agg_saude["Custo_KM"] > 0, "Custo_KM"], .75)
                 idade_q75 = _q_saude(agg_saude["Idade"], .75)
                 rec_q75 = _q_saude(agg_saude["Meses_Manut"], .75)
 
                 def classificar_saude(row):
+                    # Veículos que estão na Relação, mas não possuem lançamento
+                    # operacional associado, não devem ser chamados de "Adequado".
+                    if not row["Tem_Dados_Operacionais"]:
+                        return "Sem dados", "nodata", "sem dados de KM/manutenção associados ao veículo"
+
                     score = 0
                     sinais = []
                     if cpk_q75 > 0 and row["Custo_KM"] >= cpk_q75:
@@ -3501,6 +3524,7 @@ else:
                 qtd_ok = int((agg_saude["Classe_Saude"] == "ok").sum())
                 qtd_at = int((agg_saude["Classe_Saude"] == "warning").sum())
                 qtd_pr = int((agg_saude["Classe_Saude"] == "priority").sum())
+                qtd_nd = int((agg_saude["Classe_Saude"] == "nodata").sum())
                 st.markdown(
                     f'<div class="health-summary">'
                     f'<div class="health-card ok"><div class="health-label">Adequado</div><div class="health-value">{qtd_ok}</div><div class="health-note">Indicadores dentro do padrão da frota filtrada</div></div>'
@@ -3508,25 +3532,31 @@ else:
                     f'<div class="health-card priority"><div class="health-label">Acompanhamento prioritário</div><div class="health-value">{qtd_pr}</div><div class="health-note">Combinação de sinais que merece análise da Logística</div></div>'
                     f'</div>', unsafe_allow_html=True
                 )
+                if qtd_nd > 0:
+                    st.caption(f"{qtd_nd} veículo(s) da Relação da Frota sem dados de KM/manutenção associados e, por isso, não foram classificados como Adequado/Atenção.")
 
                 status_saude = st.radio(
                     "Visualizar veículos:",
-                    ["Todos", "🟢 Adequado", "🟡 Atenção", "🔴 Acompanhamento prioritário"],
+                    ["Todos", "🟢 Adequado", "🟡 Atenção", "🔴 Acompanhamento prioritário", "⚪ Sem dados"],
                     horizontal=True,
                     key="filtro_status_saude"
                 )
                 mapa_status = {
                     "🟢 Adequado": "Adequado",
                     "🟡 Atenção": "Atenção",
-                    "🔴 Acompanhamento prioritário": "Acompanhamento prioritário"
+                    "🔴 Acompanhamento prioritário": "Acompanhamento prioritário",
+                    "⚪ Sem dados": "Sem dados"
                 }
                 df_saude_view = agg_saude.copy()
                 if status_saude != "Todos":
                     df_saude_view = df_saude_view[df_saude_view["Saude"] == mapa_status[status_saude]].copy()
 
-                ordem_saude = {"priority": 0, "warning": 1, "ok": 2}
+                ordem_saude = {"priority": 0, "warning": 1, "ok": 2, "nodata": 3}
                 df_saude_view["_ord"] = df_saude_view["Classe_Saude"].map(ordem_saude)
-                df_saude_view = df_saude_view.sort_values(["_ord", "Custo de manutenção", "Quilometragem"], ascending=[True, False, False])
+                df_saude_view = df_saude_view.sort_values(
+                    ["_ord", "Custo de manutenção", "Quilometragem"],
+                    ascending=[True, False, False]
+                )
 
                 linhas_saude = []
                 for _, r in df_saude_view.iterrows():
@@ -3535,7 +3565,7 @@ else:
                     sinais_txt = html.escape(str(r["Sinais_Saude"]))
                     linhas_saude.append(
                         '<div class="health-row">'
-                        f'<div class="health-plate">{html.escape(str(r["Placa"]))}</div>'
+                        f'<div class="health-plate">{html.escape(str(r["Frota_ID"]))}</div>'
                         f'<div class="health-unit">{unidade_txt}</div>'
                         f'<div class="health-num">{fmt_br(r["Quilometragem"])} km</div>'
                         f'<div class="health-num">{idade_txt}</div>'
@@ -3549,14 +3579,14 @@ else:
                 if linhas_saude:
                     st.markdown(
                         '<div class="health-list"><div class="health-scroll">'
-                        '<div class="health-header"><div>Placa</div><div>Unidade</div><div style="text-align:right">KM Rodado/2026</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
+                        '<div class="health-header"><div>Veículo</div><div>Unidade</div><div style="text-align:right">KM Rodado/2026</div><div style="text-align:right">Idade</div><div style="text-align:right">Manutenção</div><div style="text-align:right">Custo/KM</div><div style="text-align:right">Recorrência</div><div style="text-align:right">Saúde</div></div>'
                         + ''.join(linhas_saude) + '</div></div>', unsafe_allow_html=True
                     )
                     st.caption(f"{len(df_saude_view)} veículo(s) exibido(s) · Passe o mouse sobre o status para ver os principais sinais considerados.")
                 else:
                     st.info("Nenhum veículo encontrado nesta classificação para os filtros selecionados.")
             else:
-                st.info("Não há veículos físicos suficientes para calcular a Saúde da Frota com os filtros selecionados.")
+                st.info("Não há veículos na Relação da Frota para calcular a Saúde da Frota com os filtros selecionados.")
 
             st.markdown('<div class="km-divider"></div>', unsafe_allow_html=True)
 
@@ -3955,6 +3985,8 @@ else:
                     else: return 'Veículos Próprios'
                     
                 df_frota_unica['Categoria'] = df_frota_unica['Placa'].apply(classificar_frota)
+                if 'Ano veículo' not in df_frota_unica.columns:
+                    df_frota_unica['Ano veículo'] = np.nan
 
                 # Indicadores rápidos da composição da frota
                 total_frota = len(df_frota_unica)
@@ -3994,17 +4026,21 @@ else:
                         
                         df_cat = df_i[df_i['Categoria'] == cat]
                         for _, row in df_cat.iterrows():
+                            ano_veic = row.get('Ano veículo', np.nan)
+                            if pd.notna(ano_veic):
+                                try:
+                                    ano_veic = str(int(float(ano_veic)))
+                                except Exception:
+                                    ano_veic = str(ano_veic)
+                            else:
+                                ano_veic = ""
                             linhas_segmentadas.append({
                                 'Placa': row['Placa'],
                                 'Instituição': row['Instituição'],
                                 col_cc: row.get(col_cc, ""),
                                 'Modelo': row.get('Modelo', ""),
                                 'Motorista': row.get('Motorista', ""),
-                                'Ano veículo': (
-                                    str(int(float(row.get('Ano veículo'))))
-                                    if pd.notna(row.get('Ano veículo')) and str(row.get('Ano veículo')).strip() != ''
-                                    else ""
-                                )
+                                'Ano veículo': ano_veic
                             })
                             
                 df_apresentacao = pd.DataFrame(linhas_segmentadas)
@@ -4035,7 +4071,7 @@ else:
                     base_txt = str(row.get(col_cc, ''))
                     modelo_txt = str(row.get('Modelo', ''))
                     motorista_txt = str(row.get('Motorista', ''))
-                    ano_veiculo_txt = str(row.get('Ano veículo', ''))
+                    ano_veic_txt = str(row.get('Ano veículo', ''))
 
                     if placa_txt.startswith('🔸'):
                         categoria_txt = placa_txt.replace('🔸', '').strip()
@@ -4054,7 +4090,7 @@ else:
                             f'<div class="frota-table-base">{base_txt}</div>'
                             f'<div class="frota-table-modelo">{modelo_txt}</div>'
                             f'<div class="frota-table-motorista">{motorista_txt}</div>'
-                            f'<div class="frota-table-ano">{ano_veiculo_txt}</div>'
+                            f'<div class="frota-table-ano">{ano_veic_txt}</div>'
                             '</div>'
                         )
 
