@@ -986,7 +986,7 @@ st.markdown("""
     /* Saúde da Frota — Visão Executiva */
     .health-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:6px 0 16px 0;}
     .health-card{background:#FFFFFF;border:1px solid #DCE4EC;border-radius:11px;padding:14px 15px;box-shadow:0 3px 10px rgba(26,35,126,.04);position:relative;overflow:hidden;min-height:94px;}
-    .health-card::before{content:"absolute";left:0;top:0;bottom:0;width:5px;background:#90A4AE;}
+    .health-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#90A4AE;}
     .health-card.ok::before{background:#2E7D32;}.health-card.warning::before{background:#F9A825;}.health-card.priority::before{background:#D32F2F;}
     .health-label{color:#60758A !important;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.2px;}
     .health-value{color:#14206F !important;font-size:24px;font-weight:900;line-height:1.1;margin-top:7px;}
